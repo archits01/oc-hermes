@@ -1,0 +1,68 @@
+# OpenComputer-approved MCP catalog entry. Schema version 1.
+# Replaces bolna-voice: drives Sarvam Voice Agents ("samvaad") instead of Bolna.
+manifest_version: 1
+
+name: sarvam-voice
+description: Drive Sarvam Voice Agents from OpenComputer to place outbound AI sales calls and fetch call data/transcripts (local stdio bridge, no public port). Replaces bolna-voice.
+source: https://indus.sarvam.ai
+
+transport:
+  type: stdio
+  command: "${INSTALL_DIR}/.venv/bin/python"
+  args:
+    - "${INSTALL_DIR}/run_stdio.py"
+
+install:
+  type: local
+  path: server
+  bootstrap:
+    - "python3 -m venv .venv"
+    - ".venv/bin/pip install ."
+
+# Sarvam's Voice-Agents API authenticates with an X-API-Key header. The key,
+# org id, and workspace id are required and read from env at runtime (written
+# to ~/.hermes/.env). Never commit a literal key — supplied at install time.
+auth:
+  type: api_key
+  env:
+    - name: SARVAM_API_KEY
+      prompt: "Sarvam Voice-Agents API key (sk_samvaad_... from Voice Agents > Settings > API Key)"
+      required: true
+      secret: true
+    - name: SARVAM_ORG_ID
+      prompt: "Sarvam organisation id"
+      required: true
+      secret: false
+    - name: SARVAM_WORKSPACE_ID
+      prompt: "Sarvam workspace id"
+      required: true
+      secret: false
+    - name: SARVAM_AGENT_ID
+      prompt: "Default voice agent app_id (optional; per-call override allowed)"
+      required: false
+      secret: false
+    - name: SARVAM_APP_VERSION
+      prompt: "Default agent app_version (optional)"
+      required: false
+      secret: false
+    - name: SARVAM_CONNECTION_ID
+      prompt: "Telephony connection id (optional)"
+      required: false
+      secret: false
+    - name: SARVAM_FROM_NUMBER
+      prompt: "Agent phone number / from-number (optional)"
+      required: false
+      secret: false
+
+post_install: |
+  Sarvam Voice AI is now available (replaces Bolna). Create a Voice-Agents key
+  at indus.sarvam.ai -> Voice Agents -> Settings -> API Key (a sk_samvaad_...
+  key — the LLM/Speech "Sarvam API" key does NOT work for calls). It is stored
+  as SARVAM_API_KEY in ~/.hermes/.env and sent as the X-API-Key header to
+  apps.sarvam.ai.
+
+  Tools: sarvam_list_agents, sarvam_place_call, sarvam_list_call_attempts,
+  sarvam_get_transcript. sarvam_place_call places a REAL outbound phone call and
+  may incur charges — use it deliberately, and keep human-approval boundaries.
+
+  Start a new OpenComputer session to load the Sarvam voice tools.
