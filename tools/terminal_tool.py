@@ -68,6 +68,7 @@ def _redact_terminal_error_text(value: Any) -> str:
 # ---------------------------------------------------------------------------
 from tools.interrupt import is_interrupted, _interrupt_event  # noqa: F401 — re-exported
 from tools.registry import tool_error
+from tools.shell_heredoc import strip_inert_heredoc_bodies
 # display_hermes_home imported lazily at call site (stale-module safety during hermes update)
 
 
@@ -2380,10 +2381,19 @@ def _strip_quotes(command: str) -> str:
 
     This prevents false positives when keywords like 'nohup' or 'setsid' appear
     in commit messages, Python -c code, echo arguments, or PR body text.
-    Also strips backtick-quoted content and heredoc-style inline text.
+    Also strips backtick-quoted content and provably-inert heredoc body text.
     """
+    # Mask inert heredoc bodies FIRST (before quote-stripping — a heredoc
+    # delimiter may be quoted, e.g. <<'EOF', and the body commonly contains
+    # characters like '&' that are literal payload, not shell operators).
+    # strip_inert_heredoc_bodies is deliberately conservative: it masks a body
+    # only when the delimiter is quoted (no expansion), terminated, on a
+    # simple opener, and fed to a known non-shell consumer — anything
+    # ambiguous stays visible so a real background operator can't hide behind
+    # a fake or executable heredoc.
+    result = strip_inert_heredoc_bodies(command)
     # Remove single-quoted strings (no escaping inside single quotes in shell)
-    result = re.sub(r"'[^']*'", "''", command)
+    result = re.sub(r"'[^']*'", "''", result)
     # Remove double-quoted strings (handle escaped quotes)
     result = re.sub(r'"(?:[^"\\]|\\.)*"', '""', result)
     # Remove backtick-quoted strings
