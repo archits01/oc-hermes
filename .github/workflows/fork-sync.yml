@@ -1,0 +1,87 @@
+name: Fork Sync (upstream Hermes → oc-branding)
+
+# Keeps the branded oc-branding branch up to date with upstream NousResearch/hermes-agent
+# without losing the OpenComputer branding. Merges upstream/main in; pushes if the merge is
+# clean, otherwise opens an issue so a human resolves the conflict. Run manually or weekly.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: fork-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout oc-branding
+        uses: actions/checkout@v4
+        with:
+          ref: oc-branding
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "fork-sync[bot]"
+          git config user.email "fork-sync@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/NousResearch/hermes-agent.git
+          git fetch --no-tags upstream main
+
+      - name: Attempt merge of upstream/main
+        id: merge
+        run: |
+          if git merge --no-edit upstream/main; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push updated oc-branding (clean merge)
+        if: steps.merge.outputs.result == 'clean'
+        run: |
+          if git rev-parse --verify HEAD@{1} >/dev/null 2>&1 && [ "$(git rev-parse HEAD)" != "$(git rev-parse HEAD@{1})" ]; then
+            git push origin oc-branding
+            echo "Pushed merged upstream changes to oc-branding."
+          else
+            echo "Already up to date with upstream — nothing to push."
+          fi
+
+      - name: Open issue on conflict
+        if: steps.merge.outputs.result == 'conflict'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const title = 'Fork sync conflict: upstream/main → oc-branding';
+            const existing = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'fork-sync' });
+            if (existing.data.some(i => i.title === title)) {
+              core.info('Open fork-sync conflict issue already exists; not duplicating.');
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo, title,
+              labels: ['fork-sync'],
+              body: [
+                'The scheduled fork-sync could not merge `upstream/main` into `oc-branding` cleanly.',
+                '',
+                'Resolve manually:',
+                '```',
+                'git checkout oc-branding',
+                'git remote add upstream https://github.com/NousResearch/hermes-agent.git || true',
+                'git fetch upstream main',
+                'git merge upstream/main   # resolve conflicts, keep OpenComputer/Portal branding',
+                'git push origin oc-branding',
+                '```',
+              ].join('\n'),
+            });
