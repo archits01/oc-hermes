@@ -1,0 +1,10 @@
+[project]
+name = "sarvam-voice"
+version = "0.1.0"
+description = "Sarvam Voice Agents MCP server for OpenComputer (outbound AI calls + call data)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp[cli]>=1.6.0",
+]
