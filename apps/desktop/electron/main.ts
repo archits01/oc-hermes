@@ -5684,7 +5684,7 @@ function installMediaPermissions() {
 //   * WebSocket upgrades require a single-use ``?ticket=`` minted at
 //     ``POST /api/auth/ws-ticket`` (cookie-authed). The legacy ``?token=``
 //     path is unconditionally rejected by gated gateways.
-//   * Nous Portal now issues a 24h ROTATING, reuse-detected refresh token
+//   * Portal now issues a 24h ROTATING, reuse-detected refresh token
 //     alongside the ~15-min access token (Portal NAS #293 / hermes #37247).
 //     Both are set as HttpOnly cookies (``hermes_session_at`` ~15 min,
 //     ``hermes_session_rt`` 24h). When the AT cookie lapses but the RT cookie
@@ -6329,7 +6329,7 @@ async function freshGatewayWsUrl(profile) {
 // --- Hermes Cloud discovery + silent per-agent sign-in (cloud-auto-discovery
 // Phase 3) ---------------------------------------------------------------
 //
-// The "cloud" connection mode lets a user sign in to the Nous portal ONCE in
+// The "cloud" connection mode lets a user sign in to the Portal ONCE in
 // the OAuth session partition, then (a) discover their hosted agents and (b)
 // connect to any of them with no second interactive sign-in. Both ride the one
 // portal session cookie living in `persist:hermes-remote-oauth`:
@@ -6340,7 +6340,7 @@ async function freshGatewayWsUrl(profile) {
 //     with that agent's session cookie — no prompt. Each agent still completes
 //     its own PKCE exchange; SSO removes the human click, not a security check.
 
-// Canonical Nous portal base URL, overridable for staging/dev. Mirrors the CLI
+// Canonical Portal base URL, overridable for staging/dev. Mirrors the CLI
 // convention (hermes_cli/auth.py DEFAULT_NOUS_PORTAL_URL + the same env names)
 // so a single override flips every Hermes surface to the same portal.
 const DEFAULT_NOUS_PORTAL_URL = 'https://portal.nousresearch.com'
@@ -6351,7 +6351,7 @@ function resolvePortalBaseUrl() {
   return String(raw).trim().replace(/\/+$/, '')
 }
 
-// Whether the OAuth partition currently holds a live Nous portal session — the
+// Whether the OAuth partition currently holds a live Portal session — the
 // credential that powers both discovery and the silent cascade. The portal
 // authenticates via PRIVY, not the Hermes gateway session cookies, so this
 // checks for the `privy-token` cookie on the portal host (NOT

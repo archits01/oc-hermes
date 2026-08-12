@@ -37,7 +37,7 @@
 const AT_COOKIE_VARIANTS = ['__Host-hermes_session_at', '__Secure-hermes_session_at', 'hermes_session_at']
 const RT_COOKIE_VARIANTS = ['__Host-hermes_session_rt', '__Secure-hermes_session_rt', 'hermes_session_rt']
 
-// The Nous portal (NAS) does NOT use Hermes gateway session cookies — it is a
+// The Portal (NAS) does NOT use Hermes gateway session cookies — it is a
 // Privy-authed Next.js app. NAS `auth()` (src/server/auth/session.ts) reads the
 // `privy-token` access-token cookie (with `privy-id-token` alongside), which is
 // also exactly what the `/api/agents` cookie-auth path validates. So portal

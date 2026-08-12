@@ -182,7 +182,7 @@ export const en: Translations = {
   },
 
   billingBlock: {
-    titleNous: 'Out of Nous credits',
+    titleNous: 'Out of credits',
     titleProvider: provider => `Out of credits — ${provider}`,
     fallbackMessage: 'Your account is out of credits. Add credits to keep going.',
     openBilling: 'Open billing',
@@ -658,7 +658,7 @@ export const en: Translations = {
       cloudLoadingAgents: 'Loading your agents…',
       cloudNoAgents: {
         before: 'No agents found on this account. Create one in the ',
-        linkText: 'Nous portal',
+        linkText: 'Portal',
         after: ', then refresh.'
       },
       cloudRefresh: 'Refresh',
@@ -947,13 +947,13 @@ export const en: Translations = {
       activeBackend: 'Active',
       activeBackendHint: 'This is your active backend',
       useBackend: 'Use this backend',
-      nousIncluded: 'Included with a Nous subscription — sign in to Nous Portal to activate.',
-      nousAuthNeededTitle: 'Sign in to Nous Portal',
-      nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to Nous Portal.`,
+      nousIncluded: 'Included with a subscription — sign in to Portal to activate.',
+      nousAuthNeededTitle: 'Sign in to Portal',
+      nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to Portal.`,
       nousAuthSignIn: 'Sign in',
-      nousAuthDoneTitle: 'Nous Portal connected',
+      nousAuthDoneTitle: 'Portal connected',
       nousAuthDoneMessage: 'Your subscription backends are now active.',
-      nousAuthFailed: 'Nous Portal sign-in did not complete',
+      nousAuthFailed: 'Portal sign-in did not complete',
       noApiKeyRequired: 'No API key required.',
       postSetupHint: step =>
         `This backend needs a one-time install (${step}). Runs on this machine — may take a few minutes.`,
@@ -2413,7 +2413,7 @@ export const en: Translations = {
     loadFailed: 'Could not load models',
     noAuthenticatedProviders: 'No authenticated providers.',
     pro: 'Pro',
-    proNeedsSubscription: 'Pro models need a paid Nous subscription.',
+    proNeedsSubscription: 'Pro models need a paid subscription.',
     free: 'Free',
     freeTier: 'Free tier',
     priceTitle: 'Input / Output price per million tokens',

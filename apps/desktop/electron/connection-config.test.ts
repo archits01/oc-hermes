@@ -542,7 +542,7 @@ test('cookiesHaveLiveSession is false for unrelated cookies and non-arrays', () 
   assert.equal(cookiesHaveLiveSession([]), false)
 })
 
-// --- cookiesHavePrivySession (Nous portal / Privy auth, NOT gateway cookies) ---
+// --- cookiesHavePrivySession (Portal / Privy auth, NOT gateway cookies) ---
 
 test('cookiesHavePrivySession detects the privy-token access cookie', () => {
   assert.equal(cookiesHavePrivySession([{ name: 'privy-token', value: 'jwt' }]), true)

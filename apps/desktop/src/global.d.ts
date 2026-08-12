@@ -669,7 +669,7 @@ export interface DesktopOauthLogoutResult {
 export interface DesktopCloudStatus {
   // The portal base URL the desktop talks to (default or env-overridden).
   portalBaseUrl: string
-  // Whether the OAuth partition holds a live Nous portal (Privy) session — the
+  // Whether the OAuth partition holds a live Portal (Privy) session — the
   // portal authenticates via Privy, so this reflects the privy-token cookie, NOT
   // the hermes gateway session cookies. See cookiesHavePrivySession.
   signedIn: boolean
