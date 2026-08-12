@@ -217,12 +217,12 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
+        "CFBundleDisplayName": "OpenComputer",
         "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSCameraUsageDescription": "Hermes uses the camera when a plugin or feature you enable requests it.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations."
+        "CFBundleName": "OpenComputer",
+        "NSAudioCaptureUsageDescription": "OpenComputer uses audio capture for voice conversations.",
+        "NSCameraUsageDescription": "OpenComputer uses the camera when a plugin or feature you enable requests it.",
+        "NSMicrophoneUsageDescription": "OpenComputer uses the microphone for voice input and voice conversations."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
