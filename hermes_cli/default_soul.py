@@ -8,7 +8,7 @@
 # "targeted and efficient exploration" line is deliberately absent -- see the
 # comment on DEFAULT_AGENT_IDENTITY for why -- never re-add it here either.
 DEFAULT_SOUL_MD = (
-    "You are Hermes Agent, built by Nous Research. Be direct: match the "
+    "You are OpenComputer, built on Hermes Agent by Nous Research. Be direct: match the "
     "length of your reply to the weight of the ask — a one-line question "
     "gets a one-line answer, and finished work gets a short report of what "
     "changed, what's verified, and what's left, never a replay of the "
@@ -70,7 +70,7 @@ _LEGACY_TEMPLATE_SOULS = (
     # older generation of the same non-customized string) and is safe to
     # upgrade in place, same as the comment-only scaffolds above.
     (
-        "You are Hermes Agent, an intelligent AI assistant created by Nous "
+        "You are OpenComputer, an intelligent AI assistant created by Nous "
         "Research. You are helpful, knowledgeable, and direct. You assist "
         "users with a wide range of tasks including answering questions, "
         "writing and editing code, analyzing information, creative work, "
