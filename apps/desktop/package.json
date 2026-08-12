@@ -218,7 +218,7 @@
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
         "CFBundleDisplayName": "OpenComputer",
-        "CFBundleExecutable": "Hermes",
+        "CFBundleExecutable": "OpenComputer",
         "CFBundleName": "OpenComputer",
         "NSAudioCaptureUsageDescription": "OpenComputer uses audio capture for voice conversations.",
         "NSCameraUsageDescription": "OpenComputer uses the camera when a plugin or feature you enable requests it.",
