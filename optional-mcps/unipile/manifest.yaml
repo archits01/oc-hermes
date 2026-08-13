@@ -1,0 +1,72 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+#
+# Schema version 1.
+manifest_version: 1
+
+name: unipile
+description: LinkedIn / email / Instagram / WhatsApp outreach via Unipile — list accounts & connections, read chats/messages, send LinkedIn DMs, send connection requests (with note), create LinkedIn posts, and send emails (CC/BCC). Local stdio bridge, no public port.
+source: https://www.unipile.com
+
+# How to launch the server once installed. The keys here map 1:1 to the
+# `mcp_servers.<name>` block written into ~/.hermes/config.yaml by the
+# existing `_save_mcp_server()` helper in hermes_cli/mcp_config.py.
+#
+# This is a LOCAL stdio MCP server: the catalog ships the server source
+# alongside this manifest (./server/), and ${INSTALL_DIR} is substituted at
+# install time with the path the server was installed into. The bootstrap
+# below creates a local venv and installs the server's own dependencies.
+#
+# The server has no run_stdio.py and no __main__.py; its stdio entrypoint is
+# the `mcp_server_unipile_extended.server` module, whose
+# `if __name__ == "__main__": asyncio.run(main())` block starts the stdio
+# transport (mcp.server.stdio.stdio_server). `pip install .` puts the package
+# into the venv's site-packages, so `python -m mcp_server_unipile_extended.server`
+# resolves regardless of cwd and preserves the package's relative imports.
+transport:
+  type: stdio
+  command: "${INSTALL_DIR}/.venv/bin/python"
+  args:
+    - "-m"
+    - "mcp_server_unipile_extended.server"
+
+# Local install: the server source lives in ./server next to this manifest.
+# The catalog copies it into ${INSTALL_DIR}, then runs bootstrap to build a
+# self-contained venv (mcp + python-dotenv + requests, per the server's
+# pyproject.toml).
+install:
+  type: local
+  path: server
+  bootstrap:
+    - "python3 -m venv .venv"
+    - ".venv/bin/pip install ."
+
+# Authentication. Unipile authenticates with an API key (X-API-KEY) against a
+# per-account DSN base URL. Both are read from the environment at runtime
+# (written to ~/.hermes/.env); the server raises if either is missing. Never
+# commit literal values — the user supplies them at install time.
+auth:
+  type: api_key
+  env:
+    - name: UNIPILE_API_KEY
+      prompt: "Unipile API key"
+      required: true
+      secret: true
+    - name: UNIPILE_DSN
+      prompt: "Unipile DSN (your account base URL, e.g. apiXXXX.unipile.com:14XXX)"
+      required: true
+      secret: false
+
+post_install: |
+  Unipile outreach is now available. Create an account and generate your API
+  key + DSN in the Unipile dashboard (https://www.unipile.com) — they are stored
+  as UNIPILE_API_KEY and UNIPILE_DSN in ~/.hermes/.env and sent to your Unipile
+  DSN endpoint. Connect your LinkedIn / email / Instagram / WhatsApp accounts in
+  the Unipile dashboard first; the agent acts through those linked accounts.
+
+  The exposed tools list accounts/connections, read chats and messages, send
+  LinkedIn DMs, send connection requests, create LinkedIn posts, and send emails.
+  Write actions send REAL messages and posts from your linked accounts — use them
+  deliberately.
+
+  Start a new OpenComputer session to load the Unipile tools.
