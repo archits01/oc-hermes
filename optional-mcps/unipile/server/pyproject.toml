@@ -1,0 +1,14 @@
+[project]
+name = "mcp-server-unipile-extended"
+version = "1.0.0"
+description = "Extended Unipile MCP server with send/write capabilities for LinkedIn and Email outreach"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["mcp>=1.0.0", "python-dotenv>=1.0.0", "requests>=2.31.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+mcp-server-unipile-extended = "mcp_server_unipile_extended:main"
