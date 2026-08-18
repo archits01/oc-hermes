@@ -11,6 +11,7 @@
  *  - RUNTIME: the on-disk doors (`<hermes home>/desktop-plugins/<name>/plugin.js`
  *    and the unified-package half `<hermes home>/plugins/<name>/desktop/plugin.js`)
  *    — the agent's/user's doors, watched + hot-reloaded by the runtime loader.
+ *    LMI Dashboard ships as a bundled plugin so a packaged DMG has the sidebar page.
  */
 
 import { createPluginContext, type HermesPlugin } from './plugin'

@@ -10,6 +10,7 @@ import {
   type ChatMessagePart,
   chatMessageText,
   completeOpenTimelineParts,
+  collapseDuplicateAssistantReplies,
   type GatewayEventPayload,
   mergeFinalAssistantText,
   reasoningPart,
@@ -721,6 +722,7 @@ export function useMessageStream({
         // provably done here — nothing can still be running — so seal any
         // tool-call parts that never saw their completion event.
         nextMessages = sealOpenToolParts(nextMessages)
+        nextMessages = collapseDuplicateAssistantReplies(nextMessages)
 
         const hasInlineError = nextMessages.some(m => m.role === 'assistant' && m.error && !m.hidden)
         const lastVisible = [...nextMessages].reverse().find(m => !m.hidden)
