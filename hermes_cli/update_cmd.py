@@ -1833,6 +1833,82 @@ def _count_commits_between(git_cmd: list[str], cwd: Path, base: str, head: str) 
         pass
     return -1
 
+
+def _git_ref_exists(git_cmd: list[str], cwd: Path, ref: str) -> bool:
+    result = subprocess.run(
+        git_cmd + ["rev-parse", "--verify", "--quiet", ref],
+        cwd=cwd,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _git_is_ancestor(git_cmd: list[str], cwd: Path, ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        git_cmd + ["merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=cwd,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _resolve_apply_update_ref(git_cmd: list[str], cwd: Path, branch: str) -> str:
+    """Pick the remote-tracking ref the apply path should merge.
+
+    ``git fetch origin <branch>`` does not create ``origin/<branch>`` when
+    ``remote.origin.fetch`` is narrowed (this fork: oc-branding only). The
+    apply path used to run ``rev-list HEAD..origin/<branch> --count`` with
+    ``check=True`` and crash with exit 128.
+
+    A present but *diverged* ``origin/<branch>`` is also unsafe: ff-only
+    fails and the apply path ``reset --hard origin/<branch>``. On this VM
+    that would rewind official ``upstream/main`` onto a stale fork tip.
+    Prefer ``upstream/<branch>`` when it still contains HEAD.
+    """
+    origin_ref = f"origin/{branch}"
+    upstream_ref = f"upstream/{branch}"
+
+    has_origin = _git_ref_exists(git_cmd, cwd, origin_ref)
+    if has_origin and _git_is_ancestor(git_cmd, cwd, "HEAD", origin_ref):
+        return origin_ref
+
+    has_upstream_remote = subprocess.run(
+        git_cmd + ["remote", "get-url", "upstream"],
+        cwd=cwd,
+        capture_output=True,
+    ).returncode == 0
+    if has_upstream_remote:
+        subprocess.run(
+            git_cmd + ["fetch", "upstream", branch],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    has_upstream = _git_ref_exists(git_cmd, cwd, upstream_ref)
+
+    if has_upstream and _git_is_ancestor(git_cmd, cwd, "HEAD", upstream_ref):
+        if has_origin:
+            print(
+                f"  ℹ origin/{branch} has diverged from this checkout; "
+                f"updating from {upstream_ref}"
+            )
+        else:
+            print(
+                f"  ℹ origin/{branch} is not available; "
+                f"updating from {upstream_ref}"
+            )
+        return upstream_ref
+
+    if has_origin:
+        return origin_ref
+
+    print(f"✗ Branch '{branch}' not found on origin (origin/{branch} missing).")
+    if has_upstream_remote:
+        print(f"  upstream/{branch} is also missing or does not contain HEAD.")
+    sys.exit(1)
+
 def _should_skip_upstream_prompt() -> bool:
     """Check if user previously declined to add upstream."""
     from hermes_constants import get_hermes_home
@@ -4968,13 +5044,23 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # The zero/nonzero gate is still sound (HEAD == origin/<branch> counts
         # 0), so keep it, but treat the shallow NUMBER as unknown and recover
         # the real one via the GitHub compare API when possible.
+        #
+        # Do not assume origin/<branch> exists. A narrowed
+        # remote.origin.fetch (oc-branding-only) leaves origin/main missing
+        # and used to 128 here. Prefer upstream/<branch> when origin is
+        # missing or has diverged from a checkout that tracks official main.
+        update_ref = _resolve_apply_update_ref(git_cmd, _m().PROJECT_ROOT, branch)
         result = subprocess.run(
-            git_cmd + ["rev-list", f"HEAD..origin/{branch}", "--count"],
+            git_cmd + ["rev-list", f"HEAD..{update_ref}", "--count"],
             cwd=_m().PROJECT_ROOT,
             capture_output=True,
             text=True, encoding="utf-8", errors="replace",
-            check=True,
         )
+        if result.returncode != 0:
+            print(f"✗ Could not compare HEAD to {update_ref}.")
+            if result.stderr:
+                print(f"  {result.stderr.strip()}")
+            sys.exit(1)
         commit_count = int(result.stdout.strip())
 
         apply_is_shallow = (
@@ -4995,7 +5081,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 text=True, encoding="utf-8", errors="replace",
             ).stdout.strip()
             target_sha = subprocess.run(
-                git_cmd + ["rev-parse", f"origin/{branch}"],
+                git_cmd + ["rev-parse", update_ref],
                 cwd=_m().PROJECT_ROOT, capture_output=True,
                 text=True, encoding="utf-8", errors="replace",
             ).stdout.strip()
@@ -5158,7 +5244,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # `pull --ff-only origin <branch>` given the fresh tracking ref;
             # the divergence fallback below is unchanged.
             pull_result = subprocess.run(
-                git_cmd + ["merge", "--ff-only", f"origin/{branch}"],
+                git_cmd + ["merge", "--ff-only", update_ref],
                 cwd=_m().PROJECT_ROOT,
                 capture_output=True,
                 text=True, encoding="utf-8", errors="replace",
@@ -5167,21 +5253,24 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 # ff-only failed — local and remote have diverged (e.g. upstream
                 # force-pushed or rebase).  Since local changes are already
                 # stashed, reset to match the remote exactly.
+                # update_ref is already the safer of origin/<branch> and
+                # upstream/<branch>; never reset onto a stale fork tip that
+                # _resolve_apply_update_ref already rejected.
                 print(
                     "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
                 )
                 reset_result = subprocess.run(
-                    git_cmd + ["reset", "--hard", f"origin/{branch}"],
+                    git_cmd + ["reset", "--hard", update_ref],
                     cwd=_m().PROJECT_ROOT,
                     capture_output=True,
                     text=True, encoding="utf-8", errors="replace",
                 )
                 if reset_result.returncode != 0:
-                    print(f"✗ Failed to reset to origin/{branch}.")
+                    print(f"✗ Failed to reset to {update_ref}.")
                     if reset_result.stderr.strip():
                         print(f"  {reset_result.stderr.strip()}")
                     print(
-                        f"  Try manually: git fetch origin && git reset --hard origin/{branch}"
+                        f"  Try manually: git fetch && git reset --hard {update_ref}"
                     )
                     sys.exit(1)
 
@@ -5272,7 +5361,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             print("✗ Code did not move — update was a no-op.")
             print(
                 f"  HEAD is pinned to {pre_pull_sha[:10]} (detached checkout); "
-                f"origin/{branch} advanced but the working tree stayed put."
+                f"{update_ref} advanced but the working tree stayed put."
             )
             print(
                 "  Reattach to the branch and retry: "
@@ -5294,7 +5383,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         if post_pull_branch and post_pull_branch not in {branch, "HEAD"}:
             print()
             print(
-                f"✗ Update pulled origin/{branch}, but the checkout is on "
+                f"✗ Update pulled {update_ref}, but the checkout is on "
                 f"'{post_pull_branch}' — not claiming success."
             )
             print(
