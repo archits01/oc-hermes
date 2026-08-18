@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from mcp.server.models import InitializationOptions
 import mcp.types as types
 from mcp.server import NotificationOptions, Server
@@ -198,6 +198,42 @@ class UnipileWrapperExtended:
             logger.error(f"Error getting accounts: {str(e)}")
             return json.dumps({"error": str(e)})
 
+    def create_webhook(
+        self,
+        source: str,
+        request_url: str,
+        name: str,
+        headers: Optional[List[Dict]] = None,
+    ) -> str:
+        try:
+            result = self.client.create_webhook(
+                source=source,
+                request_url=request_url,
+                name=name,
+                headers=headers,
+            )
+            return json.dumps(result, default=str)
+        except Exception as e:
+            logger.error(f"Error creating webhook: {str(e)}")
+            return json.dumps({"error": str(e)})
+
+    def list_webhooks(self) -> str:
+        try:
+            return json.dumps(self.client.list_webhooks(), default=str)
+        except Exception as e:
+            logger.error(f"Error listing webhooks: {str(e)}")
+            return json.dumps({"error": str(e)})
+
+    def delete_webhook(self, webhook_id: str) -> str:
+        try:
+            return json.dumps(
+                self.client.delete_webhook(webhook_id=webhook_id),
+                default=str,
+            )
+        except Exception as e:
+            logger.error(f"Error deleting webhook: {str(e)}")
+            return json.dumps({"error": str(e)})
+
     def get_connections(self, account_id: str, limit: int = 50, cursor: Optional[str] = None) -> str:
         try:
             connections = self.client.get_connections(account_id=account_id, limit=limit, cursor=cursor)
@@ -267,17 +303,15 @@ class UnipileWrapperExtended:
             logger.error(f"Error creating post: {str(e)}")
             return json.dumps({"error": str(e)})
 
-    def create_instagram_post(self, account_id: str, text: str, image_path: str) -> str:
+    def create_instagram_post(self, account_id: str, text: str,
+                              image_path: Optional[str] = None) -> str:
         if not image_path:
             return json.dumps({"error": "Instagram posts require image_path"})
         return self.create_post(account_id=account_id, text=text, image_path=image_path)
 
     def delete_post(self, account_id: str, post_id: str) -> str:
         try:
-            result = self.client.delete_post(
-                account_id=account_id,
-                post_id=post_id,
-            )
+            result = self.client.delete_post(account_id=account_id, post_id=post_id)
             return json.dumps(result, default=str)
         except Exception as e:
             logger.error(f"Error deleting post: {str(e)}")
@@ -574,25 +608,25 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
             ),
             types.Tool(
                 name="unipile_create_instagram_post",
-                description="Create an Instagram feed post via Unipile. Requires the Instagram account_id and a local image/video path. Do not use OpenCLI for this account.",
+                description="Create an Instagram feed post. account_id selects the Instagram account. image_path is required. Do not use OpenCLI.",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "account_id": {"type": "string", "description": "Instagram Unipile account ID from unipile_get_accounts"},
-                        "text": {"type": "string", "description": "Caption text. Instagram requires media; this is the caption only."},
-                        "image_path": {"type": "string", "description": "Local absolute file path or URL of the image/video to publish. Required."},
+                        "account_id": {"type": "string", "description": "Instagram Unipile account ID"},
+                        "text": {"type": "string", "description": "Caption"},
+                        "image_path": {"type": "string", "description": "Local absolute path or URL of the image/video. Required."},
                     },
                     "required": ["account_id", "text", "image_path"]
                 },
             ),
             types.Tool(
                 name="unipile_delete_post",
-                description="Delete a LinkedIn or Instagram post on the account identified by account_id. LinkedIn: activity ID, social_id, or urn:li:activity:ID. Instagram: provider_id, not the /p/SHORTCODE.",
+                description="Delete a LinkedIn or Instagram post owned by account_id. LinkedIn: activity ID / social_id / urn:li:activity:ID. Instagram: provider_id, not the public shortcode.",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "account_id": {"type": "string", "description": "Unipile account ID that owns the post"},
-                        "post_id": {"type": "string", "description": "Post ID to delete (LinkedIn activity/social_id or Instagram provider_id)"},
+                        "account_id": {"type": "string", "description": "Same Unipile account that published the post"},
+                        "post_id": {"type": "string", "description": "LinkedIn activity/social_id or Instagram provider_id"},
                     },
                     "required": ["account_id", "post_id"]
                 },
@@ -918,7 +952,7 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                 result = unipile.create_instagram_post(
                     account_id=arguments["account_id"],
                     text=arguments["text"],
-                    image_path=arguments.get("image_path") or "",
+                    image_path=arguments.get("image_path"),
                 )
             elif name == "unipile_delete_post":
                 result = unipile.delete_post(
