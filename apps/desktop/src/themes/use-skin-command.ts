@@ -5,7 +5,7 @@ import { useTheme } from './context'
 // Retired skin names land on the canonical Nous skin so old muscle memory works.
 const ALIASES: Record<string, string> = {
   ares: 'ember',
-  default: 'nous',
+  default: 'ember',
   gold: 'nous',
   hermes: 'nous',
   'nous-light': 'nous'

@@ -115,6 +115,7 @@ import { startWorkspaceSession } from '../session/workspace-session-target'
 import { useOverlayRouting } from '../shell/hooks/use-overlay-routing'
 import { useWindowControlsOverlayWidth } from '../shell/hooks/use-window-controls-overlay-width'
 import {
+  TITLEBAR_SYSTEM_TOOL_COUNT,
   titlebarControlsPosition,
   titlebarControlsYNudge,
   titlebarToolsRightCss,
@@ -1010,13 +1011,11 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // against the static system cluster — in the tree layout the titlebar band
   // sits ABOVE the grid, so AppShell's pane-width anchoring doesn't apply.
   // Count every button the static cluster actually renders: four systemTools
-  // (layout, haptics, keybinds, settings) PLUS the always-present
-  // right-sidebar toggle (see titlebar-controls.tsx). A shared width that
-  // under-counts leaves the find bar, the titlebar header padding, and the
-  // pane-cluster anchor overlapping the fifth button.
-  const SYSTEM_TOOL_COUNT = 5
+  // (layout, HUD, haptics, settings). The files/source-code right-sidebar
+  // toggle is not in the titlebar — keep this in sync with
+  // TITLEBAR_SYSTEM_TOOL_COUNT in titlebar.ts.
   const paneToolCount = rightTitlebarTools.filter(tool => !tool.hidden).length
-  const systemToolsWidth = titlebarToolsWidthCss(SYSTEM_TOOL_COUNT)
+  const systemToolsWidth = titlebarToolsWidthCss(TITLEBAR_SYSTEM_TOOL_COUNT)
 
   const titlebarToolsWidth =
     paneToolCount > 0 ? `calc(${systemToolsWidth} + ${titlebarToolsWidthCss(paneToolCount)})` : systemToolsWidth
