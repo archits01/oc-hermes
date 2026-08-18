@@ -233,6 +233,20 @@ describe('useMessageStream interim text sealing', () => {
     expect(texts).toHaveLength(2)
   })
 
+  it('does not leave a second copy when the same reply streams again after interim', async () => {
+    await mountStream()
+    await start()
+
+    await delta('Hello from the team.')
+    await interim('Hello from the team.')
+    // After interim sealing, a later delta opens a NEW stream bubble. Completing
+    // that stream with the same text used to leave both copies on screen.
+    await delta('Hello from the team.')
+    await complete('Hello from the team.')
+
+    expect(assistantMessages()).toEqual(['Hello from the team.'])
+  })
+
   it('settles an identical final completion onto the interim when response_previewed', async () => {
     await mountStream()
     await start()

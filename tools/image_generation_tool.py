@@ -1059,14 +1059,21 @@ def _postprocess_image_generate_result(raw: str, task_id: str | None = None) -> 
     if not isinstance(payload, dict) or not payload.get("success"):
         return raw
 
+    try:
+        from tools.media_store import persist_generated_payload
+
+        payload = persist_generated_payload(payload)
+    except Exception as exc:  # noqa: BLE001 - keep generation success
+        logger.warning("Could not persist generated image to media.db: %s", exc)
+
     image = payload.get("image")
     if not isinstance(image, str) or not _looks_like_absolute_file_path(image):
-        return raw
+        return json.dumps(payload, ensure_ascii=False) if payload.get("media_id") else raw
 
     env = _active_terminal_env(task_id)
     agent_path = _agent_visible_cache_path(image, env)
     if not agent_path or agent_path == image:
-        return raw
+        return json.dumps(payload, ensure_ascii=False) if payload.get("media_id") else raw
 
     if env is not None:
         _force_artifact_sync(env)

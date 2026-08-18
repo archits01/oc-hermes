@@ -216,6 +216,15 @@ def _videos_cache_dir() -> Path:
     return path
 
 
+def _persist_saved_video(path: Path) -> None:
+    try:
+        from tools.media_store import put_file
+
+        put_file(path, kind="video", meta={"source": "video_cache"})
+    except Exception:
+        logger.exception("Could not persist cached video %s to media.db", path)
+
+
 def save_b64_video(
     b64_data: str,
     *,
@@ -233,6 +242,7 @@ def save_b64_video(
     short = uuid.uuid4().hex[:8]
     path = _videos_cache_dir() / f"{prefix}_{ts}_{short}.{extension}"
     path.write_bytes(raw)
+    _persist_saved_video(path)
     return path
 
 
@@ -247,6 +257,7 @@ def save_bytes_video(
     short = uuid.uuid4().hex[:8]
     path = _videos_cache_dir() / f"{prefix}_{ts}_{short}.{extension}"
     path.write_bytes(raw)
+    _persist_saved_video(path)
     return path
 
 
@@ -319,6 +330,7 @@ def save_url_video(
             pass
         raise ValueError(f"Video at {url} was empty (0 bytes).")
 
+    _persist_saved_video(path)
     return path
 
 

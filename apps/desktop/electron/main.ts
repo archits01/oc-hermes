@@ -76,6 +76,7 @@ import {
   savedProfileSsh,
   tokenPreview
 } from './connection-config'
+import { seedDefaultConnectionIfMissing } from './default-connection'
 import { describeCrashReason, installCrashForensics } from './crash-forensics'
 import { adoptServedDashboardToken } from './dashboard-token'
 import { loadOrCreateInstallationId, sshOwnershipId } from './desktop-installation'
@@ -90,6 +91,7 @@ import {
 } from './desktop-uninstall'
 import { describeDevCdpDecision, resolveDevCdpPort } from './dev-cdp'
 import { installEmbedReferer } from './embed-referer'
+import { installLmiInboxPreviewSession } from './lmi-inbox-preview-session'
 import { createEventDeduper } from './event-dedupe'
 import { findGitBash as _findGitBash } from './find-git-bash'
 import { installFoundInPageForwarder, performFind, stopFind } from './find-in-page'
@@ -611,6 +613,22 @@ const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstr
 const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
 const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'connection.json')
+{
+  const seeded = seedDefaultConnectionIfMissing({
+    connectionPath: DESKTOP_CONNECTION_CONFIG_PATH,
+    defaultCandidates: [
+      process.resourcesPath ? path.join(process.resourcesPath, 'default-connection.json') : null,
+      path.join(APP_ROOT, 'build', 'default-connection.json')
+    ],
+    existsSync: fs.existsSync,
+    readFileSync: (p, encoding) => fs.readFileSync(p, encoding),
+    mkdirSync: (p, opts) => fs.mkdirSync(p, opts),
+    writeFileSync: (p, data) => fs.writeFileSync(p, data)
+  })
+  if (seeded.seeded) {
+    console.log(`[hermes] seeded first-launch remote connection from ${seeded.from}`)
+  }
+}
 const DESKTOP_INSTALLATION_PATH = path.join(app.getPath('userData'), 'desktop-installation.json')
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
 const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
@@ -12328,6 +12346,7 @@ app.whenReady().then(() => {
   installMediaPermissions()
   registerMediaProtocol()
   installEmbedReferer()
+  installLmiInboxPreviewSession()
   registerDeepLinkProtocol()
   ensureWslWindowsFonts()
   configureSpellChecker()

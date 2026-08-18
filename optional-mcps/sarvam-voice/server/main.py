@@ -25,16 +25,25 @@ import httpx
 
 mcp = FastMCP("SarvamVoiceAI")
 
-API_KEY = os.environ.get("SARVAM_API_KEY", "")
-ORG = os.environ.get("SARVAM_ORG_ID", "")
-WS = os.environ.get("SARVAM_WORKSPACE_ID", "")
+
+def _env(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name, "")
+        if value:
+            return value
+    return ""
+
+
+API_KEY = _env("SARVAM_API_KEY")
+ORG = _env("SARVAM_ORG_ID")
+WS = _env("SARVAM_WORKSPACE_ID")
 BASE = "https://apps.sarvam.ai/api"
 
 # Defaults (per-call args override these)
-DEF_AGENT = os.environ.get("SARVAM_AGENT_ID", "")
-DEF_VERSION = os.environ.get("SARVAM_APP_VERSION", "")
-DEF_CONNECTION = os.environ.get("SARVAM_CONNECTION_ID", "")
-DEF_FROM = os.environ.get("SARVAM_FROM_NUMBER", "")
+DEF_AGENT = _env("SARVAM_APP_ID", "SARVAM_AGENT_ID")
+DEF_VERSION = _env("SARVAM_APP_VERSION")
+DEF_CONNECTION = _env("SARVAM_CONNECTION_ID")
+DEF_FROM = _env("SARVAM_AGENT_PHONE_NUMBER", "SARVAM_FROM_NUMBER")
 
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
 
@@ -67,12 +76,22 @@ async def sarvam_list_agents() -> dict:
         return err
     url = f"{BASE}/app-authoring/v1/orgs/{ORG}/workspaces/{WS}/deployments"
     data = await _request("GET", url)
-    if isinstance(data, dict) and "items" in data:
-        return {"total": data.get("total", 0),
-                "agents": [{"id": i.get("id") or i.get("app_id"),
-                            "name": i.get("name"),
-                            "version": i.get("app_version") or i.get("version")}
-                           for i in data.get("items", [])]}
+    if isinstance(data, dict):
+        items = data.get("items") or data.get("deployments") or data.get("agents") or []
+        if isinstance(items, list):
+            agents = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                agents.append({
+                    "id": item.get("id") or item.get("app_id") or item.get("agent_id"),
+                    "name": item.get("name") or item.get("agent_name") or item.get("display_name"),
+                    "version": item.get("app_version") or item.get("version"),
+                })
+            total = data.get("total")
+            if not isinstance(total, int):
+                total = len(agents)
+            return {"total": total, "agents": agents}
     return data
 
 

@@ -267,6 +267,22 @@ class UnipileWrapperExtended:
             logger.error(f"Error creating post: {str(e)}")
             return json.dumps({"error": str(e)})
 
+    def create_instagram_post(self, account_id: str, text: str, image_path: str) -> str:
+        if not image_path:
+            return json.dumps({"error": "Instagram posts require image_path"})
+        return self.create_post(account_id=account_id, text=text, image_path=image_path)
+
+    def delete_post(self, account_id: str, post_id: str) -> str:
+        try:
+            result = self.client.delete_post(
+                account_id=account_id,
+                post_id=post_id,
+            )
+            return json.dumps(result, default=str)
+        except Exception as e:
+            logger.error(f"Error deleting post: {str(e)}")
+            return json.dumps({"error": str(e)})
+
     def send_email(self, account_id: str, to: list, subject: str, body: str,
                   cc: Optional[list] = None, bcc: Optional[list] = None) -> str:
         try:
@@ -554,6 +570,31 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                         "external_link": {"type": "string", "description": "URL for preview card (must also appear in text). Optional."},
                     },
                     "required": ["account_id", "text"]
+                },
+            ),
+            types.Tool(
+                name="unipile_create_instagram_post",
+                description="Create an Instagram feed post via Unipile. Requires the Instagram account_id and a local image/video path. Do not use OpenCLI for this account.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "account_id": {"type": "string", "description": "Instagram Unipile account ID from unipile_get_accounts"},
+                        "text": {"type": "string", "description": "Caption text. Instagram requires media; this is the caption only."},
+                        "image_path": {"type": "string", "description": "Local absolute file path or URL of the image/video to publish. Required."},
+                    },
+                    "required": ["account_id", "text", "image_path"]
+                },
+            ),
+            types.Tool(
+                name="unipile_delete_post",
+                description="Delete a LinkedIn or Instagram post on the account identified by account_id. LinkedIn: activity ID, social_id, or urn:li:activity:ID. Instagram: provider_id, not the /p/SHORTCODE.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "account_id": {"type": "string", "description": "Unipile account ID that owns the post"},
+                        "post_id": {"type": "string", "description": "Post ID to delete (LinkedIn activity/social_id or Instagram provider_id)"},
+                    },
+                    "required": ["account_id", "post_id"]
                 },
             ),
 
@@ -872,6 +913,17 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                     text=arguments["text"],
                     image_path=arguments.get("image_path"),
                     external_link=arguments.get("external_link"),
+                )
+            elif name == "unipile_create_instagram_post":
+                result = unipile.create_instagram_post(
+                    account_id=arguments["account_id"],
+                    text=arguments["text"],
+                    image_path=arguments.get("image_path") or "",
+                )
+            elif name == "unipile_delete_post":
+                result = unipile.delete_post(
+                    account_id=arguments["account_id"],
+                    post_id=arguments["post_id"],
                 )
             elif name == "unipile_get_linkedin_post":
                 result = unipile.get_post(

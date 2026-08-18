@@ -59,6 +59,32 @@ describe('toChatMessages', () => {
     expect(chatMessageText(messages[0])).toBe('Planning.Done.')
   })
 
+  it('collapses consecutive identical text-only assistant replies into one bubble', () => {
+    const messages = toChatMessages([
+      { role: 'user', content: 'hi', timestamp: 1 },
+      { role: 'assistant', content: 'Hello from the team.', timestamp: 2 },
+      { role: 'assistant', content: 'Hello from the team.', timestamp: 3 }
+    ])
+
+    const assistants = messages.filter(message => message.role === 'assistant')
+
+    expect(assistants).toHaveLength(1)
+    expect(chatMessageText(assistants[0])).toBe('Hello from the team.')
+  })
+
+  it('keeps distinct consecutive assistant narration and the final answer', () => {
+    const messages = toChatMessages([
+      { role: 'user', content: 'what time is it?', timestamp: 1 },
+      { role: 'assistant', content: 'Let me check the clock.', timestamp: 2 },
+      { role: 'assistant', content: 'It is 9 PM.', timestamp: 3 }
+    ])
+
+    const assistants = messages.filter(message => message.role === 'assistant')
+
+    expect(assistants).toHaveLength(2)
+    expect(assistants.map(chatMessageText)).toEqual(['Let me check the clock.', 'It is 9 PM.'])
+  })
+
   it('keeps assistant tool-call iterations in one loaded assistant bubble', () => {
     const messages = toChatMessages([
       { role: 'user', content: 'check this repo', timestamp: 1 },

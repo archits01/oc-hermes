@@ -3,8 +3,7 @@
  *
  *  - BUNDLED: every `src/plugins/<name>/plugin.{ts,tsx}` default-exporting a
  *    `HermesPlugin` registers automatically (vite glob — drop a folder in).
- *    None ship in-tree today; reference/demo plugins live in the companion
- *    `hermes-example-plugins` repo.
+ *    LMI Dashboard ships this way so a packaged DMG has the sidebar page.
  *  - RUNTIME: the on-disk door (`<hermes home>/desktop-plugins/<name>/plugin.js`)
  *    — the agent's/user's door, watched + hot-reloaded by the runtime loader.
  */

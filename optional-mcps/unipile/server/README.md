@@ -14,6 +14,11 @@ Extended MCP server for Unipile with full send/write capabilities for sales outr
 - ✅ Send LinkedIn direct messages
 - ✅ Send LinkedIn connection requests (with personalized note)
 - ✅ Create LinkedIn posts
+- ✅ Delete LinkedIn posts (`unipile_delete_post`)
+
+**WRITE Operations - Instagram:**
+- ✅ Create Instagram feed posts (`unipile_create_instagram_post`, requires media + Instagram account_id)
+- ✅ Delete Instagram posts (`unipile_delete_post` with Instagram account_id)
 
 **WRITE Operations - Email:**
 - ✅ Send emails with CC/BCC support
@@ -44,6 +49,8 @@ export UNIPILE_API_KEY="your-api-key-here"
 5. `unipile_send_linkedin_message` - Send LinkedIn DM
 6. `unipile_send_connection_request` - Send connection request
 7. `unipile_create_linkedin_post` - Post to LinkedIn
-8. `unipile_send_email` - Send email
+8. `unipile_create_instagram_post` - Post to Instagram (account_id + image required)
+9. `unipile_delete_post` - Delete a LinkedIn or Instagram post by account_id + post_id
+10. `unipile_send_email` - Send email
 
 Perfect for sales automation, outreach campaigns, and lead engagement.

@@ -36,17 +36,28 @@ function electronBuilderCli() {
   return path.join(path.dirname(pkgJson), rel)
 }
 
+function targetIsCrossPlatform(argv) {
+  const wantsMac = argv.includes("--mac")
+  const wantsWin = argv.includes("--win")
+  const wantsLinux = argv.includes("--linux")
+  if (wantsMac && process.platform !== "darwin") return true
+  if (wantsWin && process.platform !== "win32") return true
+  if (wantsLinux && process.platform !== "linux") return true
+  return false
+}
+
 const dist = electronDistDir()
 const args = []
-if (dist && fs.existsSync(distBinary(dist))) {
+const argv = process.argv.slice(2)
+if (dist && fs.existsSync(distBinary(dist)) && !targetIsCrossPlatform(argv)) {
   args.push(`-c.electronDist=${dist}`)
 } else {
   console.warn(
-    "[run-electron-builder] no local electron dist; electron-builder will fetch " +
+    "[run-electron-builder] no same-platform electron dist; electron-builder will fetch " +
       "via @electron/get (electronVersion + ELECTRON_MIRROR)."
   )
 }
-args.push(...process.argv.slice(2))
+args.push(...argv)
 
 const result = spawnSync(process.execPath, [electronBuilderCli(), ...args], {
   stdio: "inherit",

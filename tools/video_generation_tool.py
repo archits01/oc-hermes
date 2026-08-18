@@ -420,6 +420,13 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
             prompt=prompt,
         ))
 
+    try:
+        from tools.media_store import persist_generated_payload
+
+        result = persist_generated_payload(result)
+    except Exception as exc:  # noqa: BLE001 - keep generation success
+        logger.warning("Could not persist generated video to media.db: %s", exc)
+
     return json.dumps(result)
 
 

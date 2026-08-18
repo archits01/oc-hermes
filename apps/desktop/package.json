@@ -134,7 +134,7 @@
     "streamdown": "2.5.0",
     "tailwind-merge": "3.6.0",
     "tailwindcss": "4.3.3",
-    "tw-shimmer": "0.4.12",
+    "tw-shimmer": "^0.4.12",
     "unicode-animations": "1.0.3",
     "unified": "11.0.5",
     "unist-util-visit-parents": "6.0.2",
@@ -203,6 +203,13 @@
       {
         "from": "assets/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "build",
+        "to": ".",
+        "filter": [
+          "default-connection.json"
+        ]
       }
     ],
     "asar": true,

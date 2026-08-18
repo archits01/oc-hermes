@@ -9,6 +9,7 @@ import {
   type ChatMessage,
   type ChatMessagePart,
   chatMessageText,
+  collapseDuplicateAssistantReplies,
   type GatewayEventPayload,
   mergeFinalAssistantText,
   reasoningPart,
@@ -652,6 +653,8 @@ export function useMessageStream({
             nextMessages = [...prev, newAssistantFromCompletion()]
           }
         }
+
+        nextMessages = collapseDuplicateAssistantReplies(nextMessages)
 
         const hasInlineError = nextMessages.some(m => m.role === 'assistant' && m.error && !m.hidden)
         const lastVisible = [...nextMessages].reverse().find(m => !m.hidden)

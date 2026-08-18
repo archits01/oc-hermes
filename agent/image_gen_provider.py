@@ -242,6 +242,15 @@ def _images_cache_dir() -> Path:
     return path
 
 
+def _persist_saved_image(path: Path) -> None:
+    try:
+        from tools.media_store import put_file
+
+        put_file(path, kind="image", meta={"source": "image_cache"})
+    except Exception:
+        logger.exception("Could not persist cached image %s to media.db", path)
+
+
 def save_b64_image(
     b64_data: str,
     *,
@@ -259,6 +268,7 @@ def save_b64_image(
     short = uuid.uuid4().hex[:8]
     path = _images_cache_dir() / f"{prefix}_{ts}_{short}.{extension}"
     path.write_bytes(raw)
+    _persist_saved_image(path)
     return path
 
 
@@ -341,6 +351,7 @@ def save_url_image(
             pass
         raise ValueError(f"Image at {url} returned 0 bytes; refusing to cache.")
 
+    _persist_saved_image(path)
     return path
 
 

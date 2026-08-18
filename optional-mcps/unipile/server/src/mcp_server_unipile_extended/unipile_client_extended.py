@@ -99,14 +99,27 @@ class UnipileClientExtended:
         response.raise_for_status()
         return response.json()
 
+    @staticmethod
+    def _attachment_content_type(path: str) -> str:
+        ext = __import__("os").path.splitext(path)[1].lower()
+        return {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+            ".gif": "image/gif",
+            ".mp4": "video/mp4",
+            ".mov": "video/quicktime",
+        }.get(ext, "application/octet-stream")
+
     def create_post(self, account_id: str, text: str,
                    image_path: Optional[str] = None,
                    external_link: Optional[str] = None) -> Dict:
-        """Create a LinkedIn post with optional image attachment.
+        """Create a post on the account identified by account_id.
 
-        Uses POST /api/v1/posts with multipart/form-data.
-        - image_path: local file path or URL. If URL, downloads first.
-        - external_link: URL to show as preview card (must also appear in text).
+        Works for LinkedIn and Instagram. Uses POST /api/v1/posts with
+        multipart/form-data. Instagram requires image_path. LinkedIn image
+        and external_link are optional.
         """
         import tempfile, os as _os
         url = f"{self.base_url}/api/v1/posts"
@@ -135,6 +148,8 @@ class UnipileClientExtended:
                         ext = ".jpg"
                     elif "webp" in ct:
                         ext = ".webp"
+                    elif "mp4" in ct:
+                        ext = ".mp4"
                     tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
                     tmp.write(r.content)
                     tmp.close()
@@ -145,7 +160,7 @@ class UnipileClientExtended:
                 multipart_fields["attachments"] = (
                     _os.path.basename(image_path),
                     file_handle,
-                    "image/png",
+                    self._attachment_content_type(image_path),
                 )
 
             response = requests.post(url, headers=headers, files=multipart_fields)
@@ -156,6 +171,35 @@ class UnipileClientExtended:
                 file_handle.close()
             if tmp_file and _os.path.exists(tmp_file):
                 _os.unlink(tmp_file)
+
+    def delete_post(self, account_id: str, post_id: str) -> Dict:
+        """Delete a post on the account identified by account_id.
+
+        DELETE /api/v1/posts/{post_id}?account_id=X
+        LinkedIn: numeric activity ID, social_id, or urn:li:activity:ID.
+        Instagram: provider_id, not the shortcode from instagram.com/p/SHORTCODE.
+        """
+        url = f"{self.base_url}/api/v1/posts/{post_id}"
+        params = {"account_id": account_id}
+        response = requests.delete(url, headers=self.headers, params=params)
+        response.raise_for_status()
+        if not response.content:
+            return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id}
+        try:
+            payload = response.json()
+        except ValueError:
+            return {
+                "object": "PostDeleted",
+                "post_id": post_id,
+                "account_id": account_id,
+                "status": response.status_code,
+            }
+        if isinstance(payload, dict):
+            payload.setdefault("object", "PostDeleted")
+            payload.setdefault("post_id", post_id)
+            payload.setdefault("account_id", account_id)
+            return payload
+        return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id, "result": payload}
 
     def send_email(self, account_id: str, to: List[str], subject: str, body: str,
                   cc: Optional[List[str]] = None, bcc: Optional[List[str]] = None) -> Dict:

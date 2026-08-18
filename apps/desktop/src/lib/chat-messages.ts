@@ -474,6 +474,63 @@ export function hasToolPart(message: ChatMessage): boolean {
   return message.parts.some(part => part.type === 'tool-call')
 }
 
+export function assistantTextsAreSameReply(left: string, right: string): boolean {
+  const a = left.trim()
+  const b = right.trim()
+
+  if (!a || !b) {
+    return false
+  }
+
+  return a === b || b.startsWith(a) || a.startsWith(b)
+}
+
+function isProseOnlyAssistant(message: ChatMessage): boolean {
+  return (
+    message.role === 'assistant' &&
+    !message.hidden &&
+    message.parts.every(part => part.type === 'text' || part.type === 'reasoning')
+  )
+}
+
+/** Drop a text-only assistant that is immediately followed by the same reply.
+ *  Live turns can seal an interim, then stream the identical final into a new
+ *  bubble; stored history can persist both rows. Keep the later copy. */
+export function collapseDuplicateAssistantReplies(messages: ChatMessage[]): ChatMessage[] {
+  const next: ChatMessage[] = []
+
+  for (const message of messages) {
+    if (message.hidden || message.role !== 'assistant') {
+      next.push(message)
+      continue
+    }
+
+    let previousVisibleIndex = -1
+
+    for (let index = next.length - 1; index >= 0; index -= 1) {
+      if (!next[index].hidden) {
+        previousVisibleIndex = index
+        break
+      }
+    }
+
+    const previous = previousVisibleIndex >= 0 ? next[previousVisibleIndex] : undefined
+
+    if (
+      previous &&
+      isProseOnlyAssistant(previous) &&
+      assistantTextsAreSameReply(chatMessageText(previous), chatMessageText(message))
+    ) {
+      next[previousVisibleIndex] = message
+      continue
+    }
+
+    next.push(message)
+  }
+
+  return next
+}
+
 function toolId(payload: GatewayEventPayload | undefined): string {
   return payload?.tool_id || payload?.tool_call_id || payload?.id || ''
 }
@@ -1102,9 +1159,11 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
     message.role === 'assistant' ? { ...message, parts: dedupeGeneratedImageEchoesInParts(message.parts) } : message
   )
 
-  return withUniqueToolCallIds(
-    withoutGeneratedImageEchoes.filter(
-      m => chatMessageText(m).trim() || m.parts.some(part => part.type !== 'text') || m.attachmentRefs?.length
+  return collapseDuplicateAssistantReplies(
+    withUniqueToolCallIds(
+      withoutGeneratedImageEchoes.filter(
+        m => chatMessageText(m).trim() || m.parts.some(part => part.type !== 'text') || m.attachmentRefs?.length
+      )
     )
   )
 }

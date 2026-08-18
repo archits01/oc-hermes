@@ -201,8 +201,11 @@ def build_models_payload(
     )
 
     moa_row = _moa_provider_row(ctx.current_provider)
-    if moa_row is not None:
+    excluded = {str(p).strip().lower() for p in (ctx.excluded_providers or []) if p}
+    if moa_row is not None and "moa" not in excluded:
         rows = [moa_row] + [r for r in rows if str(r.get("slug", "")).lower() != "moa"]
+    if excluded:
+        rows = [r for r in rows if str(r.get("slug", "")).lower() not in excluded]
 
     if explicit_only:
         rows = _filter_explicit_provider_rows(rows, ctx)
