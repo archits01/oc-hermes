@@ -1,0 +1,27 @@
+[Unit]
+Description=OpenComputer read-only LMI shadow adapter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/opencomputer-shadow/lmi_shadow_reader.py
+Environment=LMI_SHADOW_HOST=127.0.0.1
+Environment=LMI_SHADOW_PORT=18650
+Environment=LMI_SHADOW_DB=/root/unipile_webhooks.db
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=128M
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target
