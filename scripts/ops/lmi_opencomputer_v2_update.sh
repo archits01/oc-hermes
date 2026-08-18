@@ -11,11 +11,10 @@ readonly REPO="/opt/opencomputer-v2"
 readonly HOME_DIR="/opt/opencomputer-v2-data"
 readonly SERVICE="opencomputer-v2-gateway.service"
 readonly BRANCH="oc-branding"
-readonly EXPECTED_REMOTE="https://github.com/archits01/oc-hermes.git"
+readonly EXPECTED_REMOTE="https://github.com/archits01/hermes-agent.git"
 readonly BACKUP_ROOT="/opt/opencomputer-v2-backups"
 readonly LOCK_FILE="/run/opencomputer-v2-update.lock"
 readonly QUEUE_HELPER="${REPO}/plugins/platforms/_lmi_live_reply_queue.py"
-readonly LMI_MEDIA_SYNC="${REPO}/scripts/ops/lmi_media_overlay_sync.py"
 readonly LOCAL_DESKTOP_STATUS="http://127.0.0.1:29129/api/status"
 
 engagement_ports_ready() {
@@ -28,13 +27,6 @@ engagement_ports_ready() {
 desktop_status_ready() {
   curl -fsS --max-time 5 "${LOCAL_DESKTOP_STATUS}" |
     python3 -c 'import json,sys; raise SystemExit(0 if json.load(sys.stdin).get("gateway_running") is True else 1)'
-}
-
-git_repo() {
-  # The service runs as root while the checkout may retain the UID that
-  # created it.  Scope Git's ownership exception to this authenticated,
-  # fixed install root; never change the operator's global Git config.
-  git -c "safe.directory=${REPO}" -C "${REPO}" "$@"
 }
 
 mode="apply"
@@ -55,12 +47,11 @@ for required in \
   "${REPO}/venv/bin/hermes" \
   "${HOME_DIR}/config.yaml" \
   "${HOME_DIR}/runtime.env" \
-  "${HOME_DIR}/plugins/platforms" \
-  "${LMI_MEDIA_SYNC}"; do
+  "${HOME_DIR}/plugins/platforms"; do
   [[ -e ${required} ]] || { echo "ERROR: missing ${required}" >&2; exit 1; }
 done
 
-origin="$(git_repo remote get-url origin)"
+origin="$(git -C "${REPO}" remote get-url origin)"
 if [[ ${origin} != "${EXPECTED_REMOTE}" ]]; then
   echo "ERROR: refusing unexpected origin: ${origin}" >&2
   exit 1
@@ -73,7 +64,6 @@ export HERMES_HOME="${HOME_DIR}"
 
 if [[ ${mode} == "check" ]]; then
   "${REPO}/venv/bin/hermes" update --check --branch "${BRANCH}"
-  "${REPO}/venv/bin/python" "${LMI_MEDIA_SYNC}" --check
   systemctl is-active --quiet "${SERVICE}"
   desktop_status_ready
   engagement_ports_ready
@@ -89,8 +79,8 @@ cp -a "${HOME_DIR}/runtime.env" "${backup}/runtime.env"
 cp -a "${HOME_DIR}/plugins" "${backup}/plugins"
 [[ -f ${HOME_DIR}/SOUL.md ]] && cp -a "${HOME_DIR}/SOUL.md" "${backup}/SOUL.md"
 [[ -f ${QUEUE_HELPER} ]] && cp -a "${QUEUE_HELPER}" "${backup}/_lmi_live_reply_queue.py"
-git_repo rev-parse HEAD >"${backup}/commit.before"
-git_repo status --short --untracked-files=no >"${backup}/tracked-status.before"
+git -C "${REPO}" rev-parse HEAD >"${backup}/commit.before"
+git -C "${REPO}" status --short --untracked-files=no >"${backup}/tracked-status.before"
 
 if [[ -s ${backup}/tracked-status.before ]]; then
   echo "ERROR: tracked checkout changes present; refusing update" >&2
@@ -103,16 +93,6 @@ fi
 # updater removed untracked files; never restore over a tracked upstream file.
 if [[ ! -f ${QUEUE_HELPER} && -f ${backup}/_lmi_live_reply_queue.py ]]; then
   install -m 0644 "${backup}/_lmi_live_reply_queue.py" "${QUEUE_HELPER}"
-fi
-
-# External LMI adapters and the shared media runtime live under HERMES_HOME,
-# not the Hermes checkout. Sync them from the now-verified Git commit before
-# restarting either service. A failed hash/backup/compile check must leave the
-# old process running and requires an operator retry; it must never continue
-# into a restart with a partial overlay.
-if ! "${REPO}/venv/bin/python" "${LMI_MEDIA_SYNC}"; then
-    echo "CRITICAL LMI media overlay sync failed - services NOT restarted" >&2
-    exit 1
 fi
 
 "${REPO}/venv/bin/python" -m py_compile \
@@ -134,7 +114,7 @@ done
 systemctl is-active --quiet "${SERVICE}"
 desktop_status_ready
 engagement_ports_ready
-git_repo rev-parse HEAD >"${backup}/commit.after"
+git -C "${REPO}" rev-parse HEAD >"${backup}/commit.after"
 
 printf '%s\n' \
   "branch=${BRANCH}" \
