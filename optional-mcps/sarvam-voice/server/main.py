@@ -8,13 +8,15 @@ Auth: X-API-Key with a Voice-Agents key created at
 (the LLM/Speech "Sarvam API" key does NOT work here).
 
 Config (env, never hardcode secrets):
-  SARVAM_API_KEY        - the sk_samvaad_... key   (required)
-  SARVAM_ORG_ID         - organisation id          (required)
-  SARVAM_WORKSPACE_ID   - workspace id             (required)
-  SARVAM_AGENT_ID       - default agent app_id     (optional; per-call override allowed)
-  SARVAM_APP_VERSION    - default agent version    (optional)
-  SARVAM_CONNECTION_ID  - telephony connection id  (optional)
-  SARVAM_FROM_NUMBER    - agent_phone_number       (optional)
+  SARVAM_API_KEY           - the sk_samvaad_... key   (required)
+  SARVAM_ORG_ID            - organisation id          (required)
+  SARVAM_WORKSPACE_ID      - workspace id             (required)
+  SARVAM_APP_ID            - default agent app_id     (preferred)
+  SARVAM_AGENT_ID          - legacy alias for app_id  (supported)
+  SARVAM_APP_VERSION       - default agent version    (optional)
+  SARVAM_CONNECTION_ID     - telephony connection id  (optional)
+  SARVAM_AGENT_PHONE_NUMBER - preferred caller number (preferred)
+  SARVAM_FROM_NUMBER       - legacy alias for caller  (supported)
 
 Design mirrors the old Bolna MCP: outputs are compact to save LLM context.
 """
@@ -25,25 +27,19 @@ import httpx
 
 mcp = FastMCP("SarvamVoiceAI")
 
-
-def _env(*names: str) -> str:
-    for name in names:
-        value = os.environ.get(name, "")
-        if value:
-            return value
-    return ""
-
-
-API_KEY = _env("SARVAM_API_KEY")
-ORG = _env("SARVAM_ORG_ID")
-WS = _env("SARVAM_WORKSPACE_ID")
+API_KEY = os.environ.get("SARVAM_API_KEY", "")
+ORG = os.environ.get("SARVAM_ORG_ID", "")
+WS = os.environ.get("SARVAM_WORKSPACE_ID", "")
 BASE = "https://apps.sarvam.ai/api"
 
 # Defaults (per-call args override these)
-DEF_AGENT = _env("SARVAM_APP_ID", "SARVAM_AGENT_ID")
-DEF_VERSION = _env("SARVAM_APP_VERSION")
-DEF_CONNECTION = _env("SARVAM_CONNECTION_ID")
-DEF_FROM = _env("SARVAM_AGENT_PHONE_NUMBER", "SARVAM_FROM_NUMBER")
+DEF_AGENT = os.environ.get("SARVAM_APP_ID", "") or os.environ.get("SARVAM_AGENT_ID", "")
+DEF_VERSION = os.environ.get("SARVAM_APP_VERSION", "")
+DEF_CONNECTION = os.environ.get("SARVAM_CONNECTION_ID", "")
+DEF_FROM = os.environ.get("SARVAM_AGENT_PHONE_NUMBER", "") or os.environ.get("SARVAM_FROM_NUMBER", "")
+DIRECT_CALL_ENABLED = os.environ.get("SARVAM_DIRECT_CALL_ENABLED", "").lower() in {
+    "1", "true", "yes", "on",
+}
 
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
 
@@ -77,8 +73,13 @@ async def sarvam_list_agents() -> dict:
     url = f"{BASE}/app-authoring/v1/orgs/{ORG}/workspaces/{WS}/deployments"
     data = await _request("GET", url)
     if isinstance(data, dict):
-        items = data.get("items") or data.get("deployments") or data.get("agents") or []
-        if isinstance(items, list):
+        items = None
+        for key in ("items", "deployments", "data", "results"):
+            value = data.get(key)
+            if isinstance(value, list):
+                items = value
+                break
+        if items is not None:
             agents = []
             for item in items:
                 if not isinstance(item, dict):
@@ -86,7 +87,7 @@ async def sarvam_list_agents() -> dict:
                 agents.append({
                     "id": item.get("id") or item.get("app_id") or item.get("agent_id"),
                     "name": item.get("name") or item.get("agent_name") or item.get("display_name"),
-                    "version": item.get("app_version") or item.get("version"),
+                    "version": item.get("app_version") or item.get("version") or item.get("appVersion"),
                 })
             total = data.get("total")
             if not isinstance(total, int):
@@ -114,6 +115,14 @@ async def sarvam_place_call(
     agent_phone_number default to the SARVAM_* env values if omitted.
     Returns Sarvam's response incl. attempt_id.
     """
+    if not DIRECT_CALL_ENABLED:
+        return {
+            "error": "direct_call_disabled",
+            "detail": (
+                "Direct MCP dialing is disabled. Use the consented callback "
+                "pipeline, which enforces identity, opt-out, and idempotency gates."
+            ),
+        }
     err = _cfg_error()
     if err:
         return err
@@ -125,7 +134,7 @@ async def sarvam_place_call(
                               ("connection_id", conn), ("agent_phone_number", frm)) if not v]
     if missing:
         return {"error": "missing_agent_config", "missing": missing,
-                "hint": "set SARVAM_AGENT_ID/APP_VERSION/CONNECTION_ID/FROM_NUMBER or pass them explicitly"}
+                "hint": "set SARVAM_APP_ID or SARVAM_AGENT_ID, plus SARVAM_APP_VERSION, SARVAM_CONNECTION_ID, and SARVAM_AGENT_PHONE_NUMBER or SARVAM_FROM_NUMBER"}
 
     # Sarvam expects app_version as a number when it is numeric (e.g. 3), else a string.
     ver_val: object = int(ver) if str(ver).isdigit() else ver

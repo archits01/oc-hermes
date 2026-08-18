@@ -109,24 +109,21 @@ class UnipileClientExtended:
             ".webp": "image/webp",
             ".gif": "image/gif",
             ".mp4": "video/mp4",
-            ".mov": "video/quicktime",
         }.get(ext, "application/octet-stream")
 
     def create_post(self, account_id: str, text: str,
                    image_path: Optional[str] = None,
                    external_link: Optional[str] = None) -> Dict:
-        """Create a post on the account identified by account_id.
+        """Create a LinkedIn or Instagram post for the given account_id.
 
-        Works for LinkedIn and Instagram. Uses POST /api/v1/posts with
-        multipart/form-data. Instagram requires image_path. LinkedIn image
-        and external_link are optional.
+        Uses POST /api/v1/posts with multipart/form-data.
+        account_id selects the connected account/platform.
+        Instagram requires image_path. LinkedIn image is optional.
         """
         import tempfile, os as _os
         url = f"{self.base_url}/api/v1/posts"
-        # Auth header only (Content-Type set by requests for multipart)
         headers = {"X-API-KEY": self.headers["X-API-KEY"], "accept": "application/json"}
 
-        # Build multipart fields - use (None, value) tuples to force multipart encoding
         multipart_fields = {
             "account_id": (None, account_id),
             "text": (None, text),
@@ -138,7 +135,6 @@ class UnipileClientExtended:
         tmp_file = None
         try:
             if image_path:
-                # If it's a URL, download it first
                 if image_path.startswith(("http://", "https://")):
                     r = requests.get(image_path, timeout=60)
                     r.raise_for_status()
@@ -173,33 +169,27 @@ class UnipileClientExtended:
                 _os.unlink(tmp_file)
 
     def delete_post(self, account_id: str, post_id: str) -> Dict:
-        """Delete a post on the account identified by account_id.
+        """Delete a LinkedIn or Instagram post owned by account_id.
 
-        DELETE /api/v1/posts/{post_id}?account_id=X
-        LinkedIn: numeric activity ID, social_id, or urn:li:activity:ID.
-        Instagram: provider_id, not the shortcode from instagram.com/p/SHORTCODE.
+        DELETE /api/v1/posts/{post_id}?account_id=...
+        LinkedIn: activity ID, social_id, or urn:li:activity:ID.
+        Instagram: provider_id, not the public shortcode.
         """
         url = f"{self.base_url}/api/v1/posts/{post_id}"
         params = {"account_id": account_id}
         response = requests.delete(url, headers=self.headers, params=params)
         response.raise_for_status()
-        if not response.content:
-            return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id}
-        try:
-            payload = response.json()
-        except ValueError:
-            return {
-                "object": "PostDeleted",
-                "post_id": post_id,
-                "account_id": account_id,
-                "status": response.status_code,
-            }
-        if isinstance(payload, dict):
-            payload.setdefault("object", "PostDeleted")
-            payload.setdefault("post_id", post_id)
-            payload.setdefault("account_id", account_id)
-            return payload
-        return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id, "result": payload}
+        if response.content:
+            try:
+                data = response.json()
+                if isinstance(data, dict):
+                    data.setdefault("object", "PostDeleted")
+                    data.setdefault("post_id", post_id)
+                    data.setdefault("account_id", account_id)
+                    return data
+            except ValueError:
+                pass
+        return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id, "status": response.status_code}
 
     def send_email(self, account_id: str, to: List[str], subject: str, body: str,
                   cc: Optional[List[str]] = None, bcc: Optional[List[str]] = None) -> Dict:
