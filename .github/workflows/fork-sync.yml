@@ -93,6 +93,13 @@ jobs:
           grep -q archits01  scripts/install.sh            || { echo "::error::install.sh no longer points at the fork"; fail=1; }
           grep -q archits01  scripts/install.ps1           || { echo "::error::install.ps1 no longer points at the fork"; fail=1; }
           grep -rq OpenComputer apps/desktop/src/i18n/en.ts || { echo "::error::branding lost: i18n en.ts"; fail=1; }
+          # The LMI platforms must stay classified as messaging sources, or every
+          # customer conversation lands in the global Sessions sidebar. Upstream has
+          # no idea these adapters exist, so its copy of session-source.ts silently
+          # reverts this - which is exactly what happened on 2026-08-19.
+          for p in linkedin instagram whatsapp_unipile ; do
+            grep -q "'$p'" apps/desktop/src/lib/session-source.ts || { echo "::error::$p dropped from MESSAGING_SESSION_SOURCE_IDS - customer chats will flood the Sessions sidebar"; fail=1; }
+          done
           test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0   || { echo "::error::conflict markers committed"; fail=1; }
           exit $fail
 
