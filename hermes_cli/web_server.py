@@ -17145,7 +17145,7 @@ def _render_active_theme_bootstrap_css() -> str:
     """
     try:
         config = load_config()
-        active = cfg_get(config, "dashboard", "theme", default="default")
+        active = cfg_get(config, "dashboard", "theme", default="ember")
         if not active or not isinstance(active, str):
             return ""
         # Built-in: the bundle already owns the definition, no flash.
@@ -17653,7 +17653,7 @@ async def get_dashboard_themes():
     """
     def _run():
         config = load_config()
-        active = cfg_get(config, "dashboard", "theme", default="default")
+        active = cfg_get(config, "dashboard", "theme", default="ember")
         user_themes = _discover_user_themes()
         seen = set()
         themes = []

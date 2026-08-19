@@ -74,6 +74,9 @@ export const titlebarButtonClass =
 export const titlebarToolClusterClass =
   'fixed z-70 flex flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]'
 
+/** Static right-cluster buttons: layout, HUD, haptics, settings. The files/source-code sidebar toggle is not shown. */
+export const TITLEBAR_SYSTEM_TOOL_COUNT = 4
+
 /** Width reserved for N abutting titlebar tool buttons. */
 export function titlebarToolsWidthCss(toolCount: number): string {
   return `calc(${toolCount} * var(--titlebar-control-size))`

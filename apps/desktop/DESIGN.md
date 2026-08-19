@@ -231,10 +231,9 @@ Notes:
   action. Do not introduce a third icon set or mix styles within one control
   group.
 - **`BrandMark`** (`src/components/brand-mark.tsx`) is the brand glyph — the
-  OpenComputer flower mark on a white tile, softly rounded, identical in
-  light/dark. Never use the nous-girl / Hermes girl. It replaced scattered
-  Sparkles glyphs in updates / onboarding / about. Use it for hero/brand
-  moments; don't reintroduce decorative star/sparkle icons or the girl mark.
+  OpenComputer flower on a white tile, softly rounded, identical in light/dark. Never the nous-girl / Hermes mark.
+  It replaced scattered Sparkles glyphs in updates / onboarding / about. Use it
+  for hero/brand moments; don't reintroduce decorative star/sparkle icons.
 
 ## Motion
 

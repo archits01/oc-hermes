@@ -48,6 +48,13 @@ class TestBuiltinSkins:
         assert skin.get_color("session_border") == "#6E584B"
         assert skin.get_branding("agent_name") == "Ares Agent"
 
+    def test_ember_alias_loads_ares_palette(self):
+        from hermes_cli.skin_engine import load_skin
+        ember = load_skin("ember")
+        ares = load_skin("ares")
+        assert ember.get_color("banner_border") == ares.get_color("banner_border")
+        assert ember.get_color("banner_accent") == ares.get_color("banner_accent")
+
     def test_ares_has_spinner_customization(self):
         from hermes_cli.skin_engine import load_skin
         skin = load_skin("ares")
