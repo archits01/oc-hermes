@@ -2446,7 +2446,7 @@ function AvatarPicker({ shape, color, image, onShape, onColor, onImage, generate
               className: 'px-2 py-3 text-center text-xs leading-5 text-(--ui-text-tertiary)',
               children:
                 imagen === false
-                  ? 'No image model available. If you just enabled one (or updated Hermes), restart the gateway: Ctrl+K → "Restart gateway".'
+                  ? 'No image model available. If you just enabled one (or updated Open Computer), restart the gateway: Ctrl+K → "Restart gateway".'
                   : 'Checking image backend…'
             })
         : null,
@@ -3265,7 +3265,7 @@ let botOpenGeneration = 0
 
 async function openStoredBotChat(name, storedId, summary) {
   if (!storedId || typeof host.openSession !== 'function') {
-    throw new Error('This Hermes Desktop version cannot open stored sessions')
+    throw new Error('This Open Computer Desktop version cannot open stored sessions')
   }
 
   const hasAuthoritativeCount =
@@ -3431,7 +3431,7 @@ async function prepareBotSource(bot, pinnedChat) {
   }
 
   if (typeof host.ensureAgent !== 'function') {
-    throw new Error('Update Hermes Desktop to chat with agents on other connections.')
+    throw new Error('Update Open Computer Desktop to chat with agents on other connections.')
   }
 
   await host.ensureAgent(bot.connectionId, bot.name)
@@ -3486,7 +3486,7 @@ function displayName(bot, meta) {
   // that reads like nobody bothered. Present it as Hermes (the agent it is)
   // unless the user gives it a real title.
   if ((bot.name || '').trim().toLowerCase() === 'default' && !bot.title) {
-    return 'Hermes'
+    return 'Open Computer'
   }
 
   const raw = (bot.title || bot.name || '').replace(/[-_]+/g, ' ').trim()
@@ -3791,7 +3791,7 @@ function rotateGroupSpeakers(members, round) {
  *  literally named "default" — render it as Hermes (matching displayName and
  *  the @hermes handle) so the main agent never loses its name in rooms. */
 function groupSpeakerLabel(name) {
-  return (name || '').trim().toLowerCase() === 'default' ? 'Hermes' : name
+  return (name || '').trim().toLowerCase() === 'default' ? 'Open Computer' : name
 }
 
 /** Room-log line as a member sees it: `Name (user): …` / `Name: …` /
@@ -5356,7 +5356,7 @@ function AdvancedProfileConfig({ bot, state, setState }) {
   if (unsupported) {
     return jsx('div', {
       className: 'px-2 py-3 text-center text-xs text-(--ui-text-tertiary)',
-      children: 'Full configuration needs a newer gateway (restart it after updating Hermes).'
+      children: 'Full configuration needs a newer gateway (restart it after updating Open Computer).'
     })
   }
 
@@ -5748,7 +5748,7 @@ function HubSkillsSection({ forProfile, onInstalled }) {
                 },
                 children: jsx('iframe', {
                   src: HUB_PICKER_URL,
-                  title: 'Hermes Skills Hub',
+                  title: 'Open Computer Skills Hub',
                   ref: frameRef,
                   style: {
                     width: '133.34%',
@@ -6777,7 +6777,7 @@ function CreateAgentDialog({ open, onClose, roster }) {
                         ? jsx('div', {
                             className: 'px-2 py-3 text-center text-xs text-(--ui-text-tertiary)',
                             children:
-                              'Capability catalog needs a newer gateway (restart it after updating Hermes).'
+                              'Capability catalog needs a newer gateway (restart it after updating Open Computer).'
                           })
                         : !caps
                           ? jsx('div', {
@@ -7800,7 +7800,7 @@ async function openProfileSession(botName, session, gatewayGeneration) {
   const id = String(session?.id || '')
   if (!NAME_RE.test(profile) || !id || gatewayGeneration !== $sessionsGatewayGeneration.get()) return
   if (typeof host.openSession !== 'function') {
-    throw new Error('This Hermes Desktop version cannot open stored sessions')
+    throw new Error('This Open Computer Desktop version cannot open stored sessions')
   }
 
   // Same hydration contract as canonical Bot Chats (#89206): a bare open can
@@ -9814,7 +9814,7 @@ function BotsPane() {
               children: [
                 jsx('div', {
                   children: gatewayUp
-                    ? `Roster unavailable: ${error instanceof Error ? error.message : 'gateway error'}. If your gateway predates profiles.list, update Hermes and restart the gateway.`
+                    ? `Roster unavailable: ${error instanceof Error ? error.message : 'gateway error'}. If your gateway predates profiles.list, update Open Computer and restart the gateway.`
                     : 'Waiting for the gateway connection… (remote gateways can take a few seconds; retries automatically)'
                 }),
                 jsx(Button, {
@@ -9911,7 +9911,7 @@ function BotsPane() {
               children: [
                 'This will permanently delete the bot ',
                 jsx('span', { className: 'font-medium text-foreground', children: deleting.name }),
-                ' and its associated Hermes profile at ',
+                ' and its associated Open Computer profile at ',
                 jsx('span', { className: 'font-mono text-xs', children: deleting.path }),
                 '. This cannot be undone.'
               ]
