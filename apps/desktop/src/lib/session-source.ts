@@ -50,6 +50,17 @@ const LOCAL_SOURCE_IDS = new Set(LOCAL_SESSION_SOURCE_IDS)
 // section (fetched separately from local recents). Mirrors the gateway platform
 // adapters; keep in sync with PLATFORM_ICONS in app/messaging/platform-icon.tsx.
 export const MESSAGING_SESSION_SOURCE_IDS = [
+  // OpenComputer: the Unipile-backed LMI platforms. These are real external
+  // messaging channels and must live in the messaging section, not the global
+  // Sessions sidebar - otherwise every customer conversation lands in the
+  // left-hand list and buries the operator's own sessions. Upstream does not
+  // know these adapters exist, so a merge that takes its copy of this file
+  // silently reverts the behaviour; that is exactly what happened on
+  // 2026-08-19. Keep in sync with plugins.enabled in config.yaml.
+  'linkedin',
+  'instagram',
+  'whatsapp_unipile',
+  'messenger_unipile',
   'telegram',
   'discord',
   'slack',
