@@ -253,7 +253,7 @@ function AgentPluginsSection() {
             <SelectContent>
               {profiles.map(profile => (
                 <SelectItem key={profile.name} value={profile.name}>
-                  {profile.is_default ? 'Hermes (default)' : profile.name}
+                  {profile.is_default ? 'Open Computer (default)' : profile.name}
                 </SelectItem>
               ))}
             </SelectContent>
