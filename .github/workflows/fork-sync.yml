@@ -1,8 +1,18 @@
-name: Fork Sync (upstream Hermes → oc-branding)
+name: Fork Sync (upstream Hermes → sync candidate)
 
-# Keeps the branded oc-branding branch up to date with upstream NousResearch/hermes-agent
-# without losing the OpenComputer branding. Merges upstream/main in; pushes if the merge is
-# clean, otherwise opens an issue so a human resolves the conflict. Run manually or weekly.
+# Weekly upstream catch-up for the OpenComputer fork.
+#
+# Deliberately does NOT push oc-branding. Customers install from oc-branding
+# (scripts/install.sh, install.ps1 and the desktop update check all resolve to
+# archits01/hermes-agent @ oc-branding), so an unreviewed auto-merge there ships
+# straight to real installs. Instead this produces a candidate branch a human
+# fast-forwards after review.
+#
+# Fails loudly on conflict or on a lost OpenComputer file. A failed scheduled run
+# emails the repo owner through GitHub's own notifications, which is why this does
+# not depend on Issues - Issues are disabled on forks by default and the previous
+# version of this workflow died with HTTP 410 trying to file one, so nobody was
+# told for days.
 
 on:
   schedule:
@@ -11,7 +21,6 @@ on:
 
 permissions:
   contents: write
-  issues: write
 
 concurrency:
   group: fork-sync
@@ -34,54 +43,70 @@ jobs:
 
       - name: Fetch upstream
         run: |
-          git remote add upstream https://github.com/NousResearch/hermes-agent.git
+          git remote add upstream https://github.com/NousResearch/hermes-agent.git || \
+            git remote set-url upstream https://github.com/NousResearch/hermes-agent.git
           git fetch --no-tags upstream main
 
-      - name: Attempt merge of upstream/main
+      - name: Anything to merge?
+        id: gap
+        run: |
+          behind="$(git rev-list --count HEAD..upstream/main)"
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "oc-branding is $behind commits behind upstream/main"
+
+      - name: Merge onto a candidate branch
+        if: steps.gap.outputs.behind != '0'
         id: merge
         run: |
-          if git merge --no-edit upstream/main; then
-            echo "result=clean" >> "$GITHUB_OUTPUT"
+          BR="sync/upstream-$(date -u +%Y%m%d)"
+          echo "branch=$BR" >> "$GITHUB_OUTPUT"
+          git checkout -b "$BR"
+          if git merge --no-ff --no-edit upstream/main; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
           else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Merge conflict. Files:"
+            git diff --name-only --diff-filter=U
             git merge --abort || true
-            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            exit 1
           fi
 
-      - name: Push updated oc-branding (clean merge)
-        if: steps.merge.outputs.result == 'clean'
+      - name: OpenComputer invariants must survive
+        if: steps.merge.outputs.clean == 'true'
         run: |
-          if git rev-parse --verify HEAD@{1} >/dev/null 2>&1 && [ "$(git rev-parse HEAD)" != "$(git rev-parse HEAD@{1})" ]; then
-            git push origin oc-branding
-            echo "Pushed merged upstream changes to oc-branding."
-          else
-            echo "Already up to date with upstream — nothing to push."
-          fi
+          fail=0
+          for f in \
+            scripts/fork-sync.sh \
+            optional-mcps/sarvam-voice/server/main.py \
+            optional-mcps/unipile/server/src/mcp_server_unipile_extended/server.py \
+            tools/media_store.py \
+            apps/desktop/src/plugins/lmi-dashboard/plugin.tsx \
+            apps/desktop/electron/default-connection.ts \
+            apps/desktop/public/flower.png \
+            scripts/ops/lmi_opencomputer_v2_update.sh ; do
+            [ -e "$f" ] || { echo "::error::OC file lost in merge: $f"; fail=1; }
+          done
+          # A clean merge can still silently delete branding when upstream renames a
+          # file - that produces no conflict at all, so assert the markers directly.
+          grep -q OpenComputer hermes_cli/default_soul.py || { echo "::error::branding lost: default_soul.py"; fail=1; }
+          grep -q OpenComputer scripts/install.sh          || { echo "::error::branding lost: install.sh"; fail=1; }
+          grep -q archits01  scripts/install.sh            || { echo "::error::install.sh no longer points at the fork"; fail=1; }
+          grep -q archits01  scripts/install.ps1           || { echo "::error::install.ps1 no longer points at the fork"; fail=1; }
+          grep -rq OpenComputer apps/desktop/src/i18n/en.ts || { echo "::error::branding lost: i18n en.ts"; fail=1; }
+          test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0   || { echo "::error::conflict markers committed"; fail=1; }
+          exit $fail
 
-      - name: Open issue on conflict
-        if: steps.merge.outputs.result == 'conflict'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const title = 'Fork sync conflict: upstream/main → oc-branding';
-            const existing = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'fork-sync' });
-            if (existing.data.some(i => i.title === title)) {
-              core.info('Open fork-sync conflict issue already exists; not duplicating.');
-              return;
-            }
-            await github.rest.issues.create({
-              owner, repo, title,
-              labels: ['fork-sync'],
-              body: [
-                'The scheduled fork-sync could not merge `upstream/main` into `oc-branding` cleanly.',
-                '',
-                'Resolve manually:',
-                '```',
-                'git checkout oc-branding',
-                'git remote add upstream https://github.com/NousResearch/hermes-agent.git || true',
-                'git fetch upstream main',
-                'git merge upstream/main   # resolve conflicts, keep OpenComputer/Portal branding',
-                'git push origin oc-branding',
-                '```',
-              ].join('\n'),
-            });
+      - name: Push the candidate
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          git push origin "${{ steps.merge.outputs.branch }}"
+          echo "### Upstream sync candidate ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`${{ steps.merge.outputs.branch }}\` (${{ steps.gap.outputs.behind }} upstream commits)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Review, then ship it:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "git checkout oc-branding" >> "$GITHUB_STEP_SUMMARY"
+          echo "git merge --ff-only ${{ steps.merge.outputs.branch }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "git push origin oc-branding" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
