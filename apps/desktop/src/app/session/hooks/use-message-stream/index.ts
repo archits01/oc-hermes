@@ -9,8 +9,8 @@ import {
   type ChatMessage,
   type ChatMessagePart,
   chatMessageText,
-  completeOpenTimelineParts,
   collapseDuplicateAssistantReplies,
+  completeOpenTimelineParts,
   type GatewayEventPayload,
   mergeFinalAssistantText,
   reasoningPart,
@@ -18,18 +18,17 @@ import {
   sealOpenToolParts,
   upsertToolPart
 } from '@/lib/chat-messages'
-import type { ErrorSurface } from '@/lib/error-surface'
 import {
   dedupeGeneratedImageEchoesInParts,
   generatedImageEchoSources,
   stripGeneratedImageEchoes
 } from '@/lib/generated-images'
-import { nextTodosFromToolEvent, parseTodoRevision } from '@/lib/todos'
+import { parseTodos } from '@/lib/todos'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { isDiskFullErrorMessage, notifyError } from '@/store/notifications'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { upsertSubagent } from '@/store/subagents'
-import { $todosBySession, setSessionTodos } from '@/store/todos'
+import { setSessionTodos } from '@/store/todos'
 
 import type { ClientSessionState } from '../../../types'
 
@@ -463,10 +462,10 @@ export function useMessageStream({
       // The composer status stack owns todo display now (no inline panel) —
       // mirror every todo state the tool reports into its session store.
       if (payload?.name === 'todo') {
-        const todos = nextTodosFromToolEvent($todosBySession.get()[sessionId] ?? [], payload)
+        const todos = parseTodos(payload.todos) ?? parseTodos(payload.result) ?? parseTodos(payload.args)
 
         if (todos) {
-          setSessionTodos(sessionId, todos, parseTodoRevision(payload))
+          setSessionTodos(sessionId, todos)
         }
       }
 
@@ -563,7 +562,7 @@ export function useMessageStream({
       sessionId: string,
       text: string,
       responsePreviewed?: boolean,
-      failure?: { error: string; partial: boolean; surface?: ErrorSurface | null },
+      failure?: { error: string; partial: boolean },
       occurredAt = Date.now() / 1000
     ) => {
       let shouldHydrate = false
@@ -618,8 +617,7 @@ export function useMessageStream({
             parts: completeOpenTimelineParts(message.parts, occurredAt),
             pending: false,
             interim: false,
-            ...(durationS !== undefined ? { durationS } : {}),
-            ...(completionError && failure?.surface ? { errorSurface: failure.surface } : {})
+            ...(durationS !== undefined ? { durationS } : {})
           }
 
           if (completionError && !keepFailedPartialText) {
@@ -644,8 +642,7 @@ export function useMessageStream({
           completedAt: occurredAt,
           branchGroupId: state.pendingBranchGroup ?? undefined,
           ...(durationS !== undefined ? { durationS } : {}),
-          ...(completionError && { error: completionError }),
-          ...(completionError && failure?.surface ? { errorSurface: failure.surface } : {})
+          ...(completionError && { error: completionError })
         })
 
         const prev = state.messages
@@ -722,32 +719,22 @@ export function useMessageStream({
         // provably done here — nothing can still be running — so seal any
         // tool-call parts that never saw their completion event.
         nextMessages = sealOpenToolParts(nextMessages)
+        // OpenComputer: collapse duplicate assistant replies after the turn has
+        // settled, so dedupe compares final text rather than a partial stream.
         nextMessages = collapseDuplicateAssistantReplies(nextMessages)
 
         const hasInlineError = nextMessages.some(m => m.role === 'assistant' && m.error && !m.hidden)
         const lastVisible = [...nextMessages].reverse().find(m => !m.hidden)
         const unresolvedUserTail = lastVisible?.role === 'user'
-
-        const sameTurnAssistant = streamId
-          ? nextMessages.find(m => m.id === streamId)
-          : [...nextMessages].reverse().find(m => m.role === 'assistant' && !m.hidden)
-
-        const localVisibleText = sameTurnAssistant ? chatMessageText(sameTurnAssistant).trim() : ''
         // Having streamed the reply normally means this window owns the whole
         // turn and re-reading stored history would be wasted work. That only
         // holds for a turn it STARTED: an adopted one (resumed onto a session
         // already running elsewhere) arrives reply-first, with no prompt row,
         // so it has to hydrate or the user's own message never shows up.
-        // Adopted turns still hydrate so a resume-onto-running session can
-        // pick up the user's prompt row — unless this window already has
-        // visible assistant text and the terminal frame is empty. In that
-        // case hydrate would replace the live bubble with a stored empty
-        // row (#95514; adoptedRunningTurn must not short-circuit).
         shouldHydrate =
           !completionError &&
           !hasInlineError &&
           !unresolvedUserTail &&
-          !(localVisibleText && !finalText) &&
           (state.adoptedRunningTurn || !state.sawAssistantPayload || !finalText)
 
         return {
@@ -802,7 +789,7 @@ export function useMessageStream({
         const streamId = state.streamId ?? `assistant-error-${Date.now()}`
         const groupId = state.pendingBranchGroup ?? undefined
         const prev = state.messages
-        const error = errorMessage.trim() || 'OpenComputer reported an error'
+        const error = errorMessage.trim() || 'Open Computer reported an error'
 
         const durationS = state.turnStartedAt
           ? Math.max(1, Math.round((Date.now() - state.turnStartedAt) / 1000))

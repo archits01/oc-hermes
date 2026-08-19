@@ -1,7 +1,6 @@
 import {
   Box,
   Brain,
-  Globe,
   type IconComponent,
   Lock,
   MessageCircle,
@@ -47,7 +46,7 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
   {
     prefix: 'NOUS_',
     name: 'Portal',
-    description: 'Hosted Hermes & Nous-trained models',
+    description: 'Hosted Open Computer & Nous-trained models',
     docsUrl: 'https://portal.nousresearch.com',
     priority: 0
   },
@@ -427,8 +426,7 @@ export const FIELD_LABELS: Record<string, string> = defineFieldCopy({
   },
   browser: {
     allowPrivateUrls: 'Browser Private URLs',
-    autoLocalForPrivateUrls: 'Local Browser For Private URLs',
-    useRealProfile: 'Use My Real Browser Profile'
+    autoLocalForPrivateUrls: 'Local Browser For Private URLs'
   },
   checkpoints: {
     enabled: 'File Checkpoints',
@@ -556,13 +554,9 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     repoScanExcludePaths: 'Folders and their descendants to skip during repository discovery.'
   },
   timezone: 'IANA timezone identifier. Blank uses the system timezone.',
-  browser: {
-    useRealProfile:
-      "Local browsing uses your real logins. Hermes copies your default browser's profile (cookies, logins, preferences) into a managed snapshot and drives it with its packaged Chromium — your live profile is never opened directly, and the copy is refreshed from it on each run. Also lets the agent open a local real-profile session on request even when a cloud browser backend is configured. Only Chromium browsers (Chrome, Edge, Brave, Brave Origin, Chromium) are supported; a non-Chromium default fails with a clear message. Off by default."
-  },
   agent: {
     imageInputMode: 'Controls how image attachments are sent to the model.',
-    maxTurns: 'Upper bound for tool-calling turns before OpenComputer stops a run.'
+    maxTurns: 'Upper bound for tool-calling turns before Open Computer stops a run.'
   },
   terminal: {
     cwd: 'Default project folder for tool and terminal work.',
@@ -576,9 +570,9 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   codeExecution: {
     mode: 'How strictly code execution is scoped to the current project.'
   },
-  fileReadMaxChars: 'Maximum characters OpenComputer can read from one file request.',
+  fileReadMaxChars: 'Maximum characters Open Computer can read from one file request.',
   approvals: {
-    mode: 'How OpenComputer handles commands that need explicit approval.',
+    mode: 'How Open Computer handles commands that need explicit approval.',
     timeout: 'How long approval prompts wait before timing out.'
   },
   security: {
@@ -673,14 +667,10 @@ export const SECTIONS: DesktopConfigSection[] = [
       'command_allowlist',
       'security.redact_secrets',
       'security.allow_private_urls',
+      'browser.allow_private_urls',
+      'browser.auto_local_for_private_urls',
       'checkpoints.enabled'
     ]
-  },
-  {
-    id: 'browser',
-    label: 'Browser',
-    icon: Globe,
-    keys: ['browser.use_real_profile', 'browser.allow_private_urls', 'browser.auto_local_for_private_urls']
   },
   {
     id: 'memory',
@@ -744,8 +734,7 @@ export const SECTIONS: DesktopConfigSection[] = [
       'stt.elevenlabs.tag_audio_events',
       'stt.elevenlabs.diarize',
       'voice.record_key',
-      'voice.max_recording_seconds',
-      'voice.client_direct'
+      'voice.max_recording_seconds'
     ]
   },
   {

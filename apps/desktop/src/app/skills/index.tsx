@@ -55,7 +55,6 @@ import {
 import { PanelEmpty, PanelPill } from '../overlays/panel'
 import { PageSearchShell } from '../page-search-shell'
 import { SETTINGS_ROUTE } from '../routes'
-import { BrowserRealProfilePanel } from '../settings/browser-real-profile-panel'
 import { ComputerUsePanel } from '../settings/computer-use-panel'
 import { asText, includesQuery, prettyName, toolNames, toolsetDisplayLabel } from '../settings/helpers'
 import { TerminalBackendPanel } from '../settings/terminal-backend-panel'
@@ -721,7 +720,7 @@ export function SkillsView({
 
     return (profilesData?.profiles ?? []).map(p => ({
       key: p.name,
-      label: p.is_default ? 'OpenComputer (default)' : p.name,
+      label: p.is_default ? 'Open Computer (default)' : p.name,
       value: p.name
     }))
   }, [multiConnection, profilesData, rosterData])
@@ -1167,10 +1166,6 @@ function ToolsetDetail({
         </div>
       )}
       {toolset.name === 'computer_use' && <ComputerUsePanel onConfiguredChange={onConfiguredChange} />}
-      {/* Real-profile consent toggle ABOVE the backend/provider matrix — the
-          config option users kept missing because its only GUI home was the
-          generic Settings → Config editor. */}
-      {toolset.name === 'browser' && <BrowserRealProfilePanel profile={profile} />}
       {toolset.name === 'terminal' && <TerminalBackendPanel onConfiguredChange={onConfiguredChange} />}
       <ToolsetConfigPanel
         key={`${toolset.name}:${profileScopeKey(profile)}`}

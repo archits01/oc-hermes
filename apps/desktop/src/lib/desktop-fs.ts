@@ -1,4 +1,3 @@
-import { hermesApi } from '@/api/client'
 import type {
   HermesConnection,
   HermesReadDirResult,
@@ -20,13 +19,6 @@ export function setDesktopFsRemotePicker(next: DesktopFsRemotePicker | null) {
 function connectionCacheKey(connection: HermesConnection | null) {
   if (!connection) {
     return 'local:'
-  }
-
-  // A profile belongs to a registry connection, not the whole Desktop. The
-  // registry id is the isolation boundary, including for SSH connections; the
-  // stable host identity below is only the fallback for legacy connections.
-  if (connection.connectionId) {
-    return `connection:${connection.connectionId}:${connection.profile || ''}`
   }
 
   const target =
@@ -59,14 +51,14 @@ function bridge() {
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error('OpenComputer Desktop bridge is unavailable')
+    throw new Error('Open Computer Desktop bridge is unavailable')
   }
 
   return desktop
 }
 
 function remoteFsApi<T>(path: string, body?: Record<string, unknown>): Promise<T> {
-  return hermesApi<T>(
+  return bridge().api<T>(
     body ? { body, method: 'POST', path, profile: desktopFsProfile() } : { path, profile: desktopFsProfile() }
   )
 }
@@ -209,15 +201,13 @@ export async function desktopFileDiff(repoRoot: string, filePath: string): Promi
 
 export async function selectDesktopPaths(options?: HermesSelectPathsOptions): Promise<string[]> {
   const desktop = bridge()
-  const profile = desktopFsProfile()
-  const localOptions = profile ? { ...options, profile } : options
 
   if (!isDesktopFsRemoteMode()) {
-    return desktop.selectPaths(localOptions)
+    return desktop.selectPaths(options)
   }
 
   if (!options?.directories) {
-    return desktop.selectPaths(localOptions)
+    return desktop.selectPaths(options)
   }
 
   return remotePicker ? remotePicker.selectPaths({ ...options, multiple: false }) : []

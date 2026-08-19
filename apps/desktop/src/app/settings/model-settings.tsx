@@ -109,12 +109,12 @@ interface AuxTaskMeta {
 
 const AUX_TASKS: readonly AuxTaskMeta[] = [
   { key: 'vision' },
+  { key: 'web_extract' },
   { key: 'compression' },
   { key: 'skills_hub' },
   { key: 'approval' },
   { key: 'mcp' },
   { key: 'title_generation' },
-  { key: 'review' },
   { key: 'curator' }
 ]
 
@@ -182,13 +182,11 @@ interface ModelSettingsProps {
   /** Notified after the main model is applied, so live UI stores can sync. */
   onMainModelChanged?: (provider: string, model: string) => void
   /** Shared settings "Applies to" scope: a concrete profile to edit instead of
-   *  the app's active one, or undefined to follow the active profile (default).
-   *  Request-shaped on purpose — the API helpers treat `null` as "deliberately
-   *  target the primary/default backend", so this prop never carries null. */
-  scopeProfile?: string
+   *  the app's active one, or null to follow the active profile (default). */
+  scopeProfile?: null | string
 }
 
-export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSettingsProps) {
+export function ModelSettings({ onMainModelChanged, scopeProfile = null }: ModelSettingsProps) {
   const { t } = useI18n()
   const m = t.settings.model
   const [loading, setLoading] = useState(true)
@@ -541,7 +539,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
       setConfig(next)
 
       try {
-        await saveHermesConfig(next, scopeProfile)
+        await saveHermesConfig(next, scopeProfile ?? undefined)
       } catch (err) {
         setConfig(prev)
         notifyError(err, m.defaultsFailed)
@@ -862,7 +860,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
           <p className="mt-2 text-xs text-muted-foreground">
             {selectedProviderRow?.auth_type === 'api_key'
               ? `${selectedProviderRow?.name} needs an API key — set it up to choose a model.`
-              : `${selectedProviderRow?.name} signs in through your browser — OpenComputer runs the flow for you.`}
+              : `${selectedProviderRow?.name} signs in through your browser — Open Computer runs the flow for you.`}
           </p>
         )}
         {config && mainModel && (reasoningSupported || fastSupported) && (
