@@ -70,6 +70,64 @@ export const USER_ACTION_ICON_BUTTON_CLASS =
   'grid place-items-center rounded-md bg-transparent text-(--ui-text-secondary) transition-colors hover:bg-(--ui-control-active-background) hover:text-foreground disabled:cursor-default disabled:text-(--ui-text-quaternary) disabled:opacity-70'
 
 export const USER_ACTION_ICON_SIZE = '0.6875rem'
+/** The minimum an AUI thread message must expose to be counted. */
+export interface OrdinalThreadMessage {
+  id?: string
+  role?: string
+  status?: { reason?: string; type?: string }
+}
+
+/**
+ * The checkpoint ordinal for `messageId` within the rendered thread.
+ *
+ * This MUST agree with `visibleUserOrdinal()` / `visibleUserMessageIndices()`
+ * in use-prompt-actions/utils.ts — that is the ONE visible-user ordinal space
+ * the rewind path shares with the gateway, and `planRestore()` resolves this
+ * number back to a message with `visibleUserIndexAtOrdinal()`.
+ *
+ * Two turns are excluded there and so must be excluded here:
+ *   - hidden user turns, which never enter the rendered branch chain at all
+ *     (runtime-repository only advances the branch head past visible turns),
+ *   - failed user turns — a user message followed by an errored assistant.
+ *     The submit never reached the gateway, so backend history has no slot
+ *     for it (see isFailedUserTurn).
+ *
+ * Counting a failed turn made every later checkpoint resolve one turn too
+ * far: restore aimed at the wrong message, or ran off the end of the ordinal
+ * list and surfaced "Could not find the message to restore." A ChatMessage
+ * carries the failure as `error`; the same assistant arrives here as an
+ * incomplete/error status.
+ */
+export function visibleUserOrdinalFromThread(
+  messages: readonly OrdinalThreadMessage[],
+  messageId: string | undefined
+): null | number {
+  let ordinal = 0
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index]
+
+    if (message.role !== 'user') {
+      continue
+    }
+
+    if (message.id === messageId) {
+      return ordinal
+    }
+
+    const next = messages[index + 1]
+    const nextFailed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
+
+    if (nextFailed) {
+      continue
+    }
+
+    ordinal += 1
+  }
+
+  return null
+}
+
 export const StopGlyph = <StopFilled aria-hidden className="size-3.5 -translate-y-px" />
 
 // Background-process notifications are injected into the conversation as user
@@ -283,23 +341,7 @@ export const UserMessage: FC<{
     return null
   })
 
-  const runtimeUserOrdinal = useAuiState(s => {
-    let ordinal = 0
-
-    for (const message of s.thread.messages) {
-      if (message.role !== 'user') {
-        continue
-      }
-
-      if (message.id === s.message.id) {
-        return ordinal
-      }
-
-      ordinal += 1
-    }
-
-    return null
-  })
+  const runtimeUserOrdinal = useAuiState(s => visibleUserOrdinalFromThread(s.thread.messages, s.message.id))
 
   const attachmentRefs = useAuiState(s => {
     const custom = (s.message.metadata?.custom ?? {}) as { attachmentRefs?: unknown }

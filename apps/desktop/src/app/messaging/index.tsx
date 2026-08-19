@@ -820,9 +820,9 @@ const PLATFORM_INTRO: Record<string, string> = {
     'On your Mattermost server, create a bot account or personal access token, then paste the server URL and token here.',
   matrix: 'Sign in to your homeserver with the bot account, then copy the access token, user ID, and homeserver URL.',
   signal:
-    'Run a signal-cli REST bridge somewhere reachable, then point Open Computer at the URL and the registered phone number.',
+    'Run a signal-cli REST bridge somewhere reachable, then point OpenComputer at the URL and the registered phone number.',
   whatsapp:
-    'Start the WhatsApp bridge that ships with Open Computer, scan the QR code on first run, then enable the platform.',
+    'Start the WhatsApp bridge that ships with OpenComputer, scan the QR code on first run, then enable the platform.',
   bluebubbles:
     'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point Hermes at the URL with the server password.',
   homeassistant:

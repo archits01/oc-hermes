@@ -461,7 +461,7 @@ export const host = {
     const bridge = window.hermesDesktop?.connections
 
     if (!bridge) {
-      throw new Error('This Desktop build has no connection registry. Update Open Computer Desktop.')
+      throw new Error('This Desktop build has no connection registry. Update OpenComputer Desktop.')
     }
 
     return bridge.list()
@@ -475,7 +475,7 @@ export const host = {
     const roster = window.hermesDesktop?.getAgentRoster
 
     if (!roster) {
-      throw new Error('This Desktop build cannot enumerate multi-source agents. Update Open Computer Desktop.')
+      throw new Error('This Desktop build cannot enumerate multi-source agents. Update OpenComputer Desktop.')
     }
 
     return roster()
@@ -686,7 +686,7 @@ export const host = {
     const getProfileRoutes = desktop?.getProfileRoutes
 
     if (!getProfileRoutes) {
-      throw new Error('Open Computer Desktop connection routing unavailable')
+      throw new Error('OpenComputer Desktop connection routing unavailable')
     }
 
     let profiles = $profiles.get()
@@ -717,7 +717,7 @@ export const host = {
     const gateway = $gateway.get()
 
     if (!gateway) {
-      throw new Error('Open Computer gateway unavailable')
+      throw new Error('OpenComputer gateway unavailable')
     }
 
     return gateway.request<T>(method, params)

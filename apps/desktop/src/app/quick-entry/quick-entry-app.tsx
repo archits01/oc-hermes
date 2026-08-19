@@ -131,7 +131,7 @@ export function QuickEntryApp() {
                 dispatch({ type: 'dismiss' })
               }
             }}
-            placeholder={state.connected ? 'Ask Open Computer…' : 'Not connected — open Open Computer to reconnect'}
+            placeholder={state.connected ? 'Ask OpenComputer…' : 'Not connected — reopen the app to reconnect'}
             ref={inputRef}
             spellCheck={false}
             style={{

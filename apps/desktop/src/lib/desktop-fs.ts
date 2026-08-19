@@ -51,7 +51,7 @@ function bridge() {
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error('Open Computer Desktop bridge is unavailable')
+    throw new Error('OpenComputer Desktop bridge is unavailable')
   }
 
   return desktop

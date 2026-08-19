@@ -123,13 +123,13 @@ describe('toggleWakeWord', () => {
 
     await toggleWakeWord(
       requester(() => {
-        throw new Error('Open Computer gateway unavailable')
+        throw new Error('OpenComputer gateway unavailable')
       })
     )
 
     expect($wakeWord.get()).toMatchObject({
       listening: false,
-      notice: 'Open Computer gateway unavailable',
+      notice: 'OpenComputer gateway unavailable',
       pending: false
     })
   })

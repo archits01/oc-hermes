@@ -104,5 +104,5 @@ test('regression: the bot context menu exposes a destructive delete action and c
   assert.match(pluginSource, /bot\.is_default \? null : jsx\(ContextMenuSeparator/)
   assert.match(pluginSource, /ConfirmDialog/)
   assert.match(pluginSource, /title: 'Delete bot and profile\?'/)
-  assert.match(pluginSource, /This will permanently delete the bot[\s\S]*?and its associated Open Computer profile at[\s\S]*?This cannot be undone\./)
+  assert.match(pluginSource, /This will permanently delete the bot[\s\S]*?and its associated OpenComputer profile at[\s\S]*?This cannot be undone\./)
 })
