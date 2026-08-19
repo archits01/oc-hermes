@@ -247,7 +247,7 @@ export const StreamStallIndicator: FC = () => {
   }
 
   return (
-    <StatusRow data-slot="aui_stream-stall" label={hint || 'Open Computer is thinking'}>
+    <StatusRow data-slot="aui_stream-stall" label={hint || 'OpenComputer is thinking'}>
       <StatusPulse
         aria-hidden="true"
         className="dither inline-block size-3 rounded-[2px] text-midground/80"

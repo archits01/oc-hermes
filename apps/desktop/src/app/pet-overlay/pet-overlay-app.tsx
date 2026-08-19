@@ -447,7 +447,7 @@ export function PetOverlayApp() {
               stopPropagation keeps a click from starting a window drag. */}
           {unread && (
             <button
-              aria-label="Open in Open Computer"
+              aria-label="Open in the main window"
               onClick={openApp}
               onPointerDown={e => e.stopPropagation()}
               onPointerUp={e => e.stopPropagation()}
@@ -468,7 +468,7 @@ export function PetOverlayApp() {
                 top: 0,
                 width: 24
               }}
-              title="Open in Open Computer"
+              title="Open in the main window"
               type="button"
             >
               <Mail style={{ height: 13, width: 13 }} />

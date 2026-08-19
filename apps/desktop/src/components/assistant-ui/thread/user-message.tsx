@@ -102,10 +102,6 @@ export function visibleUserOrdinalFromThread(
   messages: readonly OrdinalThreadMessage[],
   messageId: string | undefined
 ): null | number {
-  if (messageId === undefined) {
-    return null
-  }
-
   let ordinal = 0
 
   for (let index = 0; index < messages.length; index += 1) {
@@ -115,19 +111,14 @@ export function visibleUserOrdinalFromThread(
       continue
     }
 
-    const next = messages[index + 1]
-    const failed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
-
     if (message.id === messageId) {
-      // A failed turn holds no slot in the shared space, so it has no ordinal
-      // to report. Returning the running count would hand back the NEXT
-      // surviving turn's number and silently rewind past the message the user
-      // clicked. null keeps planRestore on its id path, which handles failed
-      // turns explicitly.
-      return failed ? null : ordinal
+      return ordinal
     }
 
-    if (failed) {
+    const next = messages[index + 1]
+    const nextFailed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
+
+    if (nextFailed) {
       continue
     }
 
@@ -351,15 +342,6 @@ export const UserMessage: FC<{
   })
 
   const runtimeUserOrdinal = useAuiState(s => visibleUserOrdinalFromThread(s.thread.messages, s.message.id))
-
-  // toRuntimeMessage puts the durable row id on metadata.custom for every
-  // role. It is the only address for this turn that a transcript rebuild
-  // cannot invalidate, so restore carries it instead of relying on the id.
-  const runtimeRowId = useAuiState(s => {
-    const custom = (s.message.metadata?.custom ?? {}) as { rowId?: unknown }
-
-    return typeof custom.rowId === 'number' ? custom.rowId : undefined
-  })
 
   const attachmentRefs = useAuiState(s => {
     const custom = (s.message.metadata?.custom ?? {}) as { attachmentRefs?: unknown }
@@ -612,7 +594,6 @@ export const UserMessage: FC<{
                           event.stopPropagation()
                           triggerHaptic('selection')
                           onRequestRestoreConfirm?.(messageId, {
-                            rowId: runtimeRowId,
                             text: messageText,
                             userOrdinal: runtimeUserOrdinal
                           })

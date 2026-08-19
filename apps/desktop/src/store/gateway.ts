@@ -563,7 +563,7 @@ export async function requestGatewayForProfile<T>(
 
   try {
     if (!route.gateway) {
-      throw new Error(`Open Computer gateway unavailable for profile "${route.key}"`)
+      throw new Error(`OpenComputer gateway unavailable for profile "${route.key}"`)
     }
 
     const routedParams = route.scopeProfile ? { ...params, profile: route.key } : params
@@ -594,7 +594,7 @@ export async function requestGatewayForAgent<T>(
   }
 
   if (!window.hermesDesktop?.getConnectionFor) {
-    throw new Error('This Desktop build cannot dial registry connections. Update Open Computer Desktop.')
+    throw new Error('This Desktop build cannot dial registry connections. Update OpenComputer Desktop.')
   }
 
   const entry = g.secondaries.get(scope) ?? createSecondary(key, connectionId)
@@ -655,7 +655,7 @@ export async function openGatewayForAgent(connectionId: null | string, profile: 
   }
 
   if (!window.hermesDesktop?.getConnectionFor) {
-    throw new Error('This Desktop build cannot dial registry connections. Update Open Computer Desktop.')
+    throw new Error('This Desktop build cannot dial registry connections. Update OpenComputer Desktop.')
   }
 
   const entry = g.secondaries.get(scope) ?? createSecondary(profile, connectionId)
@@ -677,7 +677,7 @@ export async function ensureGatewayForAgent(connectionId: null | string, profile
   }
 
   if (!window.hermesDesktop?.getConnectionFor) {
-    throw new Error('This Desktop build cannot dial registry connections. Update Open Computer Desktop.')
+    throw new Error('This Desktop build cannot dial registry connections. Update OpenComputer Desktop.')
   }
 
   const activationEpoch = beginGatewayActivation()
