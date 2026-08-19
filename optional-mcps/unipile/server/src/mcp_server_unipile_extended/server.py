@@ -761,7 +761,7 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
             ),
             types.Tool(
                 name="unipile_search_linkedin_jobs",
-                description="Search LinkedIn job postings. Use to find companies hiring for specific roles (key buying signal for Open Computer).",
+                description="Search LinkedIn job postings. Use to find companies hiring for specific roles (key buying signal for OpenComputer).",
                 inputSchema={
                     "type": "object",
                     "properties": {

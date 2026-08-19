@@ -17,6 +17,7 @@ import {
   survivorRowIdsFrom,
   truncateSubmitParams
 } from './rewind'
+import { isFailedUserTurn, visibleUserOrdinal } from './utils'
 
 const row = (id: string, role: ChatMessage['role'], text: string, extra: Partial<ChatMessage> = {}): ChatMessage => ({
   id,
@@ -524,5 +525,39 @@ describe('optimistic rewind/reload turn-clock seeding (#86795)', () => {
     expect(next.busy).toBe(true)
     expect(next.turnLive).toBe(false)
     expect(next.turnStartedAt).toBeGreaterThanOrEqual(before)
+  })
+})
+
+describe('isFailedUserTurn with hidden messages', () => {
+  const userMsg = (id: string) => ({ id, parts: [{ text: id, type: 'text' as const }], role: 'user' as const })
+  const assistant = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    parts: [{ text: id, type: 'text' as const }],
+    role: 'assistant' as const,
+    ...extra
+  })
+
+  it('judges the turn by the visible reply, not a hidden one', () => {
+    // A regenerate rewrites history to [user, oldAssistant{hidden,error}, new].
+    // The transcript shows a healthy turn, so the ordinal space must count it.
+    const messages = [
+      userMsg('u0'),
+      assistant('a-old', { error: 'boom', hidden: true }),
+      assistant('a-new')
+    ] as unknown as Parameters<typeof isFailedUserTurn>[0]
+
+    expect(isFailedUserTurn(messages, 0)).toBe(false)
+    expect(visibleUserOrdinal(messages, messages.length)).toBe(1)
+  })
+
+  it('still reports a failure when the visible reply errored', () => {
+    const messages = [
+      userMsg('u0'),
+      assistant('a-old', { hidden: true }),
+      assistant('a-new', { error: 'boom' })
+    ] as unknown as Parameters<typeof isFailedUserTurn>[0]
+
+    expect(isFailedUserTurn(messages, 0)).toBe(true)
+    expect(visibleUserOrdinal(messages, messages.length)).toBe(0)
   })
 })

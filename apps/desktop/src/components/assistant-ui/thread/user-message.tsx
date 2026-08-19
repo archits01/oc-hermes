@@ -102,6 +102,10 @@ export function visibleUserOrdinalFromThread(
   messages: readonly OrdinalThreadMessage[],
   messageId: string | undefined
 ): null | number {
+  if (messageId === undefined) {
+    return null
+  }
+
   let ordinal = 0
 
   for (let index = 0; index < messages.length; index += 1) {
@@ -111,14 +115,19 @@ export function visibleUserOrdinalFromThread(
       continue
     }
 
+    const next = messages[index + 1]
+    const failed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
+
     if (message.id === messageId) {
-      return ordinal
+      // A failed turn holds no slot in the shared space, so it has no ordinal
+      // to report. Returning the running count would hand back the NEXT
+      // surviving turn's number and silently rewind past the message the user
+      // clicked. null keeps planRestore on its id path, which handles failed
+      // turns explicitly.
+      return failed ? null : ordinal
     }
 
-    const next = messages[index + 1]
-    const nextFailed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
-
-    if (nextFailed) {
+    if (failed) {
       continue
     }
 

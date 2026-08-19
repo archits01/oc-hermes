@@ -512,10 +512,18 @@ export function planRestore(messages: ChatMessage[], messageId: string, target?:
   // truncation address would mis-aim (#86573/#86623) — resubmit plainly.
   const isFailedTurn = isFailedUserTurn(messages, sourceIndex)
 
+  // Recompute from the resolved index whenever we have one, exactly as
+  // planEdit does. `target.userOrdinal` is a renderer-side count and this is
+  // the ONE ordinal space the gateway shares: trusting the client number when
+  // we can derive the authoritative one lets any renderer/store divergence
+  // reach truncate_before_user_ordinal unfiltered. It is only consulted on the
+  // fallback path, where the id lookup missed and it is all we have.
   const truncateOrdinal =
-    target?.userOrdinal === null || target?.userOrdinal === undefined
+    idIndex >= 0
       ? visibleUserOrdinal(messages, sourceIndex)
-      : target.userOrdinal
+      : target?.userOrdinal === null || target?.userOrdinal === undefined
+        ? visibleUserOrdinal(messages, sourceIndex)
+        : target.userOrdinal
 
   return {
     sourceIndex,

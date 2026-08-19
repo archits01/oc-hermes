@@ -615,9 +615,23 @@ export function isVisibleUserMessage(message: ChatMessage): boolean {
  * gateway's index and the rewind mis-aims / gets refused (#41275, #86573).
  */
 export function isFailedUserTurn(messages: readonly ChatMessage[], index: number): boolean {
-  const next = messages[index + 1]
+  // Skip hidden entries when looking for the reply. A regenerate rewrites the
+  // array to [user, oldAssistant{hidden, error}, newAssistant], so reading
+  // index+1 blindly judges the turn by a message the transcript never shows —
+  // and disagrees with the rendered branch chain, which drops hidden messages
+  // entirely. That disagreement is an off-by-one in the shared ordinal space.
+  // The same predicate is already hidden-guarded in use-message-stream.
+  for (let next = index + 1; next < messages.length; next += 1) {
+    const message = messages[next]
 
-  return next?.role === 'assistant' && Boolean(next.error)
+    if (message.hidden) {
+      continue
+    }
+
+    return message.role === 'assistant' && Boolean(message.error)
+  }
+
+  return false
 }
 
 /**
