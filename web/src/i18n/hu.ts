@@ -522,7 +522,7 @@ export const hu: Translations = {
       highest_tier: "Legmagasabb szint",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Legutóbbi",
-      latest_hint_empty: "futtasd többet az Open Computert",
+      latest_hint_empty: "futtasd többet az OpenComputert",
       none_yet: "Még semmi",
     },
     state: {
