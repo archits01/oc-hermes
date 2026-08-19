@@ -38,7 +38,7 @@ declare global {
     __HERMES_AUTH_REQUIRED__?: boolean;
   }
 }
-const SESSION_HEADER = "X-Hermes-Session-Token";
+const SESSION_HEADER = "X-OpenComputer-Session-Token";
 
 function setSessionHeader(headers: Headers, token: string): void {
   if (!headers.has(SESSION_HEADER)) {
@@ -231,7 +231,7 @@ export async function buildWsAuthParam(): Promise<[string, string]> {
  * the caller can read ``.blob()`` / ``.formData()`` / stream it.
  *
  * Auth, in both modes, exactly as ``fetchJSON`` does it:
- *  - loopback / ``--insecure``: attach the ``X-Hermes-Session-Token`` header.
+ *  - loopback / ``--insecure``: attach the ``X-OpenComputer-Session-Token`` header.
  *  - gated OAuth: no token header (it's absent by design); the
  *    ``hermes_session_at`` cookie rides along via ``credentials: 'include'``.
  *

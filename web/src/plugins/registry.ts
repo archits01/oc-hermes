@@ -138,7 +138,7 @@ export function exposePluginSDK() {
       useConfirmDelete,
     },
 
-    // Hermes API client
+    // OpenComputer API client
     api,
     // Raw fetchJSON for plugin-specific JSON endpoints
     fetchJSON,
