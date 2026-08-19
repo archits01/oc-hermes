@@ -13,7 +13,7 @@ vi.mock("./dashboard-auth-reload", () => ({
   clearDashboardTokenReloadAttempt: reloadMocks.clearDashboardTokenReloadAttempt,
 }));
 
-const SESSION_HEADER = "X-Hermes-Session-Token";
+const SESSION_HEADER = "X-OpenComputer-Session-Token";
 
 beforeEach(() => {
   reloadMocks.attemptDashboardTokenReloadOnce.mockReset();
