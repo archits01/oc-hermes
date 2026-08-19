@@ -1069,8 +1069,13 @@ def _update_via_zip(args, *, had_desktop_app_before_update: bool = False):
             f"--branch {branch}`, or update against main with `hermes update`."
         )
         _m().sys.exit(1)
+    # OpenComputer ships from the fork. This archive path is the fallback used when
+    # git file I/O is broken (typically Windows antivirus holding files open), and
+    # pointing it at NousResearch would quietly replace a customer's OpenComputer
+    # install with vanilla Hermes - branding, LMI plugin and MCPs all gone - on the
+    # one code path where the user has no way to notice before it lands.
     zip_url = (
-        f"https://github.com/NousResearch/hermes-agent/archive/refs/heads/{branch}.zip"
+        f"https://github.com/archits01/hermes-agent/archive/refs/heads/{branch}.zip"
     )
 
     print("→ Downloading latest version...")
