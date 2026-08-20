@@ -617,6 +617,19 @@ export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPl
   const sourceIndex = messages.findIndex(m => m.id === sourceId)
   const source = messages[sourceIndex]
 
+  if (!source) {
+    // Same id-churn class planRestore now anchors around (see its resolution
+    // comment), but edit fails SILENTLY: a null plan makes the caller return
+    // without submitting, so a dead id looks like "Send did nothing". Edit
+    // still resolves by id alone — AUI hands us the id from the live thread at
+    // submit time rather than a capture held across a dialog, so the exposure
+    // is much smaller — but leave evidence rather than a silent no-op.
+    console.warn('[edit-target-unresolved]', {
+      messageCount: messages.length,
+      sourceId
+    })
+  }
+
   if (!source || source.role !== 'user' || chatMessageText(source).trim() === text) {
     return null
   }
