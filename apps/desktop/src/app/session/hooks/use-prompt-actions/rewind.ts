@@ -123,7 +123,12 @@ export function isSyntheticRendererId(messageId: string | undefined): boolean {
     (messageId.startsWith('user-') ||
       messageId.startsWith('assistant-') ||
       messageId.includes('-synthetic-') ||
-      /^\d+-\d+-(user|assistant|tools)\b/.test(messageId))
+      // The timestamp is a FLOAT in practice — hermes_state stamps
+      // time.time() and nudges by 1e-6, and the gateway ships float(ts) — so
+      // live ids look like "1787205245.3426-5-user". Without the optional
+      // fraction this anchored match stopped at the decimal point and missed
+      // every hydrated message, catching only the integer Date.now() fallback.
+      /^\d+(?:\.\d+)?-\d+-(user|assistant|tools)\b/.test(messageId))
   )
 }
 
