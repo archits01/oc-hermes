@@ -25,9 +25,11 @@ export interface SeedDefaultConnectionResult {
 }
 
 function isHttpUrl(value: unknown): value is string {
-  if (typeof value !== 'string' || !value.trim()) return false
+  if (typeof value !== 'string' || !value.trim()) {return false}
+
   try {
     const parsed = new URL(value.trim())
+
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'
   } catch {
     return false
@@ -42,29 +44,43 @@ export function seedDefaultConnectionIfMissing(
   }
 
   let sawInvalid = false
+
   for (const candidate of opts.defaultCandidates) {
-    if (!candidate || !opts.existsSync(candidate)) continue
+    if (!candidate || !opts.existsSync(candidate)) {continue}
+
     try {
       const parsed = JSON.parse(opts.readFileSync(candidate, 'utf8'))
+
       if (!parsed || typeof parsed !== 'object') {
         sawInvalid = true
+
         continue
       }
+
       const mode = (parsed as { mode?: unknown }).mode
+
       if (mode !== 'remote' && mode !== 'cloud') {
         sawInvalid = true
+
         continue
       }
+
       const remote = (parsed as { remote?: { url?: unknown } }).remote
+
       if (!isHttpUrl(remote?.url)) {
         sawInvalid = true
+
         continue
       }
+
       const dir = opts.connectionPath.replace(/[/\\][^/\\]+$/, '')
+
       if (dir && dir !== opts.connectionPath) {
         opts.mkdirSync(dir, { recursive: true })
       }
+
       opts.writeFileSync(opts.connectionPath, `${JSON.stringify(parsed, null, 2)}\n`)
+
       return { seeded: true, reason: 'seeded', from: candidate }
     } catch {
       sawInvalid = true

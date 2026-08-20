@@ -95,7 +95,6 @@ import {
   tokenPreview,
   translateSelfProfileQuery
 } from './connection-config'
-import { seedDefaultConnectionIfMissing } from './default-connection'
 import {
   backendScopeKey,
   backendScopePrefix,
@@ -119,6 +118,7 @@ import {
 } from './connection-registry'
 import { describeCrashReason, installCrashForensics } from './crash-forensics'
 import { adoptServedDashboardToken } from './dashboard-token'
+import { seedDefaultConnectionIfMissing } from './default-connection'
 import { loadOrCreateInstallationId, sshOwnershipId } from './desktop-installation'
 import { formatDesktopLogLine } from './desktop-log-line'
 import { installDesktopPluginFromGit, probePluginRepo } from './desktop-plugin-install'
@@ -134,7 +134,6 @@ import {
 } from './desktop-uninstall'
 import { describeDevCdpDecision, resolveDevCdpPort } from './dev-cdp'
 import { installEmbedReferer } from './embed-referer'
-import { installLmiInboxPreviewSession } from './lmi-inbox-preview-session'
 import { createEventDeduper } from './event-dedupe'
 import {
   buildTerminalScript,
@@ -212,6 +211,7 @@ import { snapHudBounds } from './hud-snap'
 import { createHudSnapShortcut } from './hud-snap-shortcut'
 import { buildHudWindowUrl } from './hud-url'
 import { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } from './link-title-window'
+import { installLmiInboxPreviewSession } from './lmi-inbox-preview-session'
 import { ensureMainWindow } from './main-window-lifecycle'
 import { createMediaProtocolHandler, MEDIA_PROTOCOL } from './media-protocol'
 import {
@@ -764,6 +764,7 @@ const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'conne
 // profile keep working; the registry imports from it once and then owns its
 // own file. Same secret posture as connection.json (encrypted tokens, 0600).
 const DESKTOP_CONNECTIONS_REGISTRY_PATH = path.join(app.getPath('userData'), 'connections.json')
+
 {
   const seeded = seedDefaultConnectionIfMissing({
     connectionPath: DESKTOP_CONNECTION_CONFIG_PATH,
@@ -776,10 +777,12 @@ const DESKTOP_CONNECTIONS_REGISTRY_PATH = path.join(app.getPath('userData'), 'co
     mkdirSync: (p, opts) => fs.mkdirSync(p, opts),
     writeFileSync: (p, data) => fs.writeFileSync(p, data)
   })
+
   if (seeded.seeded) {
     console.log(`[hermes] seeded first-launch remote connection from ${seeded.from}`)
   }
 }
+
 const DESKTOP_INSTALLATION_PATH = path.join(app.getPath('userData'), 'desktop-installation.json')
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
 const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
