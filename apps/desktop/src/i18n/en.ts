@@ -702,7 +702,8 @@ export const en: Translations = {
     // v2 multi-connection registry: Settings → Gateways.
     connections: {
       title: 'Registered gateways',
-      intro: 'Manage this device and every OpenComputer gateway it can reach through remote, SSH, or Cloud connections.',
+      intro:
+        'Manage this device and every OpenComputer gateway it can reach through remote, SSH, or Cloud connections.',
       stagedNote:
         'Switch gateways from Sessions. Profiles, chats, messaging, and cron jobs stay with their gateway; work on other gateways keeps running.',
       launchModeTitle: 'At startup, return to Sessions on the last-used gateway',
@@ -2103,7 +2104,8 @@ export const en: Translations = {
       createFailed: 'Could not create project',
       staleBackend:
         'Update the OpenComputer backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
-      deleteConfirm: 'This removes the saved project from OpenComputer. Files, git repos, and worktrees stay untouched.',
+      deleteConfirm:
+        'This removes the saved project from OpenComputer. Files, git repos, and worktrees stay untouched.',
       startWork: 'New worktree',
       newWorktreeTitle: 'New worktree',
       newWorktreeDesc: 'Name the branch for this worktree.',
@@ -2473,7 +2475,8 @@ export const en: Translations = {
     maybeLater: 'Maybe later',
     moreChanges: count => `+ ${count} more change${count === 1 ? '' : 's'} included.`,
     manualTitle: 'Update from your terminal',
-    manualBody: 'You installed OpenComputer from the command line, so updates run there too. Paste this into your terminal:',
+    manualBody:
+      'You installed OpenComputer from the command line, so updates run there too. Paste this into your terminal:',
     manualPickedUp: 'OpenComputer will pick up the new version next time you launch it.',
     guiSkewTitle: 'Update the desktop app',
     guiSkewBody:
@@ -2539,7 +2542,8 @@ export const en: Translations = {
     installLocalDesc: 'Download OpenComputer, create its Python environment, and run the backend on this computer.',
     localStartUnavailable: 'Local installation could not start. Restart OpenComputer Desktop and try again.',
     remoteSetupTitle: 'Connect to existing OpenComputer',
-    remoteSetupDesc: 'Enter your gateway URL. OpenComputer Desktop will detect whether it needs a token or browser sign-in.',
+    remoteSetupDesc:
+      'Enter your gateway URL. OpenComputer Desktop will detect whether it needs a token or browser sign-in.',
     remoteUrlTitle: 'Gateway URL',
     remoteUrlDesc: 'Use the base URL of the OpenComputer gateway, including https:// when remote.',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -2615,7 +2619,8 @@ export const en: Translations = {
       xai: { short: 'Grok models', description: 'Direct access to xAI Grok models.' },
       local: {
         short: 'self-hosted',
-        description: 'Point OpenComputer at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
+        description:
+          'Point OpenComputer at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
     },
     backToSignIn: 'Back to sign in',
@@ -2939,7 +2944,8 @@ export const en: Translations = {
       address: 'Address',
       addressPlaceholder: 'Enter address',
       blankPageBody: 'Type an address above to browse, or ask OpenComputer to open a page.',
-      finishedRestarting: message => `OpenComputer finished restarting the preview server${message ? `: ${message}` : ''}`,
+      finishedRestarting: message =>
+        `OpenComputer finished restarting the preview server${message ? `: ${message}` : ''}`,
       failedRestarting: message => `Server restart failed: ${message}`,
       unknownError: 'unknown error',
       restartedTitle: 'Preview server restarted',

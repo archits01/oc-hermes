@@ -11,7 +11,9 @@ function makeFs(files: Record<string, string>) {
     store,
     existsSync: (p: string) => Object.prototype.hasOwnProperty.call(store, p),
     readFileSync: (p: string) => {
-      if (!Object.prototype.hasOwnProperty.call(store, p)) {throw new Error(`ENOENT ${p}`)}
+      if (!Object.prototype.hasOwnProperty.call(store, p)) {
+        throw new Error(`ENOENT ${p}`)
+      }
 
       return store[p]
     },

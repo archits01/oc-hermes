@@ -32,9 +32,7 @@ describe('patchLmiInboxJs', () => {
 describe('shouldInterceptLmiInboxChunk', () => {
   it('matches only LMI dashboard next chunks', () => {
     expect(
-      shouldInterceptLmiInboxChunk(
-        'https://lmi-dashboard-one.vercel.app/_next/static/chunks/2jp83xwp6jtro.js'
-      )
+      shouldInterceptLmiInboxChunk('https://lmi-dashboard-one.vercel.app/_next/static/chunks/2jp83xwp6jtro.js')
     ).toBe(true)
     expect(shouldInterceptLmiInboxChunk('https://lmi-dashboard-one.vercel.app/dashboard/inbox')).toBe(false)
     expect(shouldInterceptLmiInboxChunk('https://example.com/_next/static/chunks/app.js')).toBe(false)

@@ -25,7 +25,9 @@ export interface SeedDefaultConnectionResult {
 }
 
 function isHttpUrl(value: unknown): value is string {
-  if (typeof value !== 'string' || !value.trim()) {return false}
+  if (typeof value !== 'string' || !value.trim()) {
+    return false
+  }
 
   try {
     const parsed = new URL(value.trim())
@@ -36,9 +38,7 @@ function isHttpUrl(value: unknown): value is string {
   }
 }
 
-export function seedDefaultConnectionIfMissing(
-  opts: SeedDefaultConnectionOptions
-): SeedDefaultConnectionResult {
+export function seedDefaultConnectionIfMissing(opts: SeedDefaultConnectionOptions): SeedDefaultConnectionResult {
   if (opts.existsSync(opts.connectionPath)) {
     return { seeded: false, reason: 'exists' }
   }
@@ -46,7 +46,9 @@ export function seedDefaultConnectionIfMissing(
   let sawInvalid = false
 
   for (const candidate of opts.defaultCandidates) {
-    if (!candidate || !opts.existsSync(candidate)) {continue}
+    if (!candidate || !opts.existsSync(candidate)) {
+      continue
+    }
 
     try {
       const parsed = JSON.parse(opts.readFileSync(candidate, 'utf8'))

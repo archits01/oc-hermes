@@ -30,6 +30,7 @@ function attachLmiInboxPreviewSession(previewSession: Electron.Session): void {
 
       if (!shouldInterceptLmiInboxChunk(details.url)) {
         callback({ responseHeaders: headers })
+
         return
       }
 
@@ -54,6 +55,7 @@ function attachLmiInboxPreviewSession(previewSession: Electron.Session): void {
         })
       } catch {
         callback({ responseHeaders: headers })
+
         return
       }
 

@@ -4,6 +4,7 @@ import { type OrdinalThreadMessage, visibleUserOrdinalFromThread } from './user-
 
 const user = (id: string): OrdinalThreadMessage => ({ id, role: 'user' })
 const reply = (id: string): OrdinalThreadMessage => ({ id, role: 'assistant' })
+
 const failedReply = (id: string): OrdinalThreadMessage => ({
   id,
   role: 'assistant',
@@ -48,7 +49,11 @@ describe('visibleUserOrdinalFromThread', () => {
   })
 
   it('does not treat a completed reply as a failure', () => {
-    const thread = [user('u0'), { id: 'a0', role: 'assistant', status: { reason: 'stop', type: 'complete' } }, user('u1')]
+    const thread = [
+      user('u0'),
+      { id: 'a0', role: 'assistant', status: { reason: 'stop', type: 'complete' } },
+      user('u1')
+    ]
 
     expect(visibleUserOrdinalFromThread(thread, 'u1')).toBe(1)
   })

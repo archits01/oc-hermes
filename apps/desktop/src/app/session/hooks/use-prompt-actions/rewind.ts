@@ -653,11 +653,7 @@ export interface EditPlan {
 }
 
 /** Resolve the edited user turn, or null when nothing changed / invalid. */
-export function planEdit(
-  messages: ChatMessage[],
-  edited: AppendMessage,
-  window?: RestoreWindow
-): EditPlan | null {
+export function planEdit(messages: ChatMessage[], edited: AppendMessage, window?: RestoreWindow): EditPlan | null {
   const sourceId = edited.sourceId || edited.parentId
   const text = appendText(edited)
 

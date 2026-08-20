@@ -466,7 +466,9 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
         return
       }
 
-      const plan = planReload(state.messages, parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
+      const plan = planReload(state.messages, parentId, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current)
+      })
 
       if (!plan) {
         return
@@ -547,7 +549,9 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
   const editMessage = useCallback(
     async (edited: AppendMessage) => {
       const messages = readMessages()
-      const plan = planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
+      const plan = planEdit(messages, edited, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current)
+      })
 
       if (!plan) {
         return

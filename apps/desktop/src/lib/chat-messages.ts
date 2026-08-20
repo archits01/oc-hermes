@@ -615,6 +615,7 @@ export function collapseDuplicateAssistantReplies(messages: ChatMessage[]): Chat
   for (const message of messages) {
     if (message.hidden || message.role !== 'assistant') {
       next.push(message)
+
       continue
     }
 
@@ -623,6 +624,7 @@ export function collapseDuplicateAssistantReplies(messages: ChatMessage[]): Chat
     for (let index = next.length - 1; index >= 0; index -= 1) {
       if (!next[index].hidden) {
         previousVisibleIndex = index
+
         break
       }
     }
@@ -635,6 +637,7 @@ export function collapseDuplicateAssistantReplies(messages: ChatMessage[]): Chat
       assistantTextsAreSameReply(chatMessageText(previous), chatMessageText(message))
     ) {
       next[previousVisibleIndex] = message
+
       continue
     }
 

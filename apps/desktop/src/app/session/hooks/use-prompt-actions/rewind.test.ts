@@ -668,9 +668,14 @@ describe('planRestore ordinal under a partial transcript window', () => {
     // The gateway refuses that mismatch (4030) under the same "Restore failed"
     // toast, and its contract is that a null ordinal aims purely at the
     // durable target.
-    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
-      transcriptPossiblyTruncated: true
-    })
+    const plan = planRestore(
+      partial,
+      'u2',
+      { rowId: 503, text: 'second', userOrdinal: 1 },
+      {
+        transcriptPossiblyTruncated: true
+      }
+    )
 
     expect(plan.sourceIndex).toBe(2)
     expect(plan.truncateRowId).toBe(503)
@@ -678,9 +683,14 @@ describe('planRestore ordinal under a partial transcript window', () => {
   })
 
   it('keeps the ordinal cross-check when the whole transcript is loaded', () => {
-    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
-      transcriptPossiblyTruncated: false
-    })
+    const plan = planRestore(
+      partial,
+      'u2',
+      { rowId: 503, text: 'second', userOrdinal: 1 },
+      {
+        transcriptPossiblyTruncated: false
+      }
+    )
 
     expect(plan.truncateOrdinal).toBe(1)
     expect(plan.truncateRowId).toBe(503)

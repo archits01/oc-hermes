@@ -875,7 +875,9 @@ export function usePromptActions({
         return
       }
 
-      const plan = planReload($messages.get(), parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
+      const plan = planReload($messages.get(), parentId, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+      })
 
       if (!plan) {
         return
@@ -1063,7 +1065,11 @@ export function usePromptActions({
       // a stale target rewrites the wrong session's history.
       const sessionId = activeSessionIdRef.current
       const messages = $messages.get()
-      const plan = sessionId ? planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) }) : null
+      const plan = sessionId
+        ? planEdit(messages, edited, {
+            transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+          })
+        : null
 
       if (!sessionId || !plan) {
         return
@@ -1140,7 +1146,9 @@ export function usePromptActions({
             }
 
             const refreshed = $messages.get()
-            const retryPlan = planEdit(refreshed, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
+            const retryPlan = planEdit(refreshed, edited, {
+              transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+            })
 
             if (retryPlan && !retryPlan.isFailedTurn) {
               const survivorRowIds = await submitRewindPrompt(
