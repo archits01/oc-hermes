@@ -89,6 +89,12 @@ jobs:
             git diff --name-only HEAD...upstream/main -- .github/workflows/ > /tmp/wf_changed.txt 2>/dev/null || true
             git checkout HEAD -- .github/workflows/ 2>/dev/null || true
             git add -A
+            # `git checkout HEAD --` restores files we already had, but it cannot
+            # remove ones upstream ADDED (2026-08-20: upstream renamed ci.yml to
+            # ci.yaml, so ci.yaml stayed staged as a new file and the push was still
+            # rejected). Drop any workflow file that is an addition relative to HEAD.
+            git diff --cached --name-only --diff-filter=A -- .github/workflows/ \
+              | xargs -r git rm -f --quiet --
             git commit -m "UNRESOLVED upstream merge $(date -u +%Y-%m-%d) - contains conflict markers, do not ff-only this" >/dev/null
             git branch -M "$CB"
             git push -f origin "$CB"
