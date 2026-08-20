@@ -23,6 +23,7 @@ const SOURCE_LABELS: Record<string, string> = {
   webhook: 'Webhook',
   weixin: 'WeChat',
   whatsapp: 'WhatsApp',
+  whatsapp_unipile: 'WhatsApp',
   yuanbao: 'Yuanbao'
 }
 

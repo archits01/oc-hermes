@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { isMessagingSource, MESSAGING_SESSION_SOURCE_IDS, sessionSourceSearchTerms } from './session-source'
+import {
+  isMessagingSource,
+  MESSAGING_SESSION_SOURCE_IDS,
+  sessionSourceLabel,
+  sessionSourceSearchTerms
+} from './session-source'
 
 // Regression guard for #46761 / PR #47395: Photon (iMessage) must keep its own
 // sidebar section. refreshMessagingSessions() filters rows through
@@ -31,5 +36,17 @@ describe('photon messaging source registration', () => {
     expect(isMessagingSource('cli')).toBe(false)
     expect(isMessagingSource(null)).toBe(false)
     expect(isMessagingSource(undefined)).toBe(false)
+  })
+})
+
+describe('whatsapp_unipile display label', () => {
+  it('shows WhatsApp, not the Unipile adapter name', () => {
+    expect(sessionSourceLabel('whatsapp_unipile')).toBe('WhatsApp')
+    expect(sessionSourceLabel('whatsapp_unipile')).not.toMatch(/unipile/i)
+  })
+
+  it('still groups the Unipile adapter as its own messaging source', () => {
+    expect(isMessagingSource('whatsapp_unipile')).toBe(true)
+    expect(MESSAGING_SESSION_SOURCE_IDS).toContain('whatsapp_unipile')
   })
 })
