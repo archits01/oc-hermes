@@ -823,10 +823,14 @@ export function usePromptActions({
 
       updateSessionState(sessionId, state => ({
         ...state,
-        messages: rebindSurvivorRowIds(state.messages, survivorRowIds)
+        messages: rebindSurvivorRowIds(
+          state.messages,
+          survivorRowIds,
+          !transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+        )
       }))
     },
-    [updateSessionState]
+    [selectedStoredSessionIdRef, updateSessionState]
   )
 
   const submitRewindPrompt = useCallback(
@@ -869,7 +873,7 @@ export function usePromptActions({
         return
       }
 
-      const plan = planReload($messages.get(), parentId)
+      const plan = planReload($messages.get(), parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
 
       if (!plan) {
         return
@@ -901,7 +905,14 @@ export function usePromptActions({
         notifyError(err, copy.regenerateFailed)
       }
     },
-    [activeSessionIdRef, applySurvivorRowIds, copy.regenerateFailed, submitRewindPrompt, updateSessionState]
+    [
+      activeSessionIdRef,
+      applySurvivorRowIds,
+      copy.regenerateFailed,
+      selectedStoredSessionIdRef,
+      submitRewindPrompt,
+      updateSessionState
+    ]
   )
 
   // Cursor-style "restore checkpoint": rewind the conversation to a past user
@@ -996,7 +1007,7 @@ export function usePromptActions({
       // a stale target rewrites the wrong session's history.
       const sessionId = activeSessionIdRef.current
       const messages = $messages.get()
-      const plan = sessionId ? planEdit(messages, edited) : null
+      const plan = sessionId ? planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) }) : null
 
       if (!sessionId || !plan) {
         return
@@ -1072,7 +1083,7 @@ export function usePromptActions({
             }
 
             const refreshed = $messages.get()
-            const retryPlan = planEdit(refreshed, edited)
+            const retryPlan = planEdit(refreshed, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
 
             if (retryPlan && !retryPlan.isFailedTurn) {
               const survivorRowIds = await submitRewindPrompt(

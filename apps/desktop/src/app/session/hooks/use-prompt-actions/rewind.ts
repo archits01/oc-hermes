@@ -70,11 +70,31 @@ export function survivorRowIdsFrom(result: PromptSubmitResult | undefined): Surv
  * exist yet — and `null` entries get their cached rowId cleared instead: a
  * stale id now addresses an archived row and would be refused with 4018.
  */
-export function rebindSurvivorRowIds(messages: ChatMessage[], survivorRowIds: SurvivorUserRowIds): ChatMessage[] {
+export function rebindSurvivorRowIds(
+  messages: ChatMessage[],
+  survivorRowIds: SurvivorUserRowIds,
+  windowComplete = true
+): ChatMessage[] {
   // Same ordinal space as the truncate math: visible AND persisted (failed
   // turns never reached the gateway, so they hold no survivor slot).
   const indices = new Set(visibleUserMessageIndices(messages))
   let ordinal = 0
+
+  // The gateway builds survivor_user_row_ids from ITS ordinal 0 across the
+  // whole tip segment; this walks the LOADED window from 0. Those agree only
+  // when the window holds every turn. Tail hydration loads just the newest
+  // page, so on a paged session the window is a suffix and position i here is
+  // gateway turn i+P — binding positionally stamps each turn with the row id
+  // of a turn P earlier. That id is wrong but EXISTS, so the gateway resolves
+  // it and truncates at the wrong place. Clearing is the safe half: it is
+  // self-healing (the next hydrate restores real ids) and it keeps
+  // planRestore on its ordinal path, where the gateway's cross-check still
+  // refuses a bad cut instead of performing it.
+  if (!windowComplete) {
+    return messages.map((message, index) =>
+      indices.has(index) && message.rowId !== undefined ? { ...message, rowId: undefined } : message
+    )
+  }
 
   return messages.map((message, index) => {
     if (!indices.has(index)) {
@@ -401,7 +421,11 @@ export interface ReloadPlan {
 }
 
 /** The user turn to re-run for a reload from `parentId` (or the last turn). */
-export function planReload(messages: ChatMessage[], parentId: null | string): null | ReloadPlan {
+export function planReload(
+  messages: ChatMessage[],
+  parentId: null | string,
+  window?: RestoreWindow
+): null | ReloadPlan {
   const parentIndex = parentId ? messages.findIndex(m => m.id === parentId) : messages.length - 1
 
   const userBack =
@@ -428,11 +452,15 @@ export function planReload(messages: ChatMessage[], parentId: null | string): nu
   // address would mis-aim (#86573/#86623) — resubmit plainly instead.
   const isFailedTurn = isFailedUserTurn(messages, userIndex)
 
+  // See planRestore: a paged window undercounts the ordinal, the gateway
+  // refuses the mismatch (4030), and the row id can aim the cut alone.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && userMessage.rowId !== undefined
+
   return {
     branchGroupId: targetAssistant?.branchGroupId ?? branchGroupForUser(userMessage),
     sourceText: text,
     text,
-    truncateOrdinal: isFailedTurn ? undefined : visibleUserOrdinal(messages, userIndex),
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, userIndex),
     truncateMessageId: isFailedTurn ? undefined : userMessage.id,
     truncateRowId: isFailedTurn ? undefined : userMessage.rowId,
     userIndex
@@ -606,7 +634,11 @@ export interface EditPlan {
 }
 
 /** Resolve the edited user turn, or null when nothing changed / invalid. */
-export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPlan | null {
+export function planEdit(
+  messages: ChatMessage[],
+  edited: AppendMessage,
+  window?: RestoreWindow
+): EditPlan | null {
   const sourceId = edited.sourceId || edited.parentId
   const text = appendText(edited)
 
@@ -638,13 +670,17 @@ export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPl
   // truncate-by-ordinal would 422 — resubmit plainly instead.
   const isFailedTurn = isFailedUserTurn(messages, sourceIndex)
 
+  // See planRestore: a paged window undercounts the ordinal, the gateway
+  // refuses the mismatch (4030), and the row id can aim the cut alone.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && source.rowId !== undefined
+
   return {
     editedMessage: { ...source, parts: [textPart(text)] },
     isFailedTurn,
     sourceIndex,
     sourceText: chatMessageText(source).trim(),
     text,
-    truncateOrdinal: isFailedTurn ? undefined : visibleUserOrdinal(messages, sourceIndex),
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, sourceIndex),
     truncateMessageId: isFailedTurn ? undefined : source.id,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }

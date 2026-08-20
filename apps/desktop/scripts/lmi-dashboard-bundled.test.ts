@@ -21,6 +21,16 @@ describe('lmi-dashboard packaged sidebar page', () => {
 
   it('is covered by the auto-discovery glob used in packaged builds', () => {
     const source = readFileSync(pluginsTs, 'utf8')
-    expect(source).toMatch("../plugins/*/plugin.{ts,tsx}")
+    const glob = /import\.meta\.glob<[^>]*>\(\s*'(\.\.\/plugins\/[^']+)'/.exec(source)?.[1]
+
+    // Assert the PROPERTY (this plugin is discovered), not the literal. The
+    // extension set is legitimately widened over time — `.js` was added
+    // upstream so the bundled Bot Mode plugin (plugin.js) is picked up — and
+    // pinning the exact string turned that widening into a red test.
+    expect(glob).toBeDefined()
+
+    const [, extensions] = /^\.\.\/plugins\/\*\/plugin\.\{([^}]+)\}$/.exec(glob!) ?? []
+
+    expect(extensions?.split(',')).toContain('tsx')
   })
 })

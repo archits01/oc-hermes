@@ -444,7 +444,14 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
         return
       }
 
-      update(state => ({ ...state, messages: rebindSurvivorRowIds(state.messages, survivorRowIds) }))
+      update(state => ({
+        ...state,
+        messages: rebindSurvivorRowIds(
+          state.messages,
+          survivorRowIds,
+          !transcriptBackfillAvailable(storedIdRef.current)
+        )
+      }))
     },
     [update]
   )
@@ -457,7 +464,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
         return
       }
 
-      const plan = planReload(state.messages, parentId)
+      const plan = planReload(state.messages, parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
 
       if (!plan) {
         return
@@ -536,7 +543,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
   const editMessage = useCallback(
     async (edited: AppendMessage) => {
       const messages = readMessages()
-      const plan = planEdit(messages, edited)
+      const plan = planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
 
       if (!plan) {
         return

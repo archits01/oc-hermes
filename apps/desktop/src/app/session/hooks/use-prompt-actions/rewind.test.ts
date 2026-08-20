@@ -702,3 +702,80 @@ describe('planRestore ordinal under a partial transcript window', () => {
     expect(plan.truncateRowId).toBeUndefined()
   })
 })
+
+describe('rebindSurvivorRowIds on a partial transcript window', () => {
+  const survivors = [901, 902, 903]
+
+  it('binds positionally when the whole transcript is loaded', () => {
+    const messages = [
+      row('u1', 'user', 'one', { rowId: 1 }),
+      row('a1', 'assistant', 'r1'),
+      row('u2', 'user', 'two', { rowId: 2 }),
+      row('a2', 'assistant', 'r2'),
+      row('u3', 'user', 'three', { rowId: 3 })
+    ]
+
+    const out = rebindSurvivorRowIds(messages, survivors, true)
+
+    expect(out.filter(m => m.role === 'user').map(m => m.rowId)).toEqual([901, 902, 903])
+  })
+
+  it('clears row ids instead of mis-binding when older pages are unloaded', () => {
+    // The gateway builds survivor_user_row_ids from ITS ordinal 0 over the
+    // whole tip; the client counts from the start of the loaded window. When
+    // the window is a suffix, position i on the client is gateway turn i+P, so
+    // binding positionally stamps every turn with an id belonging to a turn P
+    // positions earlier — a wrong-but-EXISTING row id, which the gateway will
+    // happily truncate at. Clearing is self-healing: the next hydrate restores
+    // real ids, and meanwhile planRestore keeps sending the ordinal so the
+    // gateway's cross-check still guards the cut.
+    const messages = [
+      row('u1', 'user', 'one', { rowId: 11 }),
+      row('a1', 'assistant', 'r1'),
+      row('u2', 'user', 'two', { rowId: 12 })
+    ]
+
+    const out = rebindSurvivorRowIds(messages, survivors, false)
+
+    expect(out.filter(m => m.role === 'user').map(m => m.rowId)).toEqual([undefined, undefined])
+  })
+
+  it('defaults to the complete-window behaviour when the caller says nothing', () => {
+    const messages = [row('u1', 'user', 'one', { rowId: 1 }), row('a1', 'assistant', 'r1')]
+
+    expect(rebindSurvivorRowIds(messages, [901]).find(m => m.role === 'user')?.rowId).toBe(901)
+  })
+})
+
+describe('planEdit and planReload respect the transcript window', () => {
+  const messages = [
+    row('u1', 'user', 'first', { rowId: 701 }),
+    row('a1', 'assistant', 'reply'),
+    row('u2', 'user', 'second', { rowId: 703 }),
+    row('a2', 'assistant', 'reply two')
+  ]
+
+  it('planReload omits the ordinal on a partial window', () => {
+    const paged = planReload(messages, 'a2', { transcriptPossiblyTruncated: true })
+    const whole = planReload(messages, 'a2', { transcriptPossiblyTruncated: false })
+
+    expect(paged?.truncateOrdinal).toBeUndefined()
+    expect(paged?.truncateRowId).toBe(703)
+    expect(whole?.truncateOrdinal).toBe(1)
+  })
+
+  it('planEdit omits the ordinal on a partial window', () => {
+    const edited = {
+      role: 'user' as const,
+      sourceId: 'u2',
+      content: [{ type: 'text' as const, text: 'second edited' }]
+    }
+
+    const paged = planEdit(messages, edited as never, { transcriptPossiblyTruncated: true })
+    const whole = planEdit(messages, edited as never, { transcriptPossiblyTruncated: false })
+
+    expect(paged?.truncateOrdinal).toBeUndefined()
+    expect(paged?.truncateRowId).toBe(703)
+    expect(whole?.truncateOrdinal).toBe(1)
+  })
+})
