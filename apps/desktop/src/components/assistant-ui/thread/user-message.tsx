@@ -352,6 +352,15 @@ export const UserMessage: FC<{
 
   const runtimeUserOrdinal = useAuiState(s => visibleUserOrdinalFromThread(s.thread.messages, s.message.id))
 
+  // toRuntimeMessage puts the durable row id on metadata.custom for every
+  // role. It is the only address for this turn that a transcript rebuild
+  // cannot invalidate, so restore carries it instead of relying on the id.
+  const runtimeRowId = useAuiState(s => {
+    const custom = (s.message.metadata?.custom ?? {}) as { rowId?: unknown }
+
+    return typeof custom.rowId === 'number' ? custom.rowId : undefined
+  })
+
   const attachmentRefs = useAuiState(s => {
     const custom = (s.message.metadata?.custom ?? {}) as { attachmentRefs?: unknown }
 
@@ -603,6 +612,7 @@ export const UserMessage: FC<{
                           event.stopPropagation()
                           triggerHaptic('selection')
                           onRequestRestoreConfirm?.(messageId, {
+                            rowId: runtimeRowId,
                             text: messageText,
                             userOrdinal: runtimeUserOrdinal
                           })
