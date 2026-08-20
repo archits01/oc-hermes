@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type ChatMessage, textPart } from '@/lib/chat-messages'
+import { type ChatMessage, chatMessageText, textPart, toChatMessages } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 
 import {
@@ -8,6 +8,7 @@ import {
   applyReloadOptimistic,
   applyRewindOptimistic,
   finalizeInterruptedMessages,
+  isSyntheticRendererId,
   planEdit,
   planReload,
   planRestore,
@@ -530,6 +531,7 @@ describe('optimistic rewind/reload turn-clock seeding (#86795)', () => {
 
 describe('isFailedUserTurn with hidden messages', () => {
   const userMsg = (id: string) => ({ id, parts: [{ text: id, type: 'text' as const }], role: 'user' as const })
+
   const assistant = (id: string, extra: Record<string, unknown> = {}) => ({
     id,
     parts: [{ text: id, type: 'text' as const }],
@@ -559,5 +561,288 @@ describe('isFailedUserTurn with hidden messages', () => {
 
     expect(isFailedUserTurn(messages, 0)).toBe(true)
     expect(visibleUserOrdinal(messages, messages.length)).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Durable-target resolution
+// ---------------------------------------------------------------------------
+
+describe('planRestore survives client id churn', () => {
+  it('toChatMessages ids are index-derived, so a prepended older page rewrites them', () => {
+    const tail = [
+      { role: 'user' as const, content: 'first', timestamp: 10, row_id: 101 },
+      { role: 'assistant' as const, content: 'reply', timestamp: 11, row_id: 102 }
+    ]
+
+    // What backfillOlderTranscriptPage prepends when the user scrolls up.
+    const withOlderPage = [
+      { role: 'user' as const, content: 'older', timestamp: 1, row_id: 1 },
+      { role: 'assistant' as const, content: 'older reply', timestamp: 2, row_id: 2 },
+      ...tail
+    ]
+
+    const before = toChatMessages(tail)
+    const after = toChatMessages(withOlderPage)
+
+    const beforeTarget = before.find(m => chatMessageText(m) === 'first')!
+    const afterTarget = after.find(m => chatMessageText(m) === 'first')!
+
+    // Same durable row, different client id. This is the churn that strands the
+    // id captured when the restore-confirm dialog opened: `id` is
+    // `${timestamp}-${index}-${role}`, and the index moved.
+    expect(afterTarget.rowId).toBe(beforeTarget.rowId)
+    expect(afterTarget.id).not.toBe(beforeTarget.id)
+  })
+
+  it('resolves by durable rowId when the captured id no longer exists', () => {
+    const messages = [
+      row('fresh-u1', 'user', 'first', { rowId: 101 }),
+      row('fresh-a1', 'assistant', 'reply'),
+      row('fresh-u2', 'user', 'second', { rowId: 103 }),
+      row('fresh-a2', 'assistant', 'reply two')
+    ]
+
+    // The dialog captured `stale-u2` before a background poll rebuilt the
+    // transcript; the ordinal is null because the helper could not find it.
+    const plan = planRestore(messages, 'stale-u2', { rowId: 103, text: 'second', userOrdinal: null })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(103)
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.text).toBe('second')
+  })
+
+  it('prefers the durable rowId over a drifted client ordinal', () => {
+    const messages = [
+      row('fresh-u1', 'user', 'first', { rowId: 101 }),
+      row('fresh-a1', 'assistant', 'reply'),
+      row('fresh-u2', 'user', 'second', { rowId: 103 }),
+      row('fresh-a2', 'assistant', 'reply two')
+    ]
+
+    // A stale ordinal would aim at turn 0 and silently destroy more history
+    // than the user asked for. The durable row must win.
+    const plan = planRestore(messages, 'stale-u2', { rowId: 103, text: 'second', userOrdinal: 0 })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(103)
+    expect(plan.truncateOrdinal).toBe(1)
+  })
+
+  it('falls back to the id when the rowId is not in this transcript', () => {
+    const messages = [
+      row('u1', 'user', 'first', { rowId: 101 }),
+      row('a1', 'assistant', 'reply'),
+      row('u2', 'user', 'second', { rowId: 103 })
+    ]
+
+    const plan = planRestore(messages, 'u1', { rowId: 999, text: 'first', userOrdinal: 0 })
+
+    expect(plan.sourceIndex).toBe(0)
+    expect(plan.truncateRowId).toBe(101)
+  })
+
+  it('still fails loud when nothing resolves', () => {
+    const messages = [row('u1', 'user', 'first', { rowId: 101 }), row('a1', 'assistant', 'reply')]
+
+    // No durable anchor, dead id, no ordinal: refuse rather than guess. A
+    // wrong guess truncates history the user did not ask to lose.
+    expect(() => planRestore(messages, 'gone', { text: 'first', userOrdinal: null })).toThrow(
+      'Could not find the message to restore.'
+    )
+  })
+})
+
+describe('planRestore ordinal under a partial transcript window', () => {
+  const partial = [
+    row('u1', 'user', 'first', { rowId: 501 }),
+    row('a1', 'assistant', 'reply'),
+    row('u2', 'user', 'second', { rowId: 503 }),
+    row('a2', 'assistant', 'reply two')
+  ]
+
+  it('omits the ordinal when older pages are unloaded and a row anchor exists', () => {
+    // Tail hydration loads only the newest page, so this ordinal counts the
+    // loaded turns and undercounts the gateway's by every unloaded older one.
+    // The gateway refuses that mismatch (4030) under the same "Restore failed"
+    // toast, and its contract is that a null ordinal aims purely at the
+    // durable target.
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
+      transcriptPossiblyTruncated: true
+    })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(503)
+    expect(plan.truncateOrdinal).toBeUndefined()
+  })
+
+  it('keeps the ordinal cross-check when the whole transcript is loaded', () => {
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
+      transcriptPossiblyTruncated: false
+    })
+
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.truncateRowId).toBe(503)
+  })
+
+  it('defaults to sending the ordinal when the caller says nothing', () => {
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 })
+
+    expect(plan.truncateOrdinal).toBe(1)
+  })
+
+  it('still sends the ordinal on a partial window with no row anchor', () => {
+    // Nothing durable to aim with. The gateway fails closed on ordinal-only
+    // truncation of a durable session (4004), so leaving it is the safe half.
+    const noRows = [row('u1', 'user', 'first'), row('a1', 'assistant', 'reply'), row('u2', 'user', 'second')]
+
+    const plan = planRestore(noRows, 'u2', { text: 'second', userOrdinal: 1 }, { transcriptPossiblyTruncated: true })
+
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.truncateRowId).toBeUndefined()
+  })
+})
+
+describe('rebindSurvivorRowIds on a partial transcript window', () => {
+  const survivors = [901, 902, 903]
+
+  it('binds positionally when the whole transcript is loaded', () => {
+    const messages = [
+      row('u1', 'user', 'one', { rowId: 1 }),
+      row('a1', 'assistant', 'r1'),
+      row('u2', 'user', 'two', { rowId: 2 }),
+      row('a2', 'assistant', 'r2'),
+      row('u3', 'user', 'three', { rowId: 3 })
+    ]
+
+    const out = rebindSurvivorRowIds(messages, survivors, true)
+
+    expect(out.filter(m => m.role === 'user').map(m => m.rowId)).toEqual([901, 902, 903])
+  })
+
+  it('clears row ids instead of mis-binding when older pages are unloaded', () => {
+    // The gateway builds survivor_user_row_ids from ITS ordinal 0 over the
+    // whole tip; the client counts from the start of the loaded window. When
+    // the window is a suffix, position i on the client is gateway turn i+P, so
+    // binding positionally stamps every turn with an id belonging to a turn P
+    // positions earlier — a wrong-but-EXISTING row id, which the gateway will
+    // happily truncate at. Clearing is self-healing: the next hydrate restores
+    // real ids, and meanwhile planRestore keeps sending the ordinal so the
+    // gateway's cross-check still guards the cut.
+    const messages = [
+      row('u1', 'user', 'one', { rowId: 11 }),
+      row('a1', 'assistant', 'r1'),
+      row('u2', 'user', 'two', { rowId: 12 })
+    ]
+
+    const out = rebindSurvivorRowIds(messages, survivors, false)
+
+    expect(out.filter(m => m.role === 'user').map(m => m.rowId)).toEqual([undefined, undefined])
+  })
+
+  it('defaults to the complete-window behaviour when the caller says nothing', () => {
+    const messages = [row('u1', 'user', 'one', { rowId: 1 }), row('a1', 'assistant', 'r1')]
+
+    expect(rebindSurvivorRowIds(messages, [901]).find(m => m.role === 'user')?.rowId).toBe(901)
+  })
+})
+
+describe('planEdit and planReload respect the transcript window', () => {
+  const messages = [
+    row('u1', 'user', 'first', { rowId: 701 }),
+    row('a1', 'assistant', 'reply'),
+    row('u2', 'user', 'second', { rowId: 703 }),
+    row('a2', 'assistant', 'reply two')
+  ]
+
+  it('planReload omits the ordinal on a partial window', () => {
+    const paged = planReload(messages, 'a2', { transcriptPossiblyTruncated: true })
+    const whole = planReload(messages, 'a2', { transcriptPossiblyTruncated: false })
+
+    expect(paged?.truncateOrdinal).toBeUndefined()
+    expect(paged?.truncateRowId).toBe(703)
+    expect(whole?.truncateOrdinal).toBe(1)
+  })
+
+  it('planEdit omits the ordinal on a partial window', () => {
+    const edited = {
+      role: 'user' as const,
+      sourceId: 'u2',
+      content: [{ type: 'text' as const, text: 'second edited' }]
+    }
+
+    const paged = planEdit(messages, edited as never, { transcriptPossiblyTruncated: true })
+    const whole = planEdit(messages, edited as never, { transcriptPossiblyTruncated: false })
+
+    expect(paged?.truncateOrdinal).toBeUndefined()
+    expect(paged?.truncateRowId).toBe(703)
+    expect(whole?.truncateOrdinal).toBe(1)
+  })
+})
+
+describe('isSyntheticRendererId covers real hydrated id shapes', () => {
+  it('detects fractional-timestamp ids, which is what production actually mints', () => {
+    // hermes_state stamps message_timestamp = time.time() and nudges by 1e-6,
+    // and the gateway ships it as float(ts) — so live rows carry ids like
+    // "1787205245.3426-5-user". An anchored ^\d+- pattern stops dead at the
+    // decimal point, so the guard silently missed EVERY hydrated message and
+    // only ever caught the integer Date.now() fallback (rows with no
+    // timestamp). That let a client-synthesized id reach the gateway, which
+    // fails closed on it (4018 "no longer in session history").
+    expect(isSyntheticRendererId('1787205245.3426-5-user')).toBe(true)
+    expect(isSyntheticRendererId('1787205235.78412-0-assistant')).toBe(true)
+    expect(isSyntheticRendererId('1787205235.4622-12-tools')).toBe(true)
+  })
+
+  it('still detects the integer shapes it already handled', () => {
+    expect(isSyntheticRendererId('1723456789-0-user')).toBe(true)
+    expect(isSyntheticRendererId('user-1723456789-0')).toBe(true)
+    expect(isSyntheticRendererId('assistant-abc')).toBe(true)
+    expect(isSyntheticRendererId('x-synthetic-1')).toBe(true)
+  })
+
+  it('does not claim durable or unrelated ids', () => {
+    expect(isSyntheticRendererId('456')).toBe(false)
+    expect(isSyntheticRendererId('msg_01ABCdef')).toBe(false)
+    expect(isSyntheticRendererId(undefined)).toBe(false)
+    // A platform id that merely starts with digits must not be swallowed.
+    expect(isSyntheticRendererId('1787205245-notarole')).toBe(false)
+  })
+})
+
+describe('confirm_empty_truncate survives a withheld ordinal', () => {
+  it('sets the flag from the first-turn fact when no ordinal is sent', () => {
+    // Restoring to the very first user turn leaves the transcript empty, which
+    // the gateway refuses (4028) unless confirm_empty_truncate rides along.
+    // That flag used to be derived from `truncateOrdinal === 0` — unreachable
+    // once the ordinal is withheld (paged window, or the content-rescue path
+    // which clears the ordinal unconditionally), so a legitimate restore to
+    // turn 0 got refused. The fact travels explicitly now.
+    expect(truncateSubmitParams(undefined, undefined, 456, true)).toEqual({
+      confirm_truncate: true,
+      confirm_empty_truncate: true,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('does not set it for a non-first turn on the same path', () => {
+    expect(truncateSubmitParams(undefined, undefined, 456, false)).toEqual({
+      confirm_truncate: true,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('still sets it from ordinal 0 when the ordinal is sent', () => {
+    expect(truncateSubmitParams(0, undefined, 456)).toEqual({
+      confirm_truncate: true,
+      confirm_empty_truncate: true,
+      truncate_before_user_ordinal: 0,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('never sets it with no address at all', () => {
+    expect(truncateSubmitParams(undefined, undefined, undefined, true)).toEqual({})
   })
 })
