@@ -924,6 +924,7 @@ export function usePromptActions({
       }
 
       const messages = $messages.get()
+
       const plan = planRestore(messages, messageId, target, {
         transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
       })
@@ -979,7 +980,14 @@ export function usePromptActions({
         throw err
       }
     },
-    [activeSessionIdRef, applySurvivorRowIds, busyRef, submitRewindPrompt, updateSessionState]
+    [
+      activeSessionIdRef,
+      applySurvivorRowIds,
+      busyRef,
+      selectedStoredSessionIdRef,
+      submitRewindPrompt,
+      updateSessionState
+    ]
   )
 
   const editMessage = useCallback(
