@@ -8,6 +8,7 @@ import {
   applyReloadOptimistic,
   applyRewindOptimistic,
   finalizeInterruptedMessages,
+  isSyntheticRendererId,
   planEdit,
   planReload,
   planRestore,
@@ -777,5 +778,35 @@ describe('planEdit and planReload respect the transcript window', () => {
     expect(paged?.truncateOrdinal).toBeUndefined()
     expect(paged?.truncateRowId).toBe(703)
     expect(whole?.truncateOrdinal).toBe(1)
+  })
+})
+
+describe('isSyntheticRendererId covers real hydrated id shapes', () => {
+  it('detects fractional-timestamp ids, which is what production actually mints', () => {
+    // hermes_state stamps message_timestamp = time.time() and nudges by 1e-6,
+    // and the gateway ships it as float(ts) — so live rows carry ids like
+    // "1787205245.3426-5-user". An anchored ^\d+- pattern stops dead at the
+    // decimal point, so the guard silently missed EVERY hydrated message and
+    // only ever caught the integer Date.now() fallback (rows with no
+    // timestamp). That let a client-synthesized id reach the gateway, which
+    // fails closed on it (4018 "no longer in session history").
+    expect(isSyntheticRendererId('1787205245.3426-5-user')).toBe(true)
+    expect(isSyntheticRendererId('1787205235.78412-0-assistant')).toBe(true)
+    expect(isSyntheticRendererId('1787205235.4622-12-tools')).toBe(true)
+  })
+
+  it('still detects the integer shapes it already handled', () => {
+    expect(isSyntheticRendererId('1723456789-0-user')).toBe(true)
+    expect(isSyntheticRendererId('user-1723456789-0')).toBe(true)
+    expect(isSyntheticRendererId('assistant-abc')).toBe(true)
+    expect(isSyntheticRendererId('x-synthetic-1')).toBe(true)
+  })
+
+  it('does not claim durable or unrelated ids', () => {
+    expect(isSyntheticRendererId('456')).toBe(false)
+    expect(isSyntheticRendererId('msg_01ABCdef')).toBe(false)
+    expect(isSyntheticRendererId(undefined)).toBe(false)
+    // A platform id that merely starts with digits must not be swallowed.
+    expect(isSyntheticRendererId('1787205245-notarole')).toBe(false)
   })
 })
