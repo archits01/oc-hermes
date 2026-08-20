@@ -41,6 +41,31 @@ jobs:
           git config user.name "fork-sync[bot]"
           git config user.email "fork-sync@users.noreply.github.com"
 
+      - name: Prune absorbed and stale sync branches
+        # Daily runs create a dated branch per day, so without this the fork
+        # accumulates one sync/upstream-* ref every 24h. Pruned by MERGE STATE
+        # first, not age: a branch fully contained in oc-branding (ahead=0) has
+        # already been absorbed and is debris whatever its date. Only branches
+        # carrying unabsorbed work age out, at 14 days, so an unresolved
+        # -CONFLICTS branch is never silently deleted while it still matters.
+        run: |
+          git fetch --no-tags origin '+refs/heads/sync/upstream-*:refs/remotes/origin/sync/upstream-*' || true
+          cutoff=$(date -u -d '14 days ago' +%s)
+          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sync/upstream-*'); do
+            br=${ref#origin/}
+            ahead=$(git rev-list --count "origin/oc-branding..$ref" 2>/dev/null || echo 1)
+            when=$(git log -1 --format=%ct "$ref" 2>/dev/null || echo 0)
+            if [ "$ahead" = "0" ]; then
+              echo "absorbed (ahead=0), deleting: $br"
+              git push origin --delete "$br" || true
+            elif [ "$when" -lt "$cutoff" ]; then
+              echo "unabsorbed but older than 14d, deleting: $br"
+              git push origin --delete "$br" || true
+            else
+              echo "keeping (ahead=$ahead, still recent): $br"
+            fi
+          done
+
       - name: Fetch upstream
         run: |
           git remote add upstream https://github.com/NousResearch/hermes-agent.git || \
