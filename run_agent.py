@@ -443,7 +443,7 @@ class AIAgent:
         command: str = None,
         args: list[str] | None = None,
         model: str = "",
-        max_iterations: int = 90,  # Default tool-calling iterations (shared with subagents)
+        max_iterations: int = sys.maxsize,  # Default: unlimited tool-calling iterations (shared with subagents)
         tool_delay: float = None,  # Deprecated: accepted for compatibility, ignored
         enabled_toolsets: List[str] = None,
         disabled_toolsets: List[str] = None,
@@ -470,6 +470,7 @@ class AIAgent:
         clarify_callback: callable = None,
         read_terminal_callback: callable = None,
         read_preview_callback: callable = None,
+        drive_preview_callback: callable = None,
         read_window_below_callback: callable = None,
         setup_mcp_callback: callable = None,
         step_callback: callable = None,
@@ -558,6 +559,7 @@ class AIAgent:
             clarify_callback=clarify_callback,
             read_terminal_callback=read_terminal_callback,
             read_preview_callback=read_preview_callback,
+            drive_preview_callback=drive_preview_callback,
             read_window_below_callback=read_window_below_callback,
             setup_mcp_callback=setup_mcp_callback,
             step_callback=step_callback,
@@ -1036,6 +1038,26 @@ class AIAgent:
                     threshold=threshold_tokens,
                     reason=reason,
                 )
+            )
+
+    def _warn_uncompressed_context_overflow(
+        self, preflight_tokens: int, context_length: int
+    ) -> None:
+        """Surface a deduped warning when uncompressed context exceeds model limit.
+
+        When compression is explicitly disabled (compression.enabled: false), long
+        sessions can grow past the model context window with no compression to shrink
+        them (#89297). Surface an actionable warning so the user knows to run /compact
+        or enable compression.
+        """
+        _warn_key = ("uncompressed_ctx_overflow", context_length)
+        if getattr(self, "_last_ctx_overflow_warn", None) != _warn_key:
+            self._last_ctx_overflow_warn = _warn_key
+            self._emit_warning(
+                f"⚠️ Session context (~{preflight_tokens:,} tokens) exceeds the model "
+                f"context window (~{context_length:,} tokens) with compression disabled "
+                f"(compression.enabled: false). Use /compact to compress history or "
+                f"enable compression in config.yaml."
             )
 
     def _clear_context_overflow_warn(self) -> None:
@@ -8148,6 +8170,7 @@ class AIAgent:
         function_result: str,
         *,
         failed: bool,
+        tool_call_id: str = "",
     ) -> str:
         decision = self._tool_guardrails.after_call(
             tool_name,

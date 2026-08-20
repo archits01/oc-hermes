@@ -4059,9 +4059,17 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "TAVILY_API_KEY": {
-        "description": "Tavily API key for AI-native web search and extract",
+        "description": "Tavily API key for AI-native web search and extract (optional — keyless works without it)",
         "prompt": "Tavily API key",
         "url": "https://app.tavily.com/home",
+        "tools": ["web_search", "web_extract"],
+        "password": True,
+        "category": "tool",
+    },
+    "KEENABLE_API_KEY": {
+        "description": "Keenable API key for fast independent-index web search and page fetch (optional — keyless free tier works without it)",
+        "prompt": "Keenable API key",
+        "url": "https://keenable.ai",
         "tools": ["web_search", "web_extract"],
         "password": True,
         "category": "tool",

@@ -3227,6 +3227,37 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
                 ),
                 next_args,
             )
+    elif function_name == "drive_preview":
+        def _execute(next_args: dict) -> Any:
+            from tools.drive_preview_tool import drive_preview_tool as _drive_preview_tool
+            return _finish_agent_tool(
+                _drive_preview_tool(
+                    action=next_args.get("action", ""),
+                    ref=next_args.get("ref"),
+                    selector=next_args.get("selector"),
+                    text=next_args.get("text"),
+                    key=next_args.get("key"),
+                    submit=next_args.get("submit"),
+                    amount=next_args.get("amount"),
+                    to=next_args.get("to"),
+                    limit=next_args.get("max"),
+                    callback=getattr(agent, "drive_preview_callback", None),
+                ),
+                next_args,
+            )
+    elif function_name == "annotate_preview":
+        def _execute(next_args: dict) -> Any:
+            from tools.annotate_preview_tool import annotate_preview_tool as _annotate_preview_tool
+            return _finish_agent_tool(
+                _annotate_preview_tool(
+                    action=next_args.get("action", "add"),
+                    ref=next_args.get("ref"),
+                    selector=next_args.get("selector"),
+                    label=next_args.get("label"),
+                    callback=getattr(agent, "drive_preview_callback", None),
+                ),
+                next_args,
+            )
     elif function_name == "read_window_below":
         def _execute(next_args: dict) -> Any:
             from tools.read_window_tool import read_window_below_tool as _read_window_below_tool

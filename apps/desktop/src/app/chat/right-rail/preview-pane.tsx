@@ -1,3 +1,7 @@
+// Side-effect import: watches the turn edge so the overlay keeps a pulse while
+// the model reasons. Lives here because the pane is what makes it reachable.
+import './preview-mind'
+
 import { useStore } from '@nanostores/react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -28,6 +32,7 @@ import {
 import { type ConsoleEntry } from './preview-console-state'
 import { previewConsoleState } from './preview-console-store'
 import { LocalFilePreview, PreviewEmptyState } from './preview-file'
+import { type PreviewInputEvent, registerPreviewInput } from './preview-input'
 import { PREVIEW_BROWSER_ATTR, registerPreviewNav } from './preview-nav'
 import { registerPreviewPageReader } from './preview-reader'
 
@@ -52,6 +57,7 @@ type PreviewWebview = HTMLElement & {
   reloadIgnoringCache?: () => void
   replaceMisspelling?: (word: string) => void
   selectAll?: () => void
+  sendInputEvent?: (event: PreviewInputEvent) => void
 }
 
 /** The raw Chromium params riding the webview tag's `context-menu` event. */

@@ -174,6 +174,21 @@ class LoopCapConfig:
 
 
 @dataclass(frozen=True)
+class IdenticalCallObservation:
+    """Outcome of observing one completed tool call for the stall guards.
+
+    ``notice`` is the identical-call loop-breaker notice (appended after the
+    result). ``stub`` is the result-reference replacement for a byte-identical
+    duplicate result (replaces the result content). Both may be set on the
+    same call (3rd+ identical call): the stub replaces the payload and the
+    notice is appended after it.
+    """
+
+    notice: str | None = None
+    stub: str | None = None
+
+
+@dataclass(frozen=True)
 class ToolCallSignature:
     """Stable, non-reversible identity for a tool name plus canonical args."""
 

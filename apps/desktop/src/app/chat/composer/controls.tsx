@@ -47,7 +47,9 @@ export function ComposerControls({
   compactModelPill = false,
   conversation,
   disabled,
+  foldVoice = false,
   hasComposerPayload,
+  minimal = false,
   state,
   voiceStatus,
   onDictate,
@@ -61,7 +63,9 @@ export function ComposerControls({
   compactModelPill?: boolean
   conversation: ConversationProps
   disabled: boolean
+  foldVoice?: boolean
   hasComposerPayload: boolean
+  minimal?: boolean
   state: ChatBarState
   voiceStatus: VoiceStatus
   onDictate: () => void
@@ -80,6 +84,31 @@ export function ComposerControls({
   // only when the composer is empty and a turn is running.
   const showStop = busy && !hasComposerPayload
   const showQueueButton = busyAction !== 'stop' && hasComposerPayload
+  // The HUD is a Spotlight bar a few hundred pixels wide, so the four separate
+  // voice toggles fold into one menu there and leave the row to the input. A
+  // narrow tile hits the same wall from the other direction and folds for the
+  // same reason — same controls, same state, different budget. Below that
+  // even the menu goes: at `minimal` the row is the send button and nothing
+  // else, which is the one thing that must survive every width.
+  const foldedVoice = hudMode || foldVoice
+
+  const voiceControls = foldedVoice ? (
+    <VoiceMenu
+      autoSpeak={autoSpeak}
+      disabled={disabled}
+      onDictate={onDictate}
+      onStartConversation={conversation.onStart}
+      onToggleAutoSpeak={onToggleAutoSpeak}
+      state={state}
+      voiceStatus={voiceStatus}
+    />
+  ) : (
+    <>
+      <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
+      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
+      <WakeWordButton disabled={disabled} />
+    </>
+  )
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
