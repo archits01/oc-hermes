@@ -8,6 +8,12 @@
 #
 #   ~/hermes-agent/scripts/oc-update-app.sh
 #   ~/hermes-agent/scripts/oc-update-app.sh --force-rebuild   # rebuild without pulling
+#   ~/hermes-agent/scripts/oc-update-app.sh --unattended      # nightly launchd job
+#
+# --unattended NEVER interrupts a working session: if OpenComputer is running it
+# exits immediately, before pulling or building, so an open app is a true no-op
+# rather than a wasted 4am build. It also skips the relaunch — a scheduled job
+# should not pop the app open overnight.
 #
 # What it deliberately REFUSES to do: touch a dirty or wrong-branch checkout.
 # This tree is shared with other agent sessions; their uncommitted work is not
@@ -20,12 +26,27 @@ BRANCH=oc-branding
 APP=/Applications/OpenComputer.app
 BUILT="$REPO/apps/desktop/release/mac-arm64/OpenComputer.app"
 FORCE=0
-[ "${1:-}" = "--force-rebuild" ] && FORCE=1
+UNATTENDED=0
+for arg in "$@"; do
+    case "$arg" in
+        --force-rebuild) FORCE=1 ;;
+        --unattended)    UNATTENDED=1 ;;
+    esac
+done
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[31mABORT: %s\033[0m\n' "$*" >&2; exit 1; }
 
 cd "$REPO" || die "cannot cd $REPO"
+
+# --- 0. unattended: never interrupt a working session -----------------------
+# Checked BEFORE pull/build so an open app costs nothing at all. If he keeps the
+# app open permanently the nightly job simply never swaps, which the log records
+# and the manual invocation overrides.
+if [ "$UNATTENDED" -eq 1 ] && pgrep -x OpenComputer >/dev/null 2>&1; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S')  OpenComputer is running — skipping (run it manually to update now)."
+    exit 0
+fi
 
 # --- 1. never clobber a shared tree ----------------------------------------
 say "Checking the checkout is safe to update"
@@ -94,6 +115,10 @@ else
     printf '    Expected %s\n' "$CONN"
 fi
 
-say "Relaunching"
-open -a "$APP"
+if [ "$UNATTENDED" -eq 1 ]; then
+    echo "Updated to $NEW. Not relaunching (unattended); it will start updated next time you open it."
+else
+    say "Relaunching"
+    open -a "$APP"
+fi
 echo "Done. Agent updates still arrive from the VM automatically; this only refreshed the Mac app."
