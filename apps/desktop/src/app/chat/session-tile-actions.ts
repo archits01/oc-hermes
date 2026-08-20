@@ -11,6 +11,7 @@
 import type { AppendMessage, ThreadMessage } from '@assistant-ui/react'
 import { useCallback, useMemo, useRef } from 'react'
 
+import { transcriptBackfillAvailable } from '@/app/chat/transcript-backfill'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import type { ClientSessionState } from '@/app/types'
 import { useI18n } from '@/i18n'
@@ -42,6 +43,7 @@ import {
   planReload,
   planRestore,
   rebindSurvivorRowIds,
+  type RestoreTarget,
   runRewindSubmit,
   type SurvivorUserRowIds
 } from '../session/hooks/use-prompt-actions/rewind'
@@ -410,7 +412,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
       interruptFirst: boolean,
       truncateMessageId?: string,
       truncateRowId?: number,
-      sourceText?: string
+      sourceText?: string,
+      targetIsFirstUserTurn?: boolean
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -426,7 +429,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
           }
         },
         truncateRowId,
-        sourceText
+        sourceText,
+        targetIsFirstUserTurn
       ),
     [requestGateway]
   )
@@ -442,7 +446,14 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
         return
       }
 
-      update(state => ({ ...state, messages: rebindSurvivorRowIds(state.messages, survivorRowIds) }))
+      update(state => ({
+        ...state,
+        messages: rebindSurvivorRowIds(
+          state.messages,
+          survivorRowIds,
+          !transcriptBackfillAvailable(storedIdRef.current)
+        )
+      }))
     },
     [update]
   )
@@ -455,7 +466,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
         return
       }
 
-      const plan = planReload(state.messages, parentId)
+      const plan = planReload(state.messages, parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
 
       if (!plan) {
         return
@@ -474,7 +485,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             false,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {
@@ -486,10 +498,13 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
   )
 
   const restoreToMessage = useCallback(
-    async (messageId: string, target?: { text?: string; userOrdinal?: number | null }) => {
+    async (messageId: string, target?: RestoreTarget) => {
       const sessionId = runtimeIdRef.current
       const messages = readMessages()
-      const plan = planRestore(messages, messageId, target)
+
+      const plan = planRestore(messages, messageId, target, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current)
+      })
 
       clearSessionTodos(sessionId)
       resetSessionBackground(sessionId)
@@ -510,7 +525,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             interruptFirst,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {
@@ -531,7 +547,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
   const editMessage = useCallback(
     async (edited: AppendMessage) => {
       const messages = readMessages()
-      const plan = planEdit(messages, edited)
+      const plan = planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current) })
 
       if (!plan) {
         return
@@ -558,7 +574,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             interruptFirst,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {

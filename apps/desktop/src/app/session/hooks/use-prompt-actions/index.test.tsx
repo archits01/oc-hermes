@@ -2595,6 +2595,50 @@ describe('usePromptActions restoreToMessage', () => {
     )
   })
 
+  it('retries a stale-target restore once against refreshed history', async () => {
+    // #4018: the desktop renders compacted rows (include_compacted) as ordinary
+    // user bubbles with a row id and a Restore button, but the gateway resolves
+    // truncation against ACTIVE rows only and cannot address them. Edit has had
+    // a replan-and-retry since #82462; restore had none, so the same drift
+    // surfaced as a dead-end "Restore failed" toast.
+    let submitAttempts = 0
+
+    const requestGateway = vi.fn(async (method: string, params?: unknown) => {
+      void params
+
+      if (method === 'prompt.submit') {
+        submitAttempts += 1
+
+        if (submitAttempts === 1) {
+          throw new JsonRpcGatewayError('target user message is no longer in session history', { code: 4018 })
+        }
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+        seedMessages={$messages.get()}
+      />
+    )
+
+    await handle!.restoreToMessage('u1')
+
+    // Retried, and the retry is a real rewind — not a plain resubmit, which
+    // would drop the truncation and append the prompt as a fresh turn.
+    expect(submitAttempts).toBe(2)
+
+    const submits = requestGateway.mock.calls.filter(call => call[0] === 'prompt.submit')
+
+    expect(submits).toHaveLength(2)
+    expect(submits[1][1]).toMatchObject({ confirm_truncate: true, session_id: RUNTIME_SESSION_ID })
+  })
+
   it('rejects non-user targets and unknown ids without touching the gateway', async () => {
     const requestGateway = vi.fn(async () => ({}) as never)
 

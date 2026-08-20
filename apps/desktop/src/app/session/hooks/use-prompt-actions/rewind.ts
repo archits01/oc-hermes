@@ -70,11 +70,31 @@ export function survivorRowIdsFrom(result: PromptSubmitResult | undefined): Surv
  * exist yet — and `null` entries get their cached rowId cleared instead: a
  * stale id now addresses an archived row and would be refused with 4018.
  */
-export function rebindSurvivorRowIds(messages: ChatMessage[], survivorRowIds: SurvivorUserRowIds): ChatMessage[] {
+export function rebindSurvivorRowIds(
+  messages: ChatMessage[],
+  survivorRowIds: SurvivorUserRowIds,
+  windowComplete = true
+): ChatMessage[] {
   // Same ordinal space as the truncate math: visible AND persisted (failed
   // turns never reached the gateway, so they hold no survivor slot).
   const indices = new Set(visibleUserMessageIndices(messages))
   let ordinal = 0
+
+  // The gateway builds survivor_user_row_ids from ITS ordinal 0 across the
+  // whole tip segment; this walks the LOADED window from 0. Those agree only
+  // when the window holds every turn. Tail hydration loads just the newest
+  // page, so on a paged session the window is a suffix and position i here is
+  // gateway turn i+P — binding positionally stamps each turn with the row id
+  // of a turn P earlier. That id is wrong but EXISTS, so the gateway resolves
+  // it and truncates at the wrong place. Clearing is the safe half: it is
+  // self-healing (the next hydrate restores real ids) and it keeps
+  // planRestore on its ordinal path, where the gateway's cross-check still
+  // refuses a bad cut instead of performing it.
+  if (!windowComplete) {
+    return messages.map((message, index) =>
+      indices.has(index) && message.rowId !== undefined ? { ...message, rowId: undefined } : message
+    )
+  }
 
   return messages.map((message, index) => {
     if (!indices.has(index)) {
@@ -103,7 +123,12 @@ export function isSyntheticRendererId(messageId: string | undefined): boolean {
     (messageId.startsWith('user-') ||
       messageId.startsWith('assistant-') ||
       messageId.includes('-synthetic-') ||
-      /^\d+-\d+-(user|assistant|tools)\b/.test(messageId))
+      // The timestamp is a FLOAT in practice — hermes_state stamps
+      // time.time() and nudges by 1e-6, and the gateway ships float(ts) — so
+      // live ids look like "1787205245.3426-5-user". Without the optional
+      // fraction this anchored match stopped at the decimal point and missed
+      // every hydrated message, catching only the integer Date.now() fallback.
+      /^\d+(?:\.\d+)?-\d+-(user|assistant|tools)\b/.test(messageId))
   )
 }
 
@@ -118,7 +143,12 @@ export function isSyntheticRendererId(messageId: string | undefined): boolean {
 export function truncateSubmitParams(
   truncateOrdinal: number | undefined,
   truncateMessageId?: string,
-  truncateRowId?: number
+  truncateRowId?: number,
+  /** The target is the FIRST visible user turn, so the cut leaves the
+   *  transcript empty. Carried as a fact because it cannot be re-derived once
+   *  the ordinal is withheld (paged window, or the content-rescue path, which
+   *  drops the ordinal unconditionally). */
+  targetIsFirstUserTurn?: boolean
 ): Record<string, unknown> {
   const hasOrdinal = typeof truncateOrdinal === 'number' && Number.isInteger(truncateOrdinal) && truncateOrdinal >= 0
   const hasRowId = typeof truncateRowId === 'number' && Number.isInteger(truncateRowId)
@@ -135,7 +165,7 @@ export function truncateSubmitParams(
     ...(hasOrdinal ? { truncate_before_user_ordinal: truncateOrdinal } : {}),
     ...(hasMessageId ? { truncate_before_message_id: truncateMessageId } : {}),
     ...(hasRowId ? { truncate_before_row_id: truncateRowId } : {}),
-    ...(truncateOrdinal === 0 ? { confirm_empty_truncate: true } : {})
+    ...(truncateOrdinal === 0 || targetIsFirstUserTurn ? { confirm_empty_truncate: true } : {})
   }
 }
 
@@ -223,7 +253,8 @@ export async function runRewindSubmit(
   interruptFirst: boolean,
   recovery?: { storedSessionId?: null | string; onSessionRecovered?: (sessionId: string) => void },
   truncateRowId?: number,
-  sourceText?: string
+  sourceText?: string,
+  targetIsFirstUserTurn?: boolean
 ): Promise<SurvivorUserRowIds | undefined> {
   // Recovery may rebind the live id mid-flight; interrupt/submit must both
   // follow it rather than pinning the dead one.
@@ -276,7 +307,7 @@ export async function runRewindSubmit(
       {
         session_id: targetId,
         text,
-        ...truncateSubmitParams(resolvedOrdinal, resolvedMessageId, resolvedRowId),
+        ...truncateSubmitParams(resolvedOrdinal, resolvedMessageId, resolvedRowId, targetIsFirstUserTurn),
         // A first-turn rewind resolves to an empty transcript, which the
         // gateway additionally gates behind confirm_empty_truncate. In
         // resolved-row-id mode the ordinal was dropped (see above), so carry
@@ -396,12 +427,18 @@ export interface ReloadPlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
   userIndex: number
 }
 
 /** The user turn to re-run for a reload from `parentId` (or the last turn). */
-export function planReload(messages: ChatMessage[], parentId: null | string): null | ReloadPlan {
+export function planReload(
+  messages: ChatMessage[],
+  parentId: null | string,
+  window?: RestoreWindow
+): null | ReloadPlan {
   const parentIndex = parentId ? messages.findIndex(m => m.id === parentId) : messages.length - 1
 
   const userBack =
@@ -428,12 +465,17 @@ export function planReload(messages: ChatMessage[], parentId: null | string): nu
   // address would mis-aim (#86573/#86623) — resubmit plainly instead.
   const isFailedTurn = isFailedUserTurn(messages, userIndex)
 
+  // See planRestore: a paged window undercounts the ordinal, the gateway
+  // refuses the mismatch (4030), and the row id can aim the cut alone.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && userMessage.rowId !== undefined
+
   return {
     branchGroupId: targetAssistant?.branchGroupId ?? branchGroupForUser(userMessage),
     sourceText: text,
     text,
-    truncateOrdinal: isFailedTurn ? undefined : visibleUserOrdinal(messages, userIndex),
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, userIndex),
     truncateMessageId: isFailedTurn ? undefined : userMessage.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, userIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : userMessage.rowId,
     userIndex
   }
@@ -471,6 +513,13 @@ export function applyReloadOptimistic(state: ClientSessionState, plan: ReloadPla
 // ---------------------------------------------------------------------------
 
 export interface RestoreTarget {
+  /** The gateway's durable row id for this turn — the ONE identity that
+   *  survives a transcript rebuild, and the anchor the gateway itself
+   *  truncates on (`truncate_before_row_id`). Prefer it over `messageId`:
+   *  ChatMessage ids are `${timestamp}-${index}-${role}`, so a background
+   *  poll or a prepended backfill page re-mints them while the user is still
+   *  reading the confirm dialog. */
+  rowId?: number
   text?: string
   userOrdinal?: null | number
 }
@@ -482,22 +531,60 @@ export interface RestorePlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
 }
 
+export interface RestoreWindow {
+  /** True when the loaded transcript is only the newest page — older rows
+   *  exist on the backend that `messages` does not contain. */
+  transcriptPossiblyTruncated?: boolean
+}
+
 /** Resolve the user turn to rewind to; throws with a user-facing reason. */
-export function planRestore(messages: ChatMessage[], messageId: string, target?: RestoreTarget): RestorePlan {
-  const idIndex = messages.findIndex(m => m.id === messageId && m.role === 'user')
+export function planRestore(
+  messages: ChatMessage[],
+  messageId: string,
+  target?: RestoreTarget,
+  window?: RestoreWindow
+): RestorePlan {
+  // Resolution order is strictly durability-first: row id, then client id,
+  // then the client ordinal. `messageId` is NOT stable — toChatMessages mints
+  // ids from the array index, and every resume/background poll (1.5-30s) and
+  // every prepended backfill page rebuilds them, so the id captured when the
+  // confirm dialog opened is routinely dead by the time the user confirms.
+  // That stranded the id path and left a drifted ordinal as the only address,
+  // which either threw ("Could not find the message to restore.") or — worse —
+  // silently resolved to the WRONG turn and truncated history the user never
+  // asked to lose. The row id is the same anchor the gateway aims at, so
+  // agreeing on it end-to-end is what makes a rewind mean one thing.
+  const rowIndex =
+    target?.rowId === undefined ? -1 : messages.findIndex(m => m.role === 'user' && m.rowId === target.rowId)
+
+  const idIndex = rowIndex >= 0 ? -1 : messages.findIndex(m => m.id === messageId && m.role === 'user')
 
   const fallbackIndex =
-    target?.userOrdinal === null || target?.userOrdinal === undefined
+    rowIndex >= 0 || idIndex >= 0 || target?.userOrdinal === null || target?.userOrdinal === undefined
       ? -1
       : visibleUserIndexAtOrdinal(messages, target.userOrdinal)
 
-  const sourceIndex = idIndex >= 0 ? idIndex : fallbackIndex
+  const sourceIndex = rowIndex >= 0 ? rowIndex : idIndex >= 0 ? idIndex : fallbackIndex
   const source = messages[sourceIndex]
 
   if (!source || source.role !== 'user') {
+    // Breadcrumb, not decoration: this refusal is user-visible and has now
+    // recurred across three fixes. Log what the resolver actually had so the
+    // next occurrence is diagnosed from evidence instead of re-theorised.
+    console.warn('[restore-target-unresolved]', {
+      messageId,
+      messageCount: messages.length,
+      targetOrdinal: target?.userOrdinal ?? null,
+      targetRowId: target?.rowId ?? null,
+      userRowIds: messages.filter(m => m.role === 'user').map(m => m.rowId ?? null),
+      visibleUserCount: visibleUserMessageIndices(messages).length
+    })
+
     throw new Error('Could not find the message to restore.')
   }
 
@@ -517,20 +604,32 @@ export function planRestore(messages: ChatMessage[], messageId: string, target?:
   // the ONE ordinal space the gateway shares: trusting the client number when
   // we can derive the authoritative one lets any renderer/store divergence
   // reach truncate_before_user_ordinal unfiltered. It is only consulted on the
-  // fallback path, where the id lookup missed and it is all we have.
+  // fallback path, where both durable anchors missed and it is all we have.
+  // The gateway cross-checks it against the row id and refuses a mismatch
+  // (4030), so a recomputed ordinal is also what keeps a resolved rewind from
+  // being rejected outright.
   const truncateOrdinal =
-    idIndex >= 0
+    rowIndex >= 0 || idIndex >= 0 || target?.userOrdinal === null || target?.userOrdinal === undefined
       ? visibleUserOrdinal(messages, sourceIndex)
-      : target?.userOrdinal === null || target?.userOrdinal === undefined
-        ? visibleUserOrdinal(messages, sourceIndex)
-        : target.userOrdinal
+      : target.userOrdinal
+
+  // Tail hydration loads only the NEWEST page of a long session, so any ordinal
+  // we count here omits every unloaded older turn while the gateway counts its
+  // whole history. It cross-checks the two and refuses the mismatch (4030),
+  // which surfaces under the same "Restore failed" toast as an unresolved
+  // target. Its own contract is that a null client ordinal alongside a resolved
+  // durable target aims purely at that target, so withhold the number exactly
+  // when we cannot count it correctly and the row id can carry the cut alone.
+  // With a complete window the ordinal still rides along as the drift check.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && source.rowId !== undefined
 
   return {
     sourceIndex,
     sourceText: sourceText || text,
     text,
-    truncateOrdinal: isFailedTurn ? undefined : truncateOrdinal,
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : truncateOrdinal,
     truncateMessageId: isFailedTurn ? undefined : source.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, sourceIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }
 }
@@ -548,11 +647,17 @@ export interface EditPlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
 }
 
 /** Resolve the edited user turn, or null when nothing changed / invalid. */
-export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPlan | null {
+export function planEdit(
+  messages: ChatMessage[],
+  edited: AppendMessage,
+  window?: RestoreWindow
+): EditPlan | null {
   const sourceId = edited.sourceId || edited.parentId
   const text = appendText(edited)
 
@@ -563,6 +668,19 @@ export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPl
   const sourceIndex = messages.findIndex(m => m.id === sourceId)
   const source = messages[sourceIndex]
 
+  if (!source) {
+    // Same id-churn class planRestore now anchors around (see its resolution
+    // comment), but edit fails SILENTLY: a null plan makes the caller return
+    // without submitting, so a dead id looks like "Send did nothing". Edit
+    // still resolves by id alone — AUI hands us the id from the live thread at
+    // submit time rather than a capture held across a dialog, so the exposure
+    // is much smaller — but leave evidence rather than a silent no-op.
+    console.warn('[edit-target-unresolved]', {
+      messageCount: messages.length,
+      sourceId
+    })
+  }
+
   if (!source || source.role !== 'user' || chatMessageText(source).trim() === text) {
     return null
   }
@@ -571,14 +689,19 @@ export function planEdit(messages: ChatMessage[], edited: AppendMessage): EditPl
   // truncate-by-ordinal would 422 — resubmit plainly instead.
   const isFailedTurn = isFailedUserTurn(messages, sourceIndex)
 
+  // See planRestore: a paged window undercounts the ordinal, the gateway
+  // refuses the mismatch (4030), and the row id can aim the cut alone.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && source.rowId !== undefined
+
   return {
     editedMessage: { ...source, parts: [textPart(text)] },
     isFailedTurn,
     sourceIndex,
     sourceText: chatMessageText(source).trim(),
     text,
-    truncateOrdinal: isFailedTurn ? undefined : visibleUserOrdinal(messages, sourceIndex),
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, sourceIndex),
     truncateMessageId: isFailedTurn ? undefined : source.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, sourceIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }
 }

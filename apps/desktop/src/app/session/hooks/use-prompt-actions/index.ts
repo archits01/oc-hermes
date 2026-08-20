@@ -3,6 +3,7 @@ import { JsonRpcGatewayError } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 
+import { transcriptBackfillAvailable } from '@/app/chat/transcript-backfill'
 import { transcribeAudio } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { stripAnsi } from '@/lib/ansi'
@@ -251,6 +252,8 @@ interface PromptActionsOptions {
 /** Everything a slash handler needs about the invocation it's serving. */
 
 interface RestoreMessageTarget {
+  /** Durable gateway row id — see RestoreTarget in rewind.ts. */
+  rowId?: number
   text?: string
   userOrdinal?: number | null
 }
@@ -820,10 +823,14 @@ export function usePromptActions({
 
       updateSessionState(sessionId, state => ({
         ...state,
-        messages: rebindSurvivorRowIds(state.messages, survivorRowIds)
+        messages: rebindSurvivorRowIds(
+          state.messages,
+          survivorRowIds,
+          !transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+        )
       }))
     },
-    [updateSessionState]
+    [selectedStoredSessionIdRef, updateSessionState]
   )
 
   const submitRewindPrompt = useCallback(
@@ -834,7 +841,8 @@ export function usePromptActions({
       truncateMessageId: string | undefined,
       interruptFirst: boolean,
       truncateRowId?: number,
-      sourceText?: string
+      sourceText?: string,
+      targetIsFirstUserTurn?: boolean
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -851,7 +859,8 @@ export function usePromptActions({
           }
         },
         truncateRowId,
-        sourceText
+        sourceText,
+        targetIsFirstUserTurn
       ),
     [activeSessionIdRef, requestGateway, selectedStoredSessionIdRef]
   )
@@ -866,7 +875,7 @@ export function usePromptActions({
         return
       }
 
-      const plan = planReload($messages.get(), parentId)
+      const plan = planReload($messages.get(), parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
 
       if (!plan) {
         return
@@ -883,7 +892,8 @@ export function usePromptActions({
           plan.truncateMessageId,
           false,
           plan.truncateRowId,
-          plan.sourceText
+          plan.sourceText,
+          plan.targetIsFirstUserTurn
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
@@ -898,7 +908,14 @@ export function usePromptActions({
         notifyError(err, copy.regenerateFailed)
       }
     },
-    [activeSessionIdRef, applySurvivorRowIds, copy.regenerateFailed, submitRewindPrompt, updateSessionState]
+    [
+      activeSessionIdRef,
+      applySurvivorRowIds,
+      copy.regenerateFailed,
+      selectedStoredSessionIdRef,
+      submitRewindPrompt,
+      updateSessionState
+    ]
   )
 
   // Cursor-style "restore checkpoint": rewind the conversation to a past user
@@ -921,7 +938,10 @@ export function usePromptActions({
       }
 
       const messages = $messages.get()
-      const plan = planRestore(messages, messageId, target)
+
+      const plan = planRestore(messages, messageId, target, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+      })
 
       // The turns we're discarding may have spawned todos and background
       // processes; they belong to the abandoned timeline, so wipe their status
@@ -951,11 +971,63 @@ export function usePromptActions({
           plan.truncateMessageId,
           interruptFirst,
           plan.truncateRowId,
-          plan.sourceText
+          plan.sourceText,
+          plan.targetIsFirstUserTurn
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
       } catch (err) {
+        // Stale target (4018). Restore had no recovery at all while edit has
+        // had one since #82462, so the same drift that edit silently repaired
+        // surfaced here as "Restore failed". It is reachable without any
+        // client bug: the desktop asks for compacted rows (include_compacted),
+        // which come back as ordinary user bubbles WITH a row id and each
+        // render a Restore button — but the gateway resolves truncation
+        // against active rows only, so it cannot address them. Classify on the
+        // CODE, not on data.segment_ordinal: with the ordinal withheld the
+        // server's stale-target payload comes back thinner and that field can
+        // be absent. Resume server history, replan against the refreshed
+        // transcript, and retry the real rewind ONCE — never a plain resubmit,
+        // which would drop rewind semantics and append the prompt as a new turn.
+        const isStaleTarget =
+          (err instanceof JsonRpcGatewayError && err.code === 4018) ||
+          /no longer in session history|not in session history/i.test(err instanceof Error ? err.message : String(err))
+
+        if (isStaleTarget) {
+          try {
+            const storedId = selectedStoredSessionIdRef.current
+
+            if (storedId) {
+              await resumeStoredSession(storedId)
+            }
+
+            const refreshed = $messages.get()
+
+            const retryPlan = planRestore(refreshed, messageId, target, {
+              transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+            })
+
+            const survivorRowIds = await submitRewindPrompt(
+              sessionId,
+              retryPlan.text,
+              retryPlan.truncateOrdinal,
+              retryPlan.truncateMessageId,
+              false,
+              retryPlan.truncateRowId,
+              retryPlan.sourceText,
+              retryPlan.targetIsFirstUserTurn
+            )
+
+            applySurvivorRowIds(sessionId, survivorRowIds)
+
+            return
+          } catch {
+            // Fall through to the rollback below and surface the ORIGINAL
+            // error: the retry's failure is a symptom, and the first message
+            // is the one that describes what the user actually hit.
+          }
+        }
+
         // The rewind never landed (e.g. the gateway stayed busy past the retry
         // deadline). Roll the optimistic truncation back to the full original
         // history so the UI doesn't desync from what's persisted — leaving it
@@ -974,7 +1046,15 @@ export function usePromptActions({
         throw err
       }
     },
-    [activeSessionIdRef, applySurvivorRowIds, busyRef, submitRewindPrompt, updateSessionState]
+    [
+      activeSessionIdRef,
+      applySurvivorRowIds,
+      busyRef,
+      resumeStoredSession,
+      selectedStoredSessionIdRef,
+      submitRewindPrompt,
+      updateSessionState
+    ]
   )
 
   const editMessage = useCallback(
@@ -983,7 +1063,7 @@ export function usePromptActions({
       // a stale target rewrites the wrong session's history.
       const sessionId = activeSessionIdRef.current
       const messages = $messages.get()
-      const plan = sessionId ? planEdit(messages, edited) : null
+      const plan = sessionId ? planEdit(messages, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) }) : null
 
       if (!sessionId || !plan) {
         return
@@ -1036,7 +1116,8 @@ export function usePromptActions({
           plan.truncateMessageId,
           interruptFirst,
           plan.truncateRowId,
-          plan.sourceText
+          plan.sourceText,
+          plan.targetIsFirstUserTurn
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
@@ -1059,7 +1140,7 @@ export function usePromptActions({
             }
 
             const refreshed = $messages.get()
-            const retryPlan = planEdit(refreshed, edited)
+            const retryPlan = planEdit(refreshed, edited, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
 
             if (retryPlan && !retryPlan.isFailedTurn) {
               const survivorRowIds = await submitRewindPrompt(
@@ -1069,7 +1150,8 @@ export function usePromptActions({
                 retryPlan.truncateMessageId,
                 false,
                 retryPlan.truncateRowId,
-                retryPlan.sourceText
+                retryPlan.sourceText,
+                retryPlan.targetIsFirstUserTurn
               )
 
               applySurvivorRowIds(sessionId, survivorRowIds)
