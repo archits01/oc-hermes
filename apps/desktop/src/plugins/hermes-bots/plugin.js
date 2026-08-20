@@ -312,9 +312,24 @@ function handleSessionsGatewayTransition() {
  *  { [botName]: { shape, color, title } } */
 const $botMeta = atom({})
 
+/** Freshness fence for the server-meta overlay: the last moment each bot's
+ *  local meta was written (stamped again once the server write settles).
+ *  mergeServerMeta refuses to overlay a roster snapshot FETCHED BEFORE this
+ *  moment — such a snapshot still carries the pre-write ui_meta, and
+ *  spreading it over local meta resurrects state the user just changed
+ *  (disbanded groups reappearing as empty roster rows, renames reverting,
+ *  unpins undoing). Runtime-only by design: on a fresh window there are no
+ *  in-flight local writes for a stale snapshot to clobber. */
+const botMetaWriteAt = new Map()
+
+function noteBotMetaWrite(name) {
+  botMetaWriteAt.set(name, Date.now())
+}
+
 async function saveBotMeta(name, patch) {
   const prevMeta = $botMeta.get()[name] || {}
   const next = { ...$botMeta.get(), [name]: { ...prevMeta, ...patch } }
+  noteBotMetaWrite(name)
   $botMeta.set(next)
 
   // Local plugin storage: instant, and the fallback for older gateways.
@@ -378,6 +393,10 @@ async function saveBotMeta(name, patch) {
     } catch {
       /* older/unavailable gateway — the local fallback remains saved */
     }
+    // Re-stamp now that the server write settled: a roster snapshot fetched
+    // while profiles.configure was still in flight predates the new ui_meta
+    // just as surely as one fetched before the local write.
+    noteBotMetaWrite(name)
   }
 
   return { serverPersisted: serverOutcome === 'persisted', serverOutcome }
@@ -666,8 +685,16 @@ function pullServerAvatars(roster) {
  *  pet icon) are PRESERVED — the server copy never includes them, so a
  *  naive replace would wipe a just-saved image avatar on the next roster
  *  paint. When server bot metadata exists, an omitted chat is authoritative
- *  deletion; local still fills all gaps for older gateways with no metadata. */
-function mergeServerMeta(roster) {
+ *  deletion; local still fills all gaps for older gateways with no metadata.
+ *
+ *  `fetchedAt` (the snapshot's issue time) fences the overlay: a bot whose
+ *  local meta was written AFTER the snapshot was fetched is skipped — that
+ *  snapshot's ui_meta predates the write, and spreading it back over local
+ *  meta resurrects state the user just changed (a disbanded group's
+ *  membership reappearing as an empty roster row, a rename reverting, an
+ *  unpin undoing). The next roster fetch post-dates the write and overlays
+ *  normally, so server truth still gets the last word. */
+function mergeServerMeta(roster, fetchedAt = 0) {
   const local = $botMeta.get()
   let changed = false
   const next = { ...local }
@@ -675,6 +702,9 @@ function mergeServerMeta(roster) {
   for (const bot of roster) {
     const server = bot.ui_meta?.['hermes-bots']
     if (server && typeof server === 'object') {
+      if (fetchedAt && fetchedAt < (botMetaWriteAt.get(bot.name) || 0)) {
+        continue
+      }
       const mine = next[bot.name] || {}
       const merged = { ...mine, ...server }
 
@@ -2723,6 +2753,11 @@ function useRoster() {
   return useQuery({
     queryKey: [...ROSTER_KEY, activeConnectionId],
     queryFn: async () => {
+      // Stamp the ISSUE time on the snapshot: mergeServerMeta compares it
+      // against each bot's last local meta write, and a fetch issued before
+      // a write can only carry pre-write ui_meta. (Issue time is the
+      // conservative bound — the server answered no earlier than this.)
+      const issuedAt = Date.now()
       // Rich rows (last_session, ui_meta, has_avatar) come from the ACTIVE
       // gateway's profiles.list — unchanged single-source behavior.
       const pins = preferredSessionIds($botMeta.get())
@@ -2743,13 +2778,13 @@ function useRoster() {
       if (typeof host.agents === 'function') {
         try {
           const union = await host.agents()
-          return mergeMultiSourceRoster(local, union, activeConnectionId, $lastRoster.get())
+          return { ...mergeMultiSourceRoster(local, union, activeConnectionId, $lastRoster.get()), fetchedAt: issuedAt }
         } catch {
           /* older build or roster failure — single-source list stands */
         }
       }
 
-      return local
+      return { ...(local && typeof local === 'object' ? local : {}), fetchedAt: issuedAt }
     },
     refetchInterval: 5000,
     staleTime: 5000,
@@ -4098,6 +4133,13 @@ async function disbandGroupChat(group, members) {
     const meta = $botMeta.get()[member.name] || {}
     await saveBotMeta(member.name, groupMembershipPatch(meta, group, false))
   }
+
+  // Converge on server truth: the cached roster still carries the pre-disband
+  // ui_meta (the write-fence in mergeServerMeta keeps it from resurrecting
+  // the membership, but a fresh snapshot is what makes every surface agree).
+  if (typeof queryClient !== 'undefined' && queryClient?.invalidateQueries) {
+    queryClient.invalidateQueries({ queryKey: ROSTER_KEY })
+  }
 }
 
 /** Set or clear a group chat's room picture (small data URL, normalized by
@@ -4189,6 +4231,12 @@ async function renameGroupChat(oldName, newName, members) {
   if (groupChatMainTabs.has(oldName)) {
     closeGroupChatMainTab(oldName)
     openGroupChat(next)
+  }
+
+  // Same convergence as disband: drop the pre-rename roster snapshot so the
+  // old name can't linger anywhere the fence doesn't cover.
+  if (typeof queryClient !== 'undefined' && queryClient?.invalidateQueries) {
+    queryClient.invalidateQueries({ queryKey: ROSTER_KEY })
   }
 
   return next
@@ -10092,7 +10140,7 @@ function BotsPane() {
 
   if (live) {
     $lastRoster.set(roster)
-    mergeServerMeta(activeSourceRoster)
+    mergeServerMeta(activeSourceRoster, data?.fetchedAt || 0)
     pullServerAvatars(activeSourceRoster)
     trackInboundActivity(activeSourceRoster)
     backfillMessagingProtocol(activeSourceRoster)
