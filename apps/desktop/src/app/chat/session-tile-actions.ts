@@ -412,7 +412,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
       interruptFirst: boolean,
       truncateMessageId?: string,
       truncateRowId?: number,
-      sourceText?: string
+      sourceText?: string,
+      targetIsFirstUserTurn?: boolean
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -428,7 +429,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
           }
         },
         truncateRowId,
-        sourceText
+        sourceText,
+        targetIsFirstUserTurn
       ),
     [requestGateway]
   )
@@ -483,7 +485,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             false,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {
@@ -522,7 +525,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             interruptFirst,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {
@@ -570,7 +574,8 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
             interruptFirst,
             plan.truncateMessageId,
             plan.truncateRowId,
-            plan.sourceText
+            plan.sourceText,
+            plan.targetIsFirstUserTurn
           )
         )
       } catch (err) {

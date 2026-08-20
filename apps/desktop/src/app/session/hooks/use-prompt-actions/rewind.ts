@@ -200,7 +200,12 @@ export function isSyntheticRendererId(messageId: string | undefined): boolean {
 export function truncateSubmitParams(
   truncateOrdinal: number | undefined,
   truncateMessageId?: string,
-  truncateRowId?: number
+  truncateRowId?: number,
+  /** The target is the FIRST visible user turn, so the cut leaves the
+   *  transcript empty. Carried as a fact because it cannot be re-derived once
+   *  the ordinal is withheld (paged window, or the content-rescue path, which
+   *  drops the ordinal unconditionally). */
+  targetIsFirstUserTurn?: boolean
 ): Record<string, unknown> {
   const hasOrdinal = typeof truncateOrdinal === 'number' && Number.isInteger(truncateOrdinal) && truncateOrdinal >= 0
   const hasRowId = typeof truncateRowId === 'number' && Number.isInteger(truncateRowId)
@@ -217,7 +222,7 @@ export function truncateSubmitParams(
     ...(hasOrdinal ? { truncate_before_user_ordinal: truncateOrdinal } : {}),
     ...(hasMessageId ? { truncate_before_message_id: truncateMessageId } : {}),
     ...(hasRowId ? { truncate_before_row_id: truncateRowId } : {}),
-    ...(truncateOrdinal === 0 ? { confirm_empty_truncate: true } : {})
+    ...(truncateOrdinal === 0 || targetIsFirstUserTurn ? { confirm_empty_truncate: true } : {})
   }
 }
 
@@ -306,7 +311,8 @@ export async function runRewindSubmit(
   recovery?: { storedSessionId?: null | string; onSessionRecovered?: (sessionId: string) => void },
   truncateRowId?: number,
   sourceText?: string,
-  rebindRowIds?: readonly number[]
+  rebindRowIds?: readonly number[],
+  targetIsFirstUserTurn?: boolean
 ): Promise<SurvivorUserRowIds | undefined> {
   // Recovery may rebind the live id mid-flight; interrupt/submit must both
   // follow it rather than pinning the dead one.
@@ -371,7 +377,7 @@ export async function runRewindSubmit(
       {
         session_id: targetId,
         text,
-        ...truncateSubmitParams(resolvedOrdinal, resolvedMessageId, resolvedRowId),
+        ...truncateSubmitParams(resolvedOrdinal, resolvedMessageId, resolvedRowId, targetIsFirstUserTurn),
         // A first-turn rewind resolves to an empty transcript, which the
         // gateway additionally gates behind confirm_empty_truncate. In
         // resolved-row-id mode the tail-local ordinal was dropped (see
@@ -495,6 +501,8 @@ export interface ReloadPlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
   userIndex: number
 }
@@ -541,6 +549,7 @@ export function planReload(
     text,
     truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, userIndex),
     truncateMessageId: isFailedTurn ? undefined : userMessage.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, userIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : userMessage.rowId,
     userIndex
   }
@@ -596,6 +605,8 @@ export interface RestorePlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
 }
 
@@ -692,6 +703,7 @@ export function planRestore(
     text,
     truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : truncateOrdinal,
     truncateMessageId: isFailedTurn ? undefined : source.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, sourceIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }
 }
@@ -709,6 +721,8 @@ export interface EditPlan {
   text: string
   truncateOrdinal: number | undefined
   truncateMessageId?: string
+  /** Target is the first visible user turn — the cut empties the transcript. */
+  targetIsFirstUserTurn?: boolean
   truncateRowId?: number
 }
 
@@ -761,6 +775,7 @@ export function planEdit(
     text,
     truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : visibleUserOrdinal(messages, sourceIndex),
     truncateMessageId: isFailedTurn ? undefined : source.id,
+    targetIsFirstUserTurn: !isFailedTurn && visibleUserOrdinal(messages, sourceIndex) === 0,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }
 }
