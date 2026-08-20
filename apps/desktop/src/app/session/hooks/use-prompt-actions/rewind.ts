@@ -492,8 +492,19 @@ export interface RestorePlan {
   truncateRowId?: number
 }
 
+export interface RestoreWindow {
+  /** True when the loaded transcript is only the newest page — older rows
+   *  exist on the backend that `messages` does not contain. */
+  transcriptPossiblyTruncated?: boolean
+}
+
 /** Resolve the user turn to rewind to; throws with a user-facing reason. */
-export function planRestore(messages: ChatMessage[], messageId: string, target?: RestoreTarget): RestorePlan {
+export function planRestore(
+  messages: ChatMessage[],
+  messageId: string,
+  target?: RestoreTarget,
+  window?: RestoreWindow
+): RestorePlan {
   // Resolution order is strictly durability-first: row id, then client id,
   // then the client ordinal. `messageId` is NOT stable — toChatMessages mints
   // ids from the array index, and every resume/background poll (1.5-30s) and
@@ -558,11 +569,21 @@ export function planRestore(messages: ChatMessage[], messageId: string, target?:
       ? visibleUserOrdinal(messages, sourceIndex)
       : target.userOrdinal
 
+  // Tail hydration loads only the NEWEST page of a long session, so any ordinal
+  // we count here omits every unloaded older turn while the gateway counts its
+  // whole history. It cross-checks the two and refuses the mismatch (4030),
+  // which surfaces under the same "Restore failed" toast as an unresolved
+  // target. Its own contract is that a null client ordinal alongside a resolved
+  // durable target aims purely at that target, so withhold the number exactly
+  // when we cannot count it correctly and the row id can carry the cut alone.
+  // With a complete window the ordinal still rides along as the drift check.
+  const uncountableWindow = Boolean(window?.transcriptPossiblyTruncated) && source.rowId !== undefined
+
   return {
     sourceIndex,
     sourceText: sourceText || text,
     text,
-    truncateOrdinal: isFailedTurn ? undefined : truncateOrdinal,
+    truncateOrdinal: isFailedTurn || uncountableWindow ? undefined : truncateOrdinal,
     truncateMessageId: isFailedTurn ? undefined : source.id,
     truncateRowId: isFailedTurn ? undefined : source.rowId
   }

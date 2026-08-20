@@ -3,6 +3,7 @@ import { JsonRpcGatewayError } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 
+import { transcriptBackfillAvailable } from '@/app/chat/transcript-backfill'
 import { transcribeAudio } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { stripAnsi } from '@/lib/ansi'
@@ -923,7 +924,9 @@ export function usePromptActions({
       }
 
       const messages = $messages.get()
-      const plan = planRestore(messages, messageId, target)
+      const plan = planRestore(messages, messageId, target, {
+        transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current)
+      })
 
       // The turns we're discarding may have spawned todos and background
       // processes; they belong to the abandoned timeline, so wipe their status
