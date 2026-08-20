@@ -11,8 +11,8 @@
 import type { AppendMessage, ThreadMessage } from '@assistant-ui/react'
 import { useCallback, useMemo, useRef } from 'react'
 
-import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { transcriptBackfillAvailable } from '@/app/chat/transcript-backfill'
+import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import type { ClientSessionState } from '@/app/types'
 import { useI18n } from '@/i18n'
 import { textPart } from '@/lib/chat-messages'
@@ -491,6 +491,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
     async (messageId: string, target?: RestoreTarget) => {
       const sessionId = runtimeIdRef.current
       const messages = readMessages()
+
       const plan = planRestore(messages, messageId, target, {
         transcriptPossiblyTruncated: transcriptBackfillAvailable(storedIdRef.current)
       })
