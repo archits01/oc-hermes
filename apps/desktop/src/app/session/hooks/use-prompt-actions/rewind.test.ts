@@ -810,3 +810,39 @@ describe('isSyntheticRendererId covers real hydrated id shapes', () => {
     expect(isSyntheticRendererId('1787205245-notarole')).toBe(false)
   })
 })
+
+describe('confirm_empty_truncate survives a withheld ordinal', () => {
+  it('sets the flag from the first-turn fact when no ordinal is sent', () => {
+    // Restoring to the very first user turn leaves the transcript empty, which
+    // the gateway refuses (4028) unless confirm_empty_truncate rides along.
+    // That flag used to be derived from `truncateOrdinal === 0` — unreachable
+    // once the ordinal is withheld (paged window, or the content-rescue path
+    // which clears the ordinal unconditionally), so a legitimate restore to
+    // turn 0 got refused. The fact travels explicitly now.
+    expect(truncateSubmitParams(undefined, undefined, 456, true)).toEqual({
+      confirm_truncate: true,
+      confirm_empty_truncate: true,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('does not set it for a non-first turn on the same path', () => {
+    expect(truncateSubmitParams(undefined, undefined, 456, false)).toEqual({
+      confirm_truncate: true,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('still sets it from ordinal 0 when the ordinal is sent', () => {
+    expect(truncateSubmitParams(0, undefined, 456)).toEqual({
+      confirm_truncate: true,
+      confirm_empty_truncate: true,
+      truncate_before_user_ordinal: 0,
+      truncate_before_row_id: 456
+    })
+  })
+
+  it('never sets it with no address at all', () => {
+    expect(truncateSubmitParams(undefined, undefined, undefined, true)).toEqual({})
+  })
+})
