@@ -251,6 +251,8 @@ interface PromptActionsOptions {
 /** Everything a slash handler needs about the invocation it's serving. */
 
 interface RestoreMessageTarget {
+  /** Durable gateway row id — see RestoreTarget in rewind.ts. */
+  rowId?: number
   text?: string
   userOrdinal?: number | null
 }

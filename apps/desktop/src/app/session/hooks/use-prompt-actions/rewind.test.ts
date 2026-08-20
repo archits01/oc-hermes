@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type ChatMessage, textPart } from '@/lib/chat-messages'
+import { type ChatMessage, chatMessageText, textPart, toChatMessages } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 
 import {
@@ -559,5 +559,95 @@ describe('isFailedUserTurn with hidden messages', () => {
 
     expect(isFailedUserTurn(messages, 0)).toBe(true)
     expect(visibleUserOrdinal(messages, messages.length)).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Durable-target resolution
+// ---------------------------------------------------------------------------
+
+describe('planRestore survives client id churn', () => {
+  it('toChatMessages ids are index-derived, so a prepended older page rewrites them', () => {
+    const tail = [
+      { role: 'user' as const, content: 'first', timestamp: 10, row_id: 101 },
+      { role: 'assistant' as const, content: 'reply', timestamp: 11, row_id: 102 }
+    ]
+
+    // What backfillOlderTranscriptPage prepends when the user scrolls up.
+    const withOlderPage = [
+      { role: 'user' as const, content: 'older', timestamp: 1, row_id: 1 },
+      { role: 'assistant' as const, content: 'older reply', timestamp: 2, row_id: 2 },
+      ...tail
+    ]
+
+    const before = toChatMessages(tail)
+    const after = toChatMessages(withOlderPage)
+
+    const beforeTarget = before.find(m => chatMessageText(m) === 'first')!
+    const afterTarget = after.find(m => chatMessageText(m) === 'first')!
+
+    // Same durable row, different client id. This is the churn that strands the
+    // id captured when the restore-confirm dialog opened: `id` is
+    // `${timestamp}-${index}-${role}`, and the index moved.
+    expect(afterTarget.rowId).toBe(beforeTarget.rowId)
+    expect(afterTarget.id).not.toBe(beforeTarget.id)
+  })
+
+  it('resolves by durable rowId when the captured id no longer exists', () => {
+    const messages = [
+      row('fresh-u1', 'user', 'first', { rowId: 101 }),
+      row('fresh-a1', 'assistant', 'reply'),
+      row('fresh-u2', 'user', 'second', { rowId: 103 }),
+      row('fresh-a2', 'assistant', 'reply two')
+    ]
+
+    // The dialog captured `stale-u2` before a background poll rebuilt the
+    // transcript; the ordinal is null because the helper could not find it.
+    const plan = planRestore(messages, 'stale-u2', { rowId: 103, text: 'second', userOrdinal: null })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(103)
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.text).toBe('second')
+  })
+
+  it('prefers the durable rowId over a drifted client ordinal', () => {
+    const messages = [
+      row('fresh-u1', 'user', 'first', { rowId: 101 }),
+      row('fresh-a1', 'assistant', 'reply'),
+      row('fresh-u2', 'user', 'second', { rowId: 103 }),
+      row('fresh-a2', 'assistant', 'reply two')
+    ]
+
+    // A stale ordinal would aim at turn 0 and silently destroy more history
+    // than the user asked for. The durable row must win.
+    const plan = planRestore(messages, 'stale-u2', { rowId: 103, text: 'second', userOrdinal: 0 })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(103)
+    expect(plan.truncateOrdinal).toBe(1)
+  })
+
+  it('falls back to the id when the rowId is not in this transcript', () => {
+    const messages = [
+      row('u1', 'user', 'first', { rowId: 101 }),
+      row('a1', 'assistant', 'reply'),
+      row('u2', 'user', 'second', { rowId: 103 })
+    ]
+
+    const plan = planRestore(messages, 'u1', { rowId: 999, text: 'first', userOrdinal: 0 })
+
+    expect(plan.sourceIndex).toBe(0)
+    expect(plan.truncateRowId).toBe(101)
+  })
+
+  it('still fails loud when nothing resolves', () => {
+    const messages = [row('u1', 'user', 'first', { rowId: 101 }), row('a1', 'assistant', 'reply')]
+
+    // No durable anchor, dead id, no ordinal: refuse rather than guess. A
+    // wrong guess truncates history the user did not ask to lose.
+    expect(() => planRestore(messages, 'gone', { text: 'first', userOrdinal: null })).toThrow(
+      'Could not find the message to restore.'
+    )
   })
 })

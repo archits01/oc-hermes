@@ -42,6 +42,7 @@ import {
   planReload,
   planRestore,
   rebindSurvivorRowIds,
+  type RestoreTarget,
   runRewindSubmit,
   type SurvivorUserRowIds
 } from '../session/hooks/use-prompt-actions/rewind'
@@ -486,7 +487,7 @@ export function useSessionTileActions({ runtimeId, scope, storedSessionId }: Ses
   )
 
   const restoreToMessage = useCallback(
-    async (messageId: string, target?: { text?: string; userOrdinal?: number | null }) => {
+    async (messageId: string, target?: RestoreTarget) => {
       const sessionId = runtimeIdRef.current
       const messages = readMessages()
       const plan = planRestore(messages, messageId, target)

@@ -471,6 +471,13 @@ export function applyReloadOptimistic(state: ClientSessionState, plan: ReloadPla
 // ---------------------------------------------------------------------------
 
 export interface RestoreTarget {
+  /** The gateway's durable row id for this turn — the ONE identity that
+   *  survives a transcript rebuild, and the anchor the gateway itself
+   *  truncates on (`truncate_before_row_id`). Prefer it over `messageId`:
+   *  ChatMessage ids are `${timestamp}-${index}-${role}`, so a background
+   *  poll or a prepended backfill page re-mints them while the user is still
+   *  reading the confirm dialog. */
+  rowId?: number
   text?: string
   userOrdinal?: null | number
 }
@@ -487,17 +494,42 @@ export interface RestorePlan {
 
 /** Resolve the user turn to rewind to; throws with a user-facing reason. */
 export function planRestore(messages: ChatMessage[], messageId: string, target?: RestoreTarget): RestorePlan {
-  const idIndex = messages.findIndex(m => m.id === messageId && m.role === 'user')
+  // Resolution order is strictly durability-first: row id, then client id,
+  // then the client ordinal. `messageId` is NOT stable — toChatMessages mints
+  // ids from the array index, and every resume/background poll (1.5-30s) and
+  // every prepended backfill page rebuilds them, so the id captured when the
+  // confirm dialog opened is routinely dead by the time the user confirms.
+  // That stranded the id path and left a drifted ordinal as the only address,
+  // which either threw ("Could not find the message to restore.") or — worse —
+  // silently resolved to the WRONG turn and truncated history the user never
+  // asked to lose. The row id is the same anchor the gateway aims at, so
+  // agreeing on it end-to-end is what makes a rewind mean one thing.
+  const rowIndex =
+    target?.rowId === undefined ? -1 : messages.findIndex(m => m.role === 'user' && m.rowId === target.rowId)
+
+  const idIndex = rowIndex >= 0 ? -1 : messages.findIndex(m => m.id === messageId && m.role === 'user')
 
   const fallbackIndex =
-    target?.userOrdinal === null || target?.userOrdinal === undefined
+    rowIndex >= 0 || idIndex >= 0 || target?.userOrdinal === null || target?.userOrdinal === undefined
       ? -1
       : visibleUserIndexAtOrdinal(messages, target.userOrdinal)
 
-  const sourceIndex = idIndex >= 0 ? idIndex : fallbackIndex
+  const sourceIndex = rowIndex >= 0 ? rowIndex : idIndex >= 0 ? idIndex : fallbackIndex
   const source = messages[sourceIndex]
 
   if (!source || source.role !== 'user') {
+    // Breadcrumb, not decoration: this refusal is user-visible and has now
+    // recurred across three fixes. Log what the resolver actually had so the
+    // next occurrence is diagnosed from evidence instead of re-theorised.
+    console.warn('[restore-target-unresolved]', {
+      messageId,
+      messageCount: messages.length,
+      targetOrdinal: target?.userOrdinal ?? null,
+      targetRowId: target?.rowId ?? null,
+      userRowIds: messages.filter(m => m.role === 'user').map(m => m.rowId ?? null),
+      visibleUserCount: visibleUserMessageIndices(messages).length
+    })
+
     throw new Error('Could not find the message to restore.')
   }
 
@@ -517,13 +549,14 @@ export function planRestore(messages: ChatMessage[], messageId: string, target?:
   // the ONE ordinal space the gateway shares: trusting the client number when
   // we can derive the authoritative one lets any renderer/store divergence
   // reach truncate_before_user_ordinal unfiltered. It is only consulted on the
-  // fallback path, where the id lookup missed and it is all we have.
+  // fallback path, where both durable anchors missed and it is all we have.
+  // The gateway cross-checks it against the row id and refuses a mismatch
+  // (4030), so a recomputed ordinal is also what keeps a resolved rewind from
+  // being rejected outright.
   const truncateOrdinal =
-    idIndex >= 0
+    rowIndex >= 0 || idIndex >= 0 || target?.userOrdinal === null || target?.userOrdinal === undefined
       ? visibleUserOrdinal(messages, sourceIndex)
-      : target?.userOrdinal === null || target?.userOrdinal === undefined
-        ? visibleUserOrdinal(messages, sourceIndex)
-        : target.userOrdinal
+      : target.userOrdinal
 
   return {
     sourceIndex,
