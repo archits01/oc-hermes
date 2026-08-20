@@ -1,6 +1,6 @@
 name: Fork Sync (upstream Hermes → sync candidate)
 
-# Weekly upstream catch-up for the OpenComputer fork.
+# Daily upstream catch-up for the OpenComputer fork.
 #
 # Deliberately does NOT push oc-branding. Customers install from oc-branding
 # (scripts/install.sh, install.ps1 and the desktop update check all resolve to
@@ -16,7 +16,7 @@ name: Fork Sync (upstream Hermes → sync candidate)
 
 on:
   schedule:
-    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+    - cron: '0 6 * * *'   # daily 06:00 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -67,7 +67,37 @@ jobs:
             echo "clean=false" >> "$GITHUB_OUTPUT"
             echo "::error::Merge conflict. Files:"
             git diff --name-only --diff-filter=U
-            git merge --abort || true
+            # Do NOT abort. Aborting threw the conflicted tree away and left the
+            # owner with a failure email and nothing to resolve from, so the sync
+            # simply never happened. Commit the conflicted state (markers and all)
+            # to a clearly-named branch so it can be resolved in a PR or locally.
+            # The invariant gate below is skipped on this path (clean != true), so
+            # the committed markers cannot be mistaken for a shippable candidate,
+            # and oc-branding is still never pushed.
+            CB="${BR}-CONFLICTS"
+            echo "conflict_branch=$CB" >> "$GITHUB_OUTPUT"
+            git diff --name-only --diff-filter=U > /tmp/conflicted.txt
+            git add -A
+            git commit -m "UNRESOLVED upstream merge $(date -u +%Y-%m-%d) - contains conflict markers, do not ff-only this" >/dev/null
+            git branch -M "$CB"
+            git push -f origin "$CB"
+            {
+              echo "### Upstream sync BLOCKED on conflicts"
+              echo ""
+              echo "Branch \`$CB\` was pushed with the conflict markers in place."
+              echo ""
+              echo "Conflicted files:"
+              echo '```'
+              cat /tmp/conflicted.txt
+              echo '```'
+              echo "Resolve:"
+              echo '```'
+              echo "git fetch origin && git checkout $CB"
+              echo "# fix the markers, then:"
+              echo "git commit -a --amend --no-edit"
+              echo "git checkout oc-branding && git merge --no-ff $CB"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
