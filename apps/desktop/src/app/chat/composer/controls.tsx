@@ -7,11 +7,13 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { $hudMode } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
 import type { ChatBarState, VoiceStatus } from './types'
+import { VoiceMenu } from './voice-menu'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
 export const GHOST_ICON_BTN = cn(
@@ -74,6 +76,9 @@ export function ComposerControls({
 }) {
   const { t } = useI18n()
   const c = t.composer
+  // Declared before the early return below: useStore is a hook and cannot run
+  // conditionally. Used further down to fold the voice controls in HUD mode.
+  const hudMode = useStore($hudMode)
 
   if (conversation.active) {
     return <ConversationPill {...conversation} disabled={disabled} />
