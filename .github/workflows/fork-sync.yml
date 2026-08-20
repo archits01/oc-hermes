@@ -77,6 +77,17 @@ jobs:
             CB="${BR}-CONFLICTS"
             echo "conflict_branch=$CB" >> "$GITHUB_OUTPUT"
             git diff --name-only --diff-filter=U > /tmp/conflicted.txt
+            # GITHUB_TOKEN is not permitted to push commits that modify files under
+            # .github/workflows/ - the push is rejected with "refusing to allow a
+            # GitHub App to create or update workflow ... without workflows
+            # permission". There is no `workflows:` key in the permissions block and
+            # actions:write does not grant it; the only token that can is a PAT with
+            # the workflow scope. Rather than require a new secret, keep OUR workflow
+            # files, which is what a fork wants regardless - upstream CI should not
+            # silently replace the fork's own pipelines. Any upstream workflow change
+            # is reported below so it can be ported by hand.
+            git diff --name-only HEAD...upstream/main -- .github/workflows/ > /tmp/wf_changed.txt 2>/dev/null || true
+            git checkout HEAD -- .github/workflows/ 2>/dev/null || true
             git add -A
             git commit -m "UNRESOLVED upstream merge $(date -u +%Y-%m-%d) - contains conflict markers, do not ff-only this" >/dev/null
             git branch -M "$CB"
@@ -90,6 +101,13 @@ jobs:
               echo '```'
               cat /tmp/conflicted.txt
               echo '```'
+              if [ -s /tmp/wf_changed.txt ]; then
+                echo "Upstream ALSO changed these workflow files. They were NOT taken"
+                echo "(GITHUB_TOKEN cannot push them); port by hand if wanted:"
+                echo '```'
+                cat /tmp/wf_changed.txt
+                echo '```'
+              fi
               echo "Resolve:"
               echo '```'
               echo "git fetch origin && git checkout $CB"
