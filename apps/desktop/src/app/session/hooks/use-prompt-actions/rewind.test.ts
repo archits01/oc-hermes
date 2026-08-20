@@ -530,6 +530,7 @@ describe('optimistic rewind/reload turn-clock seeding (#86795)', () => {
 
 describe('isFailedUserTurn with hidden messages', () => {
   const userMsg = (id: string) => ({ id, parts: [{ text: id, type: 'text' as const }], role: 'user' as const })
+
   const assistant = (id: string, extra: Record<string, unknown> = {}) => ({
     id,
     parts: [{ text: id, type: 'text' as const }],
