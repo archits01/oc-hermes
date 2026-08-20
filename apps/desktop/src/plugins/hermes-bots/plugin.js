@@ -8045,8 +8045,10 @@ function RoutinesPane() {
 }
 
 // ── profile session workspace ────────────────────────────────────────────────
-
-const PROFILE_SESSION_LIST_LIMIT = 200
+// PROFILE_SESSION_LIST_LIMIT is declared once near the canonical-chat helpers
+// above and reused here. It was briefly declared twice after the upstream merge
+// (64f1c5353): upstream removed this workspace and its copy of the constant,
+// our side kept both, and -X ours preserved each — which is a parse error.
 
 function openBotSessionsWorkspace(bot) {
   if (bot?.name && NAME_RE.test(bot.name)) {
