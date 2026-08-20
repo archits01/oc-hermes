@@ -651,3 +651,53 @@ describe('planRestore survives client id churn', () => {
     )
   })
 })
+
+describe('planRestore ordinal under a partial transcript window', () => {
+  const partial = [
+    row('u1', 'user', 'first', { rowId: 501 }),
+    row('a1', 'assistant', 'reply'),
+    row('u2', 'user', 'second', { rowId: 503 }),
+    row('a2', 'assistant', 'reply two')
+  ]
+
+  it('omits the ordinal when older pages are unloaded and a row anchor exists', () => {
+    // Tail hydration loads only the newest page, so this ordinal counts the
+    // loaded turns and undercounts the gateway's by every unloaded older one.
+    // The gateway refuses that mismatch (4030) under the same "Restore failed"
+    // toast, and its contract is that a null ordinal aims purely at the
+    // durable target.
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
+      transcriptPossiblyTruncated: true
+    })
+
+    expect(plan.sourceIndex).toBe(2)
+    expect(plan.truncateRowId).toBe(503)
+    expect(plan.truncateOrdinal).toBeUndefined()
+  })
+
+  it('keeps the ordinal cross-check when the whole transcript is loaded', () => {
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 }, {
+      transcriptPossiblyTruncated: false
+    })
+
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.truncateRowId).toBe(503)
+  })
+
+  it('defaults to sending the ordinal when the caller says nothing', () => {
+    const plan = planRestore(partial, 'u2', { rowId: 503, text: 'second', userOrdinal: 1 })
+
+    expect(plan.truncateOrdinal).toBe(1)
+  })
+
+  it('still sends the ordinal on a partial window with no row anchor', () => {
+    // Nothing durable to aim with. The gateway fails closed on ordinal-only
+    // truncation of a durable session (4004), so leaving it is the safe half.
+    const noRows = [row('u1', 'user', 'first'), row('a1', 'assistant', 'reply'), row('u2', 'user', 'second')]
+
+    const plan = planRestore(noRows, 'u2', { text: 'second', userOrdinal: 1 }, { transcriptPossiblyTruncated: true })
+
+    expect(plan.truncateOrdinal).toBe(1)
+    expect(plan.truncateRowId).toBeUndefined()
+  })
+})
