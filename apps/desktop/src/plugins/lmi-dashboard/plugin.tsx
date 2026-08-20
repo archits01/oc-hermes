@@ -3,8 +3,6 @@
  * Renders in-app via Electron <webview> (iframe is blocked by the site CSP).
  */
 
-import { useEffect, useRef } from 'react'
-
 import {
   type HermesPlugin,
   host,
@@ -15,6 +13,7 @@ import {
   SIDEBAR_NAV_AREA,
   type SidebarNavContribution
 } from '@hermes/plugin-sdk'
+import { useEffect, useRef } from 'react'
 
 const DASHBOARD_URL = 'https://lmi-dashboard-one.vercel.app/dashboard/inbox'
 
