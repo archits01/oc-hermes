@@ -7,18 +7,28 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
+import { $hudMode } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
-import { ACTIVE_ICON_BTN, GHOST_ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
 import type { ChatBarState, VoiceStatus } from './types'
 import { VoiceMenu } from './voice-menu'
 
-// Re-exported: `context-menu.tsx` and other row neighbours have always reached
-// for these here, and the row is where they read as belonging.
-export { ACTIVE_ICON_BTN, GHOST_ICON_BTN, ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
+export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
+export const GHOST_ICON_BTN = cn(
+  ICON_BTN,
+  'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+)
+// Send/voice-conversation primary: solid foreground-on-background circle
+// (reads as black-on-white in light mode, white-on-black in dark mode) to
+// match the reference composer's high-contrast CTA. Keeps the pill itself
+// neutral and lets the action visually dominate the row.
+export const PRIMARY_ICON_BTN = cn(
+  'size-(--composer-control-primary-size,var(--composer-control-size)) shrink-0 rounded-full p-0',
+  'bg-foreground text-background hover:bg-foreground/90',
+  'disabled:bg-foreground/30 disabled:text-background disabled:opacity-100'
+)
 
 interface ConversationProps {
   active: boolean
@@ -66,6 +76,8 @@ export function ComposerControls({
 }) {
   const { t } = useI18n()
   const c = t.composer
+  // Declared before the early return below: useStore is a hook and cannot run
+  // conditionally. Used further down to fold the voice controls in HUD mode.
   const hudMode = useStore($hudMode)
 
   if (conversation.active) {
@@ -104,13 +116,11 @@ export function ComposerControls({
   )
 
   return (
-    <div className="ml-auto flex min-w-0 shrink items-center gap-(--composer-control-gap)">
-      {minimal ? null : (
-        <>
-          <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
-          {voiceControls}
-        </>
-      )}
+    <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
+      <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+      <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
+      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
+      <WakeWordButton disabled={disabled} />
       {showQueueButton ? (
         <Tip label={<TipKeybindLabel actionId="composer.queue" text={c.queueMessage} />}>
           <Button
@@ -166,48 +176,7 @@ export function ComposerControls({
           </Button>
         </Tip>
       )}
-      {/* The way out of HUD mode, riding the controls row rather than floating
-          above the bar. The old chip lived in a 26px transparent strip reserved
-          over the composer (--hud-chip-strip), which under glass is bare
-          untinted material with a hidden button in it — a band of chrome above
-          the surface, paid for in every state, for a control that is invisible
-          until hovered. Here it costs no reserved space and sits with the other
-          things you can press. */}
-      {hudMode ? <HudWindowButtons /> : null}
     </div>
-  )
-}
-
-function HudWindowButtons() {
-  const { t } = useI18n()
-
-  return (
-    <>
-      <Tip label={t.titlebar.resetHudLayout}>
-        <Button
-          aria-label={t.titlebar.resetHudLayout}
-          className={cn(GHOST_ICON_BTN, 'p-0')}
-          onClick={resetHudLayout}
-          size="icon"
-          type="button"
-          variant="ghost"
-        >
-          <Codicon name="discard" size="0.875rem" />
-        </Button>
-      </Tip>
-      <Tip label={t.titlebar.exitHud}>
-        <Button
-          aria-label={t.titlebar.exitHud}
-          className={cn(GHOST_ICON_BTN, 'p-0')}
-          onClick={closeHud}
-          size="icon"
-          type="button"
-          variant="ghost"
-        >
-          <Codicon name="screen-normal" size="0.875rem" />
-        </Button>
-      </Tip>
-    </>
   )
 }
 
@@ -334,7 +303,11 @@ function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disa
       <Button
         aria-label={label}
         aria-pressed={active}
-        className={cn(GHOST_ICON_BTN, 'p-0', active && ACTIVE_ICON_BTN)}
+        className={cn(
+          GHOST_ICON_BTN,
+          'p-0',
+          active && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+        )}
         disabled={disabled}
         onClick={() => {
           triggerHaptic(active ? 'close' : 'open')
@@ -379,7 +352,11 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
       <Button
         aria-label={label}
         aria-pressed={wake.listening && !pausedForVoice}
-        className={cn(GHOST_ICON_BTN, 'p-0', wake.listening && !pausedForVoice && ACTIVE_ICON_BTN)}
+        className={cn(
+          GHOST_ICON_BTN,
+          'p-0',
+          wake.listening && !pausedForVoice && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+        )}
         disabled={disabled || pausedForVoice || wake.pending}
         onClick={() => {
           triggerHaptic(wake.listening ? 'close' : 'open')
@@ -422,7 +399,7 @@ function DictationButton({
           GHOST_ICON_BTN,
           'p-0',
           'data-[active=true]:bg-accent data-[active=true]:text-foreground',
-          status === 'recording' && ACTIVE_ICON_BTN,
+          status === 'recording' && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'transcribing' && 'bg-primary/10 text-primary'
         )}
         data-active={active}
