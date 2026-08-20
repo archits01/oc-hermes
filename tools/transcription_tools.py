@@ -1640,6 +1640,43 @@ def _should_force_faster_whisper_cpu() -> bool:
     return _sysctl_value("hw.optional.arm64") == "1"
 
 
+def _faster_whisper_download_root() -> str:
+    """Writable model cache for faster-whisper / huggingface hub.
+
+    OpenComputer / locked-down hosts often mount ``$HOME`` read-only (or with
+    systemd ``ProtectHome=true``).  faster-whisper defaults to
+    ``~/.cache/huggingface``, which then fails with ``[Errno 30] Read-only
+    file system``.  Prefer ``$HERMES_HOME/cache/faster-whisper`` so model
+    downloads land next to the rest of profile state.
+    """
+    try:
+        from hermes_constants import get_hermes_home
+
+        root = get_hermes_home() / "cache" / "faster-whisper"
+    except Exception:
+        root = Path(os.environ.get("HERMES_HOME") or tempfile.gettempdir()) / "cache" / "faster-whisper"
+    root.mkdir(parents=True, exist_ok=True)
+    # huggingface_hub still consults HF_HOME / XDG_CACHE_HOME for some paths.
+    # Point them at the same writable tree when the process home is unusable.
+    cache_parent = str(root.parent)
+    os.environ.setdefault("XDG_CACHE_HOME", cache_parent)
+    os.environ.setdefault("HF_HOME", str(root / "huggingface"))
+    os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(root / "huggingface" / "hub"))
+    return str(root)
+
+
+def _make_whisper_model(model_name: str, *, device: str, compute_type: str):
+    """Construct WhisperModel with a profile-scoped download root."""
+    from faster_whisper import WhisperModel
+
+    return WhisperModel(
+        model_name,
+        device=device,
+        compute_type=compute_type,
+        download_root=_faster_whisper_download_root(),
+    )
+
+
 def _get_idle_unload_seconds(local_cfg: Dict[str, Any]) -> int:
     """Resolve the idle unload timeout from config.
 
@@ -1749,16 +1786,15 @@ def _load_local_whisper_model(model_name: str, device: str = "auto", compute_typ
         # gateway survives, then keep inference on CPU to avoid device probing.
         os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-    from faster_whisper import WhisperModel
     if force_cpu:
         logger.info(
             "Apple Silicon/Rosetta detected — loading faster-whisper on CPU "
             "(int8) to avoid native device autodetection crashes"
         )
-        return WhisperModel(model_name, device="cpu", compute_type="int8")
+        return _make_whisper_model(model_name, device="cpu", compute_type="int8")
 
     try:
-        return WhisperModel(model_name, device=device, compute_type=compute_type)
+        return _make_whisper_model(model_name, device=device, compute_type=compute_type)
     except Exception as exc:
         if not _looks_like_cuda_lib_error(exc):
             raise
@@ -1767,7 +1803,7 @@ def _load_local_whisper_model(model_name: str, device: str = "auto", compute_typ
             "Install the NVIDIA CUDA runtime (libcublas/libcudnn) to use GPU.",
             exc,
         )
-        return WhisperModel(model_name, device="cpu", compute_type="int8")
+        return _make_whisper_model(model_name, device="cpu", compute_type="int8")
 
 
 # Silence-hallucination hardening defaults for local faster-whisper.
@@ -1970,8 +2006,7 @@ def _transcribe_local(
                 "evicting cached model and retrying on CPU (int8).",
                 exc,
             )
-            from faster_whisper import WhisperModel
-            model = WhisperModel(model_name, device="cpu", compute_type="int8")
+            model = _make_whisper_model(model_name, device="cpu", compute_type="int8")
             with _local_model_lock:
                 _local_model = model
                 _local_model_name = model_name

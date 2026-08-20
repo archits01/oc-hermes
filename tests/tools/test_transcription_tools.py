@@ -402,7 +402,14 @@ class TestTranscribeLocalExtended:
             result = _transcribe_local(str(audio), "base")
 
         assert result["success"] is True
-        mock_whisper_cls.assert_called_once_with("base", device="cpu", compute_type="float32")
+        mock_whisper_cls.assert_called_once()
+        args, kwargs = mock_whisper_cls.call_args
+        assert args == ("base",)
+        assert kwargs["device"] == "cpu"
+        assert kwargs["compute_type"] == "float32"
+        # Readonly-home hosts must never default to ~/.cache for model downloads.
+        assert "download_root" in kwargs
+        assert kwargs["download_root"]
 
 
     def test_cuda_out_of_memory_does_not_trigger_cpu_fallback(self, tmp_path):
