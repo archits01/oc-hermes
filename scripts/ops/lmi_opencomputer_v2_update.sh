@@ -29,6 +29,13 @@ desktop_status_ready() {
     python3 -c 'import json,sys; raise SystemExit(0 if json.load(sys.stdin).get("gateway_running") is True else 1)'
 }
 
+git_repo() {
+  # The service runs as root while the checkout may retain the UID that
+  # created it.  Scope Git's ownership exception to this authenticated,
+  # fixed install root; never change the operator's global Git config.
+  git -c "safe.directory=${REPO}" -C "${REPO}" "$@"
+}
+
 mode="apply"
 if [[ ${1:-} == "--check" ]]; then
   mode="check"
@@ -51,7 +58,7 @@ for required in \
   [[ -e ${required} ]] || { echo "ERROR: missing ${required}" >&2; exit 1; }
 done
 
-origin="$(git -C "${REPO}" remote get-url origin)"
+origin="$(git_repo remote get-url origin)"
 if [[ ${origin} != "${EXPECTED_REMOTE}" ]]; then
   echo "ERROR: refusing unexpected origin: ${origin}" >&2
   exit 1
@@ -79,8 +86,8 @@ cp -a "${HOME_DIR}/runtime.env" "${backup}/runtime.env"
 cp -a "${HOME_DIR}/plugins" "${backup}/plugins"
 [[ -f ${HOME_DIR}/SOUL.md ]] && cp -a "${HOME_DIR}/SOUL.md" "${backup}/SOUL.md"
 [[ -f ${QUEUE_HELPER} ]] && cp -a "${QUEUE_HELPER}" "${backup}/_lmi_live_reply_queue.py"
-git -C "${REPO}" rev-parse HEAD >"${backup}/commit.before"
-git -C "${REPO}" status --short --untracked-files=no >"${backup}/tracked-status.before"
+git_repo rev-parse HEAD >"${backup}/commit.before"
+git_repo status --short --untracked-files=no >"${backup}/tracked-status.before"
 
 if [[ -s ${backup}/tracked-status.before ]]; then
   echo "ERROR: tracked checkout changes present; refusing update" >&2
@@ -114,7 +121,7 @@ done
 systemctl is-active --quiet "${SERVICE}"
 desktop_status_ready
 engagement_ports_ready
-git -C "${REPO}" rev-parse HEAD >"${backup}/commit.after"
+git_repo rev-parse HEAD >"${backup}/commit.after"
 
 printf '%s\n' \
   "branch=${BRANCH}" \
