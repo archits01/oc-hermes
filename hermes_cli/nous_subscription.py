@@ -554,6 +554,11 @@ def get_nous_subscription_features(
         managed_enabled=managed_tools_flag,
     )
 
+    # Tavily supports both API-key authentication and the explicitly selected
+    # keyless backend.  Keep one availability signal for every downstream
+    # tools-config branch; losing this assignment during a merge made the
+    # dashboard endpoint raise NameError before it could render its config.
+    tavily_ready = direct_tavily or tavily_selected
     web_managed = web_backend == "firecrawl" and managed_web_available and not direct_firecrawl
     web_active = bool(
         web_tool_enabled
