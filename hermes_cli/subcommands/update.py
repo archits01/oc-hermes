@@ -55,8 +55,16 @@ def build_update_parser(subparsers, *, cmd_update: Callable) -> None:
         action="store_true",
         default=False,
         help=(
+<<<<<<< HEAD
             "Keep local source changes in the autostash after updating; do not "
             "re-apply or drop them (used by detached Desktop update hand-offs)."
+=======
+            "Do NOT re-apply local changes after the update. Uncommitted "
+            "changes are still stashed so the update can proceed, but they "
+            "stay parked in git stash instead of being restored onto the "
+            "updated code. Used by the desktop updater so local source edits "
+            "never silently ride along across updates."
+>>>>>>> upstream/main
         ),
     )
     update_parser.add_argument(

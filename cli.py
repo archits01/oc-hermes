@@ -7324,7 +7324,9 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 pass
             return changed
 
-        if resolved_provider in {"opencode-zen", "opencode-go"}:
+        from hermes_cli.models import opencode_provider_family
+
+        if opencode_provider_family(resolved_provider) is not None:
             try:
                 from hermes_cli.models import normalize_opencode_model_id, opencode_model_api_mode
 

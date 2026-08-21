@@ -144,6 +144,7 @@ import {
   terminalScriptExtension,
   tuiResumeArgs
 } from './external-terminal'
+import { type FaviconIo, resolveFavicon } from './favicon'
 import { findGitBash as _findGitBash } from './find-git-bash'
 import {
   installFindShortcut,
@@ -308,9 +309,15 @@ import { nativeOverlayWidth as computeNativeOverlayWidth, macTitleBarOverlayHeig
 import {
   glassActive,
   normalizeState as normalizeTranslucency,
+<<<<<<< HEAD
+=======
+  opacityNeedsSetting,
+  translucencySupportedOn,
+>>>>>>> upstream/main
   vibrancyFor as vibrancyForTranslucency,
   windowBackingOptions,
-  windowOpacityFor
+  windowOpacityFor,
+  windowOpacityOptions
 } from './translucency'
 import {
   compareApiUrl,
@@ -948,15 +955,30 @@ let translucencyState = readPersistedTranslucency()
 // painting a themed backing onto them would turn them into opaque rectangles.
 const translucencyBackedWindows = new WeakSet()
 
-function windowOpacity() {
-  return windowOpacityFor(translucencyState)
+// Set a live window's native opacity, but only when the state asks it to fade
+// — or when the window is already faded and is on its way back to opaque. The
+// window's own opacity is the record of whether that door was ever opened; see
+// opacityNeedsSetting for why it matters that it stays shut.
+function applyWindowOpacity(win) {
+  const opacity = windowOpacityFor(translucencyState)
+
+  if (typeof win.setOpacity === 'function' && opacityNeedsSetting(opacity, win.getOpacity?.() ?? 1)) {
+    win.setOpacity(opacity)
+  }
 }
 
 // Re-apply translucency to a live window (runtime toggle, no recreation).
+<<<<<<< HEAD
 // `setOpacity` is a no-op on Linux, which is fine — it just stays opaque there.
 // The backing swap is the glass half: Chromium composites the page against
 // the window backing BEFORE macOS composites the window, so glass needs the
 // backing dropped for the vibrancy material to reach a transparent page, and
+=======
+// Opacity goes through applyWindowOpacity, which knows when the call is worth
+// making at all. The backing swap is the glass half: Chromium composites the
+// page against the window backing BEFORE the OS composites the window, so
+// glass needs the backing dropped for the platform material to reach it, and
+>>>>>>> upstream/main
 // every other state needs the opaque themed backing (anti-flash, and it is
 // what makes clear mode fade to the desktop instead of to black).
 //
@@ -995,8 +1017,8 @@ function applyWindowTranslucency(win, changed = { backing: true, material: true,
       }
     }
 
-    if (changed.opacity && typeof win.setOpacity === 'function') {
-      win.setOpacity(windowOpacity())
+    if (changed.opacity) {
+      applyWindowOpacity(win)
     }
   } catch (error) {
     rememberLog(`[translucency] apply failed: ${error.message}`)
@@ -1004,11 +1026,12 @@ function applyWindowTranslucency(win, changed = { backing: true, material: true,
 }
 
 // Constructor options every chat window shares for its translucency surface:
-// the vibrancy material, the native opacity, and the webContents backing under
-// the CURRENT state. Glass omits backgroundColor so vibrancy shows from the
-// first frame (a non-transparent window silently ignores constructor alpha,
-// and runtime swaps are lost early in a window's life — see
-// applyWindowTranslucency); otherwise the opaque themed anti-flash backing.
+// the platform material, the webContents backing, and a native opacity only if
+// the state actually fades — all under the CURRENT state. Glass omits
+// backgroundColor so the material shows from the first frame (Electron hands a
+// translucent window a transparent default backing, and runtime swaps are lost
+// early in a window's life — see applyWindowTranslucency); otherwise the opaque
+// themed anti-flash backing.
 //
 // Call sites also register the window in translucencyBackedWindows so a live
 // toggle can re-apply. The HUD, pet overlay, quick entry and wake indicator
@@ -1024,7 +1047,26 @@ function chatWindowSurfaceOptions() {
     // user's frost choice whenever they click elsewhere. Only observable
     // under glass — everywhere else the page buries the material.
     visualEffectState: IS_MAC ? ('active' as const) : undefined,
+<<<<<<< HEAD
     opacity: windowOpacity(),
+=======
+    // NOT `transparent: true` on Windows. The backdrop material already makes
+    // the window translucent on its own: `IsTranslucent` answers yes off
+    // `background_material_` alone, which is what gives the page its transparent
+    // default backing, and `SetBackgroundMaterial` flips widget translucency
+    // live, so a Clear→Glass toggle needs no recreate either way. Its one gate
+    // is a frameless window, and `titleBarStyle: 'hidden'` already makes
+    // `has_frame()` false here.
+    //
+    // What `transparent` adds on top is permanent and unwanted: it pins the
+    // widget to kTranslucent for the window's whole life, so even glass-OFF
+    // windows pay a DirectComposition redraw per frame (electron#39895), and it
+    // opts into the documented transparent-window limits — including that a
+    // RESIZABLE transparent window is unsupported and breaks (electron#48421).
+    // Every chat window is resizable.
+    backgroundMaterial: IS_WINDOWS && GLASS_SUPPORTED ? backgroundMaterialFor(translucencyState) : undefined,
+    ...windowOpacityOptions(translucencyState),
+>>>>>>> upstream/main
     ...windowBackingOptions(translucencyState, getWindowBackgroundColor())
   }
 }
@@ -3665,6 +3707,8 @@ async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
     let child
 
     if (scriptHandoff) {
+      const updateStartedAt = Math.floor(Date.now() / 1000)
+
       // A bare detached+hidden powershell spawn silently dies before -File
       // processing (console-subsystem init failure — see
       // wrapHandoffForDetachedConsole). Route through `cmd start` so the
@@ -3688,6 +3732,7 @@ async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
         env: {
           ...process.env,
           HERMES_HOME,
+          HERMES_UPDATE_STARTED_AT: String(updateStartedAt),
           PATH: pathWithHermesManagedNode(venvBin)
         },
         detached: true,
@@ -3702,7 +3747,7 @@ async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
       // The `hermes update` child adopts the SCRIPT's claim via
       // update_lock.py's process-ancestry rule; no mtime heuristics needed.
       if (Number.isInteger(child.pid)) {
-        writeUpdateMarker(HERMES_HOME, child.pid)
+        writeUpdateMarker(HERMES_HOME, child.pid, { startedAt: updateStartedAt })
       }
 
       rememberLog(
@@ -4041,6 +4086,7 @@ async function applyUpdatesPosixHandoff(opts: any) {
   }
 
   const args = [...handoff.args, '--install-root', updateRoot, '--branch', branch, '--desktop-pid', String(process.pid)]
+  const updateStartedAt = Math.floor(Date.now() / 1000)
 
   // Relaunch target: the running .app bundle on mac (script swaps the
   // rebuilt bundle over it), the running binary elsewhere. The script's gate
@@ -4073,6 +4119,7 @@ async function applyUpdatesPosixHandoff(opts: any) {
     env: {
       ...process.env,
       HERMES_HOME,
+      HERMES_UPDATE_STARTED_AT: String(updateStartedAt),
       PATH: pathWithHermesManagedNode(path.join(updateRoot, 'venv', 'bin'))
     },
     detached: true,
@@ -4083,7 +4130,7 @@ async function applyUpdatesPosixHandoff(opts: any) {
   // until the script claims the marker with its own pid as step 0. If the
   // script never starts, the dead pid reads as stale and self-deletes.
   if (Number.isInteger(child.pid)) {
-    writeUpdateMarker(HERMES_HOME, child.pid)
+    writeUpdateMarker(HERMES_HOME, child.pid, { startedAt: updateStartedAt })
   }
 
   rememberLog(`[updates] launched posix hand-off: ${handoff.scriptPath} (branch ${branch}); quitting to hand off`)
@@ -5386,6 +5433,159 @@ function fetchLinkTitle(rawUrl) {
     })
 
   titleInflight.set(key, pending)
+
+  return pending
+}
+
+// ─── Favicon resolution ──────────────────────────────────────────────────────
+// The ladder itself is electron/favicon.ts; this is its I/O, its cache, and
+// the one rule that belongs to the app rather than the algorithm: one icon
+// per host. A connector's mark doesn't vary by path, and hosting the cache on
+// the host key means Linear's docs page and Linear's MCP endpoint cost one
+// lookup between them.
+
+const FAVICON_CACHE_PATH = path.join(app.getPath('userData'), 'favicon-cache.json')
+const FAVICON_CACHE_LIMIT = 400
+const FAVICON_TTL_MS = 30 * 24 * 60 * 60 * 1000
+// A miss is cheap to re-check and expensive to be wrong about (a site that
+// was behind a captcha yesterday has a logo today), so it expires fast.
+const FAVICON_MISS_TTL_MS = 12 * 60 * 60 * 1000
+const FAVICON_TIMEOUT_MS = 6000
+const FAVICON_MAX_BYTES = 256 * 1024
+const FAVICON_WRITE_DEBOUNCE_MS = 3000
+
+let faviconCache: Map<string, { at: number; icon: string }> | null = null
+let faviconWriteTimer: null | ReturnType<typeof setTimeout> = null
+const faviconInflight = new Map<string, Promise<string>>()
+
+function faviconCacheKey(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname.replace(/^www\./i, '').toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
+function loadFaviconCache(): Map<string, { at: number; icon: string }> {
+  if (faviconCache) {
+    return faviconCache
+  }
+
+  faviconCache = new Map()
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(FAVICON_CACHE_PATH, 'utf8'))
+
+    for (const [host, entry] of Object.entries(raw?.icons ?? {})) {
+      const at = Number((entry as { at?: number })?.at)
+      const icon = String((entry as { icon?: string })?.icon ?? '')
+
+      if (Number.isFinite(at) && Date.now() - at < (icon ? FAVICON_TTL_MS : FAVICON_MISS_TTL_MS)) {
+        faviconCache.set(host, { at, icon })
+      }
+    }
+  } catch {
+    // No cache yet, or it's unreadable — resolving again is the whole cost.
+  }
+
+  return faviconCache
+}
+
+function saveFaviconCacheSoon() {
+  if (faviconWriteTimer) {
+    return
+  }
+
+  faviconWriteTimer = setTimeout(() => {
+    faviconWriteTimer = null
+
+    try {
+      const icons = Object.fromEntries(loadFaviconCache())
+
+      fs.writeFileSync(FAVICON_CACHE_PATH, JSON.stringify({ icons }), 'utf8')
+    } catch {
+      // Cache is an optimization; failing to persist it costs one refetch.
+    }
+  }, FAVICON_WRITE_DEBOUNCE_MS)
+
+  faviconWriteTimer.unref?.()
+}
+
+async function faviconFetch(url: string, accept: string) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), FAVICON_TIMEOUT_MS)
+
+  try {
+    return await electronNet.fetch(url, {
+      // Same browser-shaped identity the title fetcher uses: a plain Electron
+      // UA gets a challenge page from anything behind a bot wall.
+      headers: { Accept: accept, 'Accept-Language': 'en-US,en;q=0.7', 'User-Agent': TITLE_USER_AGENT },
+      redirect: 'follow',
+      signal: controller.signal
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const faviconIo: FaviconIo = {
+  fetchImage: async url => {
+    const response = await faviconFetch(url, 'image/avif,image/webp,image/svg+xml,image/*;q=0.8,*/*;q=0.5')
+
+    if (!response.ok) {
+      return null
+    }
+
+    const buffer = await response.arrayBuffer()
+
+    if (buffer.byteLength === 0 || buffer.byteLength > FAVICON_MAX_BYTES) {
+      return null
+    }
+
+    return { bytes: new Uint8Array(buffer), mime: response.headers.get('content-type') ?? '' }
+  },
+  fetchText: async url => {
+    const response = await faviconFetch(url, 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.5')
+
+    return response.ok ? (await response.text()).slice(0, TITLE_BYTE_BUDGET * 2) : ''
+  }
+}
+
+function resolveFaviconCached(rawUrl: string): Promise<string> {
+  const key = faviconCacheKey(String(rawUrl || '').trim())
+
+  if (!key) {
+    return Promise.resolve('')
+  }
+
+  const cache = loadFaviconCache()
+  const hit = cache.get(key)
+
+  if (hit && Date.now() - hit.at < (hit.icon ? FAVICON_TTL_MS : FAVICON_MISS_TTL_MS)) {
+    return Promise.resolve(hit.icon)
+  }
+
+  const inflight = faviconInflight.get(key)
+
+  if (inflight) {
+    return inflight
+  }
+
+  const pending = resolveFavicon(rawUrl, faviconIo)
+    .catch(() => '')
+    .then(icon => {
+      if (cache.size >= FAVICON_CACHE_LIMIT) {
+        cache.delete(cache.keys().next().value)
+      }
+
+      cache.set(key, { at: Date.now(), icon })
+      saveFaviconCacheSoon()
+      faviconInflight.delete(key)
+
+      return icon
+    })
+
+  faviconInflight.set(key, pending)
 
   return pending
 }
@@ -14469,6 +14669,8 @@ ipcMain.handle('hermes:setting:defaultProjectDir:pick', async () => {
 })
 
 ipcMain.handle('hermes:fetchLinkTitle', (_event, url) => fetchLinkTitle(url))
+
+ipcMain.handle('hermes:resolveFavicon', (_event, url) => resolveFaviconCached(url))
 
 ipcMain.handle('hermes:logs:reveal', async () => {
   try {
