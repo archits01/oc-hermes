@@ -122,3 +122,45 @@ def test_autosave_leaves_saved_changes_unstaged(tmp_path):
     assert "?? new.txt" in status
     assert git("diff", "--cached", "--quiet", check=False).returncode == 0
     assert git("branch", "--list", "autosave/vm-*").stdout.strip()
+
+
+def test_autosave_commit_failure_does_not_leave_a_dirty_index(tmp_path):
+    """A rejected autosave commit must preserve content but clear `git add -A`."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args, check=True):
+        return subprocess.run(
+            ["git", *args], cwd=repo, check=check, capture_output=True, text=True
+        )
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "test")
+    git("config", "user.email", "test@example.invalid")
+    tracked = repo / "tracked.txt"
+    tracked.write_text("before\n")
+    git("add", ".")
+    git("commit", "-qm", "initial")
+    tracked.write_text("preserve me\n")
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    hook.write_text("#!/bin/sh\nexit 1\n")
+    hook.chmod(0o755)
+
+    script = Path(__file__).resolve().parents[2] / "scripts/ops/oc-autosave.sh"
+    result = subprocess.run(
+        [str(script)],
+        cwd=repo,
+        env={
+            **os.environ,
+            "REPO": str(repo),
+            "LOG": str(tmp_path / "autosave.log"),
+            "TOKEN_FILE": str(tmp_path / "missing-token"),
+        },
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert tracked.read_text() == "preserve me\n"
+    assert git("diff", "--cached", "--quiet", check=False).returncode == 0
+    assert " M tracked.txt" in git("status", "--porcelain").stdout.splitlines()
