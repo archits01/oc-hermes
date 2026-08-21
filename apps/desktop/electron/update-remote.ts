@@ -1,7 +1,7 @@
 /**
  * Pure helpers for choosing a remote URL during passive update checks.
  *
- * An OpenComputer install can end up with `origin=git@github.com:archits01/hermes-agent.git`.
+ * An OpenComputer install can end up with `origin=git@github.com:archits01/oc-hermes.git`.
  * If the user's GitHub SSH key is FIDO2/passkey-backed, a background `git fetch
  * origin` triggers an unexplained hardware-touch prompt. For passive checks
  * against the official repo we substitute the public HTTPS `ls-remote` path,
@@ -12,8 +12,8 @@
  * testable without booting Electron (main.ts requires('electron') at load).
  */
 
-const OFFICIAL_REPO_HTTPS_URL = 'https://github.com/archits01/hermes-agent.git'
-const OFFICIAL_REPO_CANONICAL = 'github.com/archits01/hermes-agent'
+const OFFICIAL_REPO_HTTPS_URL = 'https://github.com/archits01/oc-hermes.git'
+const OFFICIAL_REPO_CANONICAL = 'github.com/archits01/oc-hermes'
 
 // Normalize common GitHub remote URL forms to `host/owner/repo` (lowercased,
 // no trailing slash, no .git suffix) so SSH and HTTPS forms of the same repo
