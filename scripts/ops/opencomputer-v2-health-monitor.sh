@@ -10,6 +10,7 @@ readonly SERVICE="opencomputer-v2-gateway.service"
 readonly SERVE_SERVICE="opencomputer-v2-serve.service"
 readonly TUNNEL_SERVICE="opencomputer-v2-fixed-tunnel.service"
 readonly HOME_DIR="/opt/opencomputer-v2-data"
+readonly PLATFORM_PORTS_HELPER="/opt/opencomputer-v2/scripts/ops/lmi_enabled_platform_ports.py"
 readonly STATE_FILE="${HOME_DIR}/.health-monitor-state"
 readonly LOG_FILE="${HOME_DIR}/logs/health-monitor.log"
 readonly MAX_LOG_LINES=5000
@@ -53,9 +54,22 @@ for protected in lmi-chrome.service lmi-query-api.service oc-panel-proxy.service
   fi
 done
 
-for port in 8642 8643 8645 8646 8650 8651 29129; do
+for port in 8642 8650 8651 29129; do
   if ! ss -ltn 2>/dev/null | grep -qE ":${port}[[:space:]]"; then
     issues="${issues}• Required port ${port} is not listening\n"
+  fi
+done
+
+enabled_platform_ports=""
+if [ ! -f "${PLATFORM_PORTS_HELPER}" ]; then
+  issues="${issues}• Enabled-platform port resolver is unavailable\n"
+else
+  enabled_platform_ports="$(python3 "${PLATFORM_PORTS_HELPER}" "${HOME_DIR}/config.yaml" 2>/dev/null)" ||
+    issues="${issues}• Enabled-platform port configuration is invalid\n"
+fi
+for port in ${enabled_platform_ports}; do
+  if ! ss -ltn 2>/dev/null | grep -qE ":${port}[[:space:]]"; then
+    issues="${issues}• Enabled-platform port ${port} is not listening\n"
   fi
 done
 
@@ -107,6 +121,6 @@ elif [ "${current_state}" = "ok" ] && [ "${prev_state}" != "ok" ]; then
 fi
 
 printf '%s\n' "${current_state}" >"${STATE_FILE}"
-log "${current_state^^}: gateway=${SERVICE} adapters=8643,8645,8646 disk=${free_gb}GB mem=${avail_mb}MB"
+log "${current_state^^}: gateway=${SERVICE} enabled_adapter_ports=${enabled_platform_ports:-none} disk=${free_gb}GB mem=${avail_mb}MB"
 
 exit 0

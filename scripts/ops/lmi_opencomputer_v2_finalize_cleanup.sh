@@ -14,6 +14,7 @@ readonly HOME_DIR="/opt/opencomputer-v2-data"
 readonly BACKUP_ROOT="/opt/opencomputer-v2-backups"
 readonly TEST_CRON="/etc/cron.d/opencomputer-test-profile-cron"
 readonly LINKEDIN_DIR="${HOME_DIR}/plugins/platforms/linkedin"
+readonly PLATFORM_PORTS_HELPER="/opt/opencomputer-v2/scripts/ops/lmi_enabled_platform_ports.py"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup="${BACKUP_ROOT}/finalize-cleanup-${timestamp}"
@@ -90,15 +91,22 @@ manifest.write_text(mtext)
 PY
 
 python3 -m py_compile "${LINKEDIN_DIR}/adapter.py"
+required_ports="$(python3 "${PLATFORM_PORTS_HELPER}" "${HOME_DIR}/config.yaml")"
+
+ports_ready() {
+  local port
+  for port in ${required_ports}; do
+    ss -ltn | grep -qE ":${port}[[:space:]]" || return 1
+  done
+}
+
 systemctl restart opencomputer-v2-gateway.service
 
 deadline=$((SECONDS + 120))
 while (( SECONDS < deadline )); do
   if systemctl is-active --quiet opencomputer-v2-gateway.service && \
      curl -fsS --max-time 3 http://127.0.0.1:8642/health >/dev/null && \
-     ss -ltn | grep -qE ':8643[[:space:]]' && \
-     ss -ltn | grep -qE ':8645[[:space:]]' && \
-     ss -ltn | grep -qE ':8646[[:space:]]'; then
+     ports_ready; then
     break
   fi
   sleep 2
@@ -106,9 +114,7 @@ done
 
 systemctl is-active --quiet opencomputer-v2-gateway.service
 curl -fsS --max-time 5 http://127.0.0.1:8642/health >/dev/null
-for port in 8643 8645 8646; do
-  ss -ltn | grep -qE ":${port}[[:space:]]"
-done
+ports_ready
 
 printf '%s\n' \
   "timestamp_utc=${timestamp}" \
@@ -118,7 +124,7 @@ printf '%s\n' \
   "active_voice_provider=sarvam" \
   "protected_jobs=unchanged_except_exact_retired_cron" \
   "gateway=opencomputer-v2-gateway.service:active" \
-  "engagement_ports=8643,8645,8646" \
+  "engagement_ports=${required_ports// /,}" \
   >"${backup}/MANIFEST.txt"
 chmod 0600 "${backup}/MANIFEST.txt"
 
