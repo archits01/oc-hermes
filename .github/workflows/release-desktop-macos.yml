@@ -90,13 +90,22 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_path"
           codesign -dvv "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application:'
           xcrun stapler validate "$app_path"
+          for dmg in "${dmgs[@]}"; do
+            xcrun stapler validate "$dmg"
+          done
 
       - name: Upload verified release assets
         shell: bash
         run: |
           set -euo pipefail
           release_dir="apps/desktop/release"
-          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "::error::refusing to modify published release $RELEASE_TAG; cut a new version/tag instead"
+              exit 1
+            fi
+          else
             gh release create "$RELEASE_TAG" --draft --title "$RELEASE_TAG" --generate-notes
           fi
           shopt -s nullglob
