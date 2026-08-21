@@ -37,7 +37,7 @@ bundled_runtime:
   - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_runtime.py
     sha256: 371096adbf0af11eac1e84e7ddc3e792e80c07bfe530d300ae16fb33b57f60c9
   - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_bootstrap.py
-    sha256: 80f88937181c79f07a0b40e4e08ae01c86b3eb2dc04c0cbe433e5607ca85e15f
+    sha256: 26bd4b5039236f11cd095fff413b49ec0c56a379e2f29caa228ac7bdd4cad854
 media_bridge:
   path: unipile_media_followup.py
   sha256: 411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb
