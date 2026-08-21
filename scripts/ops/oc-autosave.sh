@@ -37,13 +37,29 @@ if git_repo -c user.name='oc-autosave' -c user.email='autosave@opencomputer.loca
   git_repo reset -q HEAD~1
   log "saved $N file(s) -> $BR"
 else
+  # `git add -A` must never strand the live checkout with a dirty index when
+  # a hook or filesystem error rejects the autosave commit.
+  git_repo reset -q HEAD >/dev/null 2>&1 || true
   log "ERROR commit failed"; exit 1
 fi
 
 if [ -r "$TOKEN_FILE" ]; then
-  TOK="$(head -1 "$TOKEN_FILE")"
-  if git_repo -c credential.helper='!f(){ echo username=x-access-token; echo "password='"$TOK"'"; };f' \
-       push -q origin "$BR:$BR" 2>>"$LOG"; then
+  ASKPASS="$(mktemp "${TMPDIR:-/tmp}/oc-autosave-askpass.XXXXXX")" || {
+    log "WARN could not create askpass helper - branch exists locally"
+    exit 0
+  }
+  trap 'rm -f -- "$ASKPASS"' EXIT
+  printf '%s\n' \
+    '#!/bin/sh' \
+    'case "$1" in' \
+    '  Username*) printf "%s\\n" x-access-token ;;' \
+    '  Password*) head -n 1 -- "$OC_AUTOSAVE_TOKEN_FILE" ;;' \
+    '  *) exit 1 ;;' \
+    'esac' >"$ASKPASS"
+  chmod 700 "$ASKPASS"
+  if OC_AUTOSAVE_TOKEN_FILE="$TOKEN_FILE" GIT_ASKPASS="$ASKPASS" \
+       GIT_ASKPASS_REQUIRE=force GIT_TERMINAL_PROMPT=0 \
+       git_repo push -q origin "$BR:$BR" 2>>"$LOG"; then
     log "pushed $BR"
   else
     log "WARN push failed - branch exists locally"
