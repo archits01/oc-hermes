@@ -15,7 +15,7 @@ deployment:
 
 media_bridge_source:
   repository: https://github.com/archits01/lmi-dashboard.git
-  commit: ca3f3c0aec6b90b134c200acfd4dbb3a8382d669
+  commit: dd888ec3d50d1b6e071a7a59553a49933ac12e92
   path: vm/leadgen/unipile_media_followup.py
 
 channels:
@@ -30,12 +30,16 @@ source_inputs:
   - path: _unipile_common.py
     sha256: 65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28
   - path: whatsapp_unipile/adapter.py
-    sha256: b7ffda1cc4c31ab3c3987ae24c195800b79239c72fe3ec1dc98b3abfb8746949
+    sha256: 1f816d53cae9a7635d60cb54734cbaa7a22089da6e45050e09cc127b896eeccb
   - path: instagram/adapter.py
-    sha256: 6b2300757e7ad0a4a04b38fc3efd3fe0ee1b8beb487b4fb5c6a802e1995602a9
+    sha256: e8b95cb2a09693626cf891bfd2603c2e91f36563219bf334c176c52152cd2b94
+  - path: _lmi_media_runtime.py
+    sha256: f8a22239ff363b8b27f8463c75bab03b9d78ef1cb5b3fa381d801c57990297dd
+  - path: _lmi_media_bootstrap.py
+    sha256: 7107384aab729c72fc5de701b669a656ff21db2deea73c1dbfb57af57172cfd1
 media_bridge:
   path: unipile_media_followup.py
-  sha256: f4c5e79114e315e4247c28041a6adfcb96820b8ffd8ffa7316406ff19a116f42
+  sha256: 411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb
   required_templates:
     offer: portfolio-media-v1
     caption: portfolio-delivery-v1
