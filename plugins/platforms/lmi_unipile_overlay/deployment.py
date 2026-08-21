@@ -350,7 +350,7 @@ def open_session_database_scope_resolver(
 
         session_db_factory = SessionDB
     try:
-        session_db = session_db_factory(db_path=config.session_db_path)
+        session_db = session_db_factory(db_path=Path(config.session_db_path))
     except Exception as exc:
         raise MediaOverlayError("could not open configured Hermes session database") from exc
     return SessionDatabaseMediaScopeResolver(

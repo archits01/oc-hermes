@@ -186,7 +186,7 @@ def _open_session_db(config: Any, session_db_factory: Callable[..., Any] | None)
             raise MediaOverlayError("Hermes SessionDB is unavailable") from exc
         session_db_factory = SessionDB
     try:
-        return session_db_factory(db_path=config.session_db_path)
+        return session_db_factory(db_path=Path(config.session_db_path))
     except Exception as exc:
         # Do not log the exception: SQLite/provider paths can contain sensitive
         # deployment details.  The caller receives only a safe error class.
@@ -263,4 +263,3 @@ def clear_media_bootstrap_for_test() -> None:
     global _bootstrap_result
     with _bootstrap_lock:
         _bootstrap_result = None
-
