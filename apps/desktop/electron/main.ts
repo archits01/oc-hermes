@@ -29,6 +29,7 @@ import {
   shell,
   systemPreferences
 } from 'electron'
+import { autoUpdater } from 'electron-updater'
 
 import { classifyActiveRuntime } from './active-runtime-state'
 import { destroyKeepaliveAgents, downloadAgentFor, jsonAgentFor, withRetry } from './api-transport'
@@ -202,6 +203,10 @@ import { probeGatewayWebSocket } from './gateway-ws-probe'
 import { registerGitIpc } from './git-ipc'
 import { clearStaleGitLocks } from './gitlock'
 import { readAndConsumeHandoffResult } from './handoff-result'
+import {
+  configurePackagedAppUpdater,
+  type PackagedAppUpdaterController
+} from './packaged-app-updater'
 import {
   ATTACHMENT_UPLOAD_DEFAULT_MAX_BYTES,
   clampDataUrlReadMaxMb,
@@ -3146,6 +3151,17 @@ async function readCommitLog(cwd, branch, isShallow) {
 }
 
 let updateInFlight = false
+let packagedAppUpdater: PackagedAppUpdaterController | null = null
+
+function checkForPackagedAppUpdate() {
+  if (!packagedAppUpdater?.enabled) {
+    rememberLog('[packaged-updater] manual check unavailable for this install')
+
+    return
+  }
+
+  void packagedAppUpdater.checkForUpdates({ interactive: true })
+}
 
 // Set to true when the desktop is about to quit so a detached swap/install/
 // uninstall script can take over. On macOS, app.quit() closes windows but
@@ -6516,7 +6532,10 @@ function buildApplicationMenu() {
 
   const checkForUpdatesItem = {
     label: 'Check for Updates…',
-    click: () => sendOpenUpdatesRequested()
+    click: () => {
+      checkForPackagedAppUpdate()
+      sendOpenUpdatesRequested()
+    }
   }
 
   if (IS_MAC) {
@@ -17423,6 +17442,15 @@ app.whenReady().then(() => {
   // captured by the original transaction before removing the journal entry.
   void resumeManagedSshRecoveries()
   createWindow()
+
+  packagedAppUpdater = configurePackagedAppUpdater({
+    dialog,
+    isPackaged: IS_PACKAGED,
+    log: rememberLog,
+    platform: process.platform,
+    updater: autoUpdater
+  })
+  void packagedAppUpdater.checkForUpdates()
 
   // Win/Linux cold start: the launching hermes:// URL is in our own argv.
   const _coldStartLink = _extractDeepLink(process.argv)
