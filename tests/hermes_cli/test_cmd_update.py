@@ -245,9 +245,9 @@ class TestCmdUpdateBranchFallback:
         ), patch.object(hm, "_sync_with_upstream_if_needed") as sync_mock:
             cmd_update(mock_args)
 
-        expected_git_cmd = (
-            ["git", "-c", "windows.appendAtomically=false"] if hm._is_windows() else ["git"]
-        )
+        from hermes_cli.update_cmd import _git_cmd_for_repo
+
+        expected_git_cmd = _git_cmd_for_repo(PROJECT_ROOT)
         sync_mock.assert_called_once_with(expected_git_cmd, PROJECT_ROOT)
         captured = capsys.readouterr()
         assert "Already up to date!" in captured.out

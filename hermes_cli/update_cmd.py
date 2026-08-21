@@ -55,6 +55,22 @@ def _m():
     return main
 
 
+def _git_cmd_for_repo(cwd: Path) -> list[str]:
+    """Build the git command used by the updater.
+
+    Managed installs can be owned by a different account than the process that
+    runs the updater (the live OpenComputer VM is root-run against a checkout
+    copied from another UID).  Git's dubious-ownership guard is correct for
+    ordinary commands, but it must be scoped explicitly for this already
+    authenticated, known install root.  Keep the exception command-local so
+    we do not mutate a user's global git configuration.
+    """
+    command = ["git", "-c", f"safe.directory={cwd.resolve(strict=False)}"]
+    if sys.platform == "win32":
+        command.extend(["-c", "windows.appendAtomically=false"])
+    return command
+
+
 _UPDATE_RUNTIME_RELOAD_MODULES = (
     "hermes_constants",
     "tools.environments.local",
@@ -1755,6 +1771,42 @@ def _discard_stashed_changes(
     print("→ Discarded local source changes (updates.non_interactive_local_changes=discard).")
     return True
 
+
+def _finalize_update_stash(
+    git_cmd: list[str],
+    cwd: Path,
+    stash_ref: Optional[str],
+    *,
+    keep_stash: bool = False,
+    discard_local_changes: bool = False,
+    prompt_user: bool = False,
+    input_fn=None,
+) -> None:
+    """Apply, discard, or intentionally retain an update autostash.
+
+    Keeping this policy in one helper makes the zero-commit and pulled-update
+    paths behave identically.  ``--keep-stash`` is deliberately a no-op on
+    the checkout: the stash remains available for a later hand-off or manual
+    apply, while the updater continues with the clean updated tree.
+    """
+    if stash_ref is None:
+        return
+    if keep_stash:
+        print(
+            "  ℹ️  Local changes preserved in git stash "
+            f"(ref: {stash_ref}); not re-applied."
+        )
+    elif discard_local_changes:
+        _m()._discard_stashed_changes(git_cmd, cwd, stash_ref)
+    else:
+        _m()._restore_stashed_changes(
+            git_cmd,
+            cwd,
+            stash_ref,
+            prompt_user=prompt_user,
+            input_fn=input_fn,
+        )
+
 OFFICIAL_REPO_URLS = {
     "https://github.com/NousResearch/hermes-agent.git",
     "git@github.com:NousResearch/hermes-agent.git",
@@ -2762,9 +2814,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
         print("✗ Not a git repository — cannot check for updates.")
         sys.exit(1)
 
-    git_cmd = ["git"]
-    if sys.platform == "win32":
-        git_cmd = ["git", "-c", "windows.appendAtomically=false"]
+    git_cmd = _git_cmd_for_repo(_m().PROJECT_ROOT)
 
     # A crashed/interrupted fetch can leave .git/shallow.lock (or another git
     # lock file) behind; every later fetch then fails with "File exists" and
@@ -4790,6 +4840,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         else None
     )
     assume_yes = bool(getattr(args, "yes", False))
+    keep_stash = bool(getattr(args, "keep_stash", False))
 
     # Whether this update is running without a human at the keyboard.
     # Interactive terminal updates always stash-and-ask (unchanged behavior);
@@ -4995,9 +5046,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
     if sys.platform == "win32" and git_dir.exists():
         subprocess.run(
             [
-                "git",
-                "-c",
-                "windows.appendAtomically=false",
+                *_git_cmd_for_repo(_m().PROJECT_ROOT),
                 "config",
                 "windows.appendAtomically",
                 "false",
@@ -5008,9 +5057,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
 
     # Build git command once — reused for fork detection and the update itself.
-    git_cmd = ["git"]
-    if sys.platform == "win32":
-        git_cmd = ["git", "-c", "windows.appendAtomically=false"]
+    git_cmd = _git_cmd_for_repo(_m().PROJECT_ROOT)
 
     # Discard npm lockfile churn before any stash/branch logic. npm rewrites
     # tracked package-lock.json files non-deterministically at install/build
@@ -5228,14 +5275,15 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # EXCEPTION: a parked feature branch we verified clean + fully
             # merged stays on the target — re-parking the checkout on the
             # stale branch is the 2026-08-17 incident all over again.
-            if auto_stash_ref is not None:
-                _m()._restore_stashed_changes(
-                    git_cmd,
-                    _m().PROJECT_ROOT,
-                    auto_stash_ref,
-                    prompt_user=prompt_for_restore,
-                    input_fn=gw_input_fn,
-                )
+            _finalize_update_stash(
+                git_cmd,
+                _m().PROJECT_ROOT,
+                auto_stash_ref,
+                keep_stash=keep_stash,
+                discard_local_changes=discard_local_changes,
+                prompt_user=prompt_for_restore,
+                input_fn=gw_input_fn,
+            )
             if parked_branch_switched:
                 print(
                     f"  ✓ Checkout was parked on '{current_branch}' (fully "
@@ -5459,20 +5507,13 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         f"  ℹ️  Local changes preserved in stash (ref: {auto_stash_ref})"
                     )
                     print("  Restore manually with: git stash apply")
-                elif discard_local_changes:
-                    # Non-interactive update + user opted into discarding local
-                    # source edits (updates.non_interactive_local_changes:
-                    # discard). Throw the stash away instead of re-applying it.
-                    _m()._discard_stashed_changes(
-                        git_cmd,
-                        _m().PROJECT_ROOT,
-                        auto_stash_ref,
-                    )
                 else:
-                    _m()._restore_stashed_changes(
+                    _finalize_update_stash(
                         git_cmd,
                         _m().PROJECT_ROOT,
                         auto_stash_ref,
+                        keep_stash=keep_stash,
+                        discard_local_changes=discard_local_changes,
                         prompt_user=prompt_for_restore,
                         input_fn=gw_input_fn,
                     )

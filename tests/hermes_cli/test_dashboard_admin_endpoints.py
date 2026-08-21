@@ -850,6 +850,31 @@ class TestUpdateCheckEndpoint:
         assert body["behind"] is None
         assert "managed outside this dashboard" in body["message"]
 
+    def test_update_targets_the_running_checkout_branch(self, monkeypatch):
+        """A dashboard update must not fall through to the CLI's ``main`` default."""
+        import hermes_cli.web_server as ws
+
+        monkeypatch.setattr(ws, "detect_install_method", lambda *a, **k: "git")
+        monkeypatch.setattr(ws, "_fs_git_branch", lambda *a, **k: "oc-branding")
+        ws._ACTION_PROCS.pop("hermes-update", None)
+        calls = []
+
+        class FakeProc:
+            pid = 4242
+
+        def fake_spawn_action(subcommand, name, *, env_overrides=None):
+            calls.append((subcommand, name, env_overrides))
+            return FakeProc()
+
+        monkeypatch.setattr(ws, "_spawn_hermes_action", fake_spawn_action)
+
+        response = self.client.post("/api/hermes/update")
+
+        assert response.status_code == 200
+        assert response.json()["ok"] is True
+        assert calls[0][0:2] == (["update", "--branch", "oc-branding"], "hermes-update")
+        assert calls[0][2].keys() == {"HERMES_ACTION_ID"}
+
 
 
 

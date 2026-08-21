@@ -2197,7 +2197,15 @@ def _fs_git_branch(cwd: str) -> str:
         if sys.platform == "win32":
             run_kwargs["creationflags"] = windows_hide_flags()
         result = subprocess.run(
-            ["git", "-C", cwd, "branch", "--show-current"],
+            [
+                "git",
+                "-c",
+                f"safe.directory={Path(cwd).resolve(strict=False)}",
+                "-C",
+                cwd,
+                "branch",
+                "--show-current",
+            ],
             **run_kwargs,
         )
         return result.stdout.strip() if result.returncode == 0 else ""
@@ -4805,9 +4813,17 @@ async def update_hermes():
         return response
 
     action_id = secrets.token_hex(16)
+    # A forked/brand-specific checkout must update the branch it is actually
+    # running.  The CLI defaults a bare ``hermes update`` to ``main``; that is
+    # unsafe for the dashboard because it runs from the shared install root
+    # and can otherwise attempt to re-home a deployment onto the wrong branch.
+    update_args = ["update"]
+    current_branch = _fs_git_branch(str(PROJECT_ROOT))
+    if current_branch:
+        update_args.extend(["--branch", current_branch])
     try:
         proc = _spawn_hermes_action(
-            ["update"],
+            update_args,
             "hermes-update",
             env_overrides={"HERMES_ACTION_ID": action_id},
         )
