@@ -35,6 +35,8 @@ def test_review_manifest_is_disabled_and_portable():
     assert "/Users/" not in manifest
     assert "dd888ec3d50d1b6e071a7a59553a49933ac12e92" in manifest
     assert "411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb" in manifest
+    assert "371096adbf0af11eac1e84e7ddc3e792e80c07bfe530d300ae16fb33b57f60c9" in manifest
+    assert "80f88937181c79f07a0b40e4e08ae01c86b3eb2dc04c0cbe433e5607ca85e15f" in manifest
 
 
 class FakeReviewedBridge:

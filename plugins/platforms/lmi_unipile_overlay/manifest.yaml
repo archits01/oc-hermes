@@ -30,13 +30,14 @@ source_inputs:
   - path: _unipile_common.py
     sha256: 65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28
   - path: whatsapp_unipile/adapter.py
-    sha256: c0a50292b5261a922570d3a2c81ecc204cab28e1227484306d7638121f8eb61f
+    sha256: 83f183bcffa483f4839414e33bc47008a29dfbce9b23abb8e0eb3619bf50ba6d
   - path: instagram/adapter.py
-    sha256: b7e8a1bbd6cc05f87488d5e366617ca380d693461d2be160ab9eadadbdf55f40
-  - path: _lmi_media_runtime.py
-    sha256: f8a22239ff363b8b27f8463c75bab03b9d78ef1cb5b3fa381d801c57990297dd
-  - path: _lmi_media_bootstrap.py
-    sha256: 7107384aab729c72fc5de701b669a656ff21db2deea73c1dbfb57af57172cfd1
+    sha256: e7429a174336c28801c07d4f2a3bf287e84f5c48fe616905371f031e3aebd63e
+bundled_runtime:
+  - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_runtime.py
+    sha256: 371096adbf0af11eac1e84e7ddc3e792e80c07bfe530d300ae16fb33b57f60c9
+  - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_bootstrap.py
+    sha256: 80f88937181c79f07a0b40e4e08ae01c86b3eb2dc04c0cbe433e5607ca85e15f
 media_bridge:
   path: unipile_media_followup.py
   sha256: 411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb
