@@ -5,16 +5,16 @@ set -Eeuo pipefail
 # fast-forward-only Git update and the narrow LMI overlay sync; it does not
 # invoke the heavyweight Hermes CLI update path.
 
-readonly REPO="/opt/opencomputer-v2"
-readonly HOME_DIR="/opt/opencomputer-v2-data"
+readonly REPO="${LMI_AUTO_UPDATE_REPO:-/opt/opencomputer-v2}"
+readonly HOME_DIR="${LMI_AUTO_UPDATE_HOME:-/opt/opencomputer-v2-data}"
 readonly BRANCH="oc-branding"
 readonly EXPECTED_REMOTE="https://github.com/archits01/oc-hermes.git"
-readonly LOG="/var/log/oc-auto-update.log"
+readonly LOG="${LMI_AUTO_UPDATE_LOG:-/var/log/oc-auto-update.log}"
 readonly SERVICES=(opencomputer-v2-gateway opencomputer-v2-serve)
-readonly LOCK_FILE="/run/opencomputer-v2-update.lock"
-readonly MEDIA_SYNC="${REPO}/scripts/ops/lmi_media_overlay_sync.py"
-readonly PLATFORM_PORTS_HELPER="${REPO}/scripts/ops/lmi_enabled_platform_ports.py"
-readonly LOCAL_DESKTOP_STATUS="http://127.0.0.1:29129/api/status"
+readonly LOCK_FILE="${LMI_AUTO_UPDATE_LOCK:-/run/opencomputer-v2-update.lock}"
+readonly MEDIA_SYNC="${LMI_AUTO_UPDATE_MEDIA_SYNC:-${REPO}/scripts/ops/lmi_media_overlay_sync.py}"
+readonly PLATFORM_PORTS_HELPER="${LMI_AUTO_UPDATE_PLATFORM_PORTS_HELPER:-${REPO}/scripts/ops/lmi_enabled_platform_ports.py}"
+readonly LOCAL_DESKTOP_STATUS="${LMI_AUTO_UPDATE_DESKTOP_STATUS:-http://127.0.0.1:29129/api/status}"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S %Z') $*" >>"${LOG}"; }
 
@@ -45,6 +45,9 @@ services_ready() {
 
 in_restart_blackout() {
   local hhmm dow
+  if [[ ${LMI_AUTO_UPDATE_FORCE_BLACKOUT:-} == 1 ]]; then
+    return 0
+  fi
   hhmm="$(TZ=Asia/Kolkata date +%H%M)"
   dow="$(TZ=Asia/Kolkata date +%u)"
   if [[ ${hhmm} -ge 0600 && ${hhmm} -lt 1400 ]]; then
@@ -74,7 +77,7 @@ restart_services() {
   local service
   for service in "${SERVICES[@]}"; do
     systemctl restart "${service}"
-    sleep 15
+    sleep "${LMI_AUTO_UPDATE_RESTART_SETTLE_SECONDS:-15}"
     systemctl is-active --quiet "${service}" || {
       log "CRITICAL ${service} did not become active; updater will not claim health"
       return 1
@@ -101,7 +104,7 @@ origin="$(git_repo remote get-url origin)"
 exec 9>"${LOCK_FILE}"
 flock -n 9 || exit 0
 
-if ! timeout 120 git_repo fetch --quiet origin "${BRANCH}" 2>>"${LOG}"; then
+if ! timeout 120 git -c "safe.directory=${REPO}" -C "${REPO}" fetch --quiet origin "${BRANCH}" 2>>"${LOG}"; then
   log "WARN git fetch failed; retrying next tick"
   exit 0
 fi
@@ -117,9 +120,21 @@ if [[ -n "$(git_repo status --porcelain --untracked-files=no)" ]]; then
 fi
 
 if [[ ${local_head} == ${remote_head} ]]; then
-  # A no-op tick still repairs a deleted/mutated external overlay. During a
-  # send blackout the repair is safe on disk but its restart waits for later.
-  sync_overlay_if_needed || exit 1
+  # A no-op tick repairs a deleted/mutated external overlay only when a
+  # restart is safe. During a send blackout, check is read-only and drift is
+  # deliberately left in place so the next safe tick detects it again.
+  if "${REPO}/venv/bin/python" "${MEDIA_SYNC}" --check >/dev/null 2>&1; then
+    SYNC_REPAIRED=0
+  elif in_restart_blackout; then
+    log "OVERLAY DRIFT detected during restart blackout; repair deferred"
+    exit 0
+  elif ! "${REPO}/venv/bin/python" "${MEDIA_SYNC}"; then
+    log "CRITICAL overlay sync failed; services NOT restarted"
+    exit 1
+  else
+    SYNC_REPAIRED=1
+    log "OVERLAY repaired from ${BRANCH} checkout"
+  fi
   if [[ ${SYNC_REPAIRED} -eq 1 ]]; then
     if in_restart_blackout; then
       log "OVERLAY repaired during restart blackout; restart deferred"
