@@ -88,8 +88,8 @@ describe('local desktop pack stays out of the publish path', () => {
 
     assert.ok(Array.isArray(configs) && configs.length > 0)
     assert.equal(configs[0].provider, 'github')
-    assert.equal(configs[0].owner, 'NousResearch')
-    assert.equal(configs[0].repo, 'hermes-agent')
+    assert.equal(configs[0].owner, 'archits01')
+    assert.equal(configs[0].repo, 'oc-hermes')
   })
 
   test('a package without the repository field is what breaks resolution', async () => {
@@ -108,5 +108,18 @@ describe('local desktop pack stays out of the publish path', () => {
   test('resolution is quiet when no publish token is configured', async () => {
     const configs = await getPublishConfigs(fakePackager(desktopPkg), null, null, true)
     assert.deepEqual(configs, [])
+  })
+
+  test('packaged release updates are pinned to the canonical OpenComputer GitHub repository', () => {
+    assert.equal(desktopPkg.repository.url, 'git+https://github.com/archits01/oc-hermes.git')
+    assert.deepEqual(desktopPkg.build.publish, [
+      {
+        provider: 'github',
+        owner: 'archits01',
+        repo: 'oc-hermes',
+        releaseType: 'release'
+      }
+    ])
+    assert.ok(desktopPkg.build.mac.target.includes('zip'), 'macOS updater requires the zip target')
   })
 })

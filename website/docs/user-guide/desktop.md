@@ -247,6 +247,25 @@ chats decide who replies: [Bot Mode: A Roster of Agents](./bot-mode.md).
 
 The app checks for updates in the background and offers a one-click update when one is ready.
 
+### Hosted updates for packaged macOS apps
+
+An OpenComputer app installed from a signed DMG checks the canonical
+[`archits01/oc-hermes` GitHub Releases](https://github.com/archits01/oc-hermes/releases)
+feed when it launches. It downloads a newer desktop bundle in the background
+and asks before restart/install; it never replaces a running app silently.
+
+This is deliberately separate from `hermes update`: the latter updates a
+source/runtime checkout, while the hosted updater replaces the packaged
+Electron shell. VM-backed runtime changes still arrive through the connected
+gateway without a new DMG, but Electron UI, icons, bundled code, and binary
+changes require a signed hosted desktop release.
+
+Hosted updates are operational only after a release contains the macOS `zip`,
+its blockmap, and `latest-mac.yml`, and both the installed app and the new app
+are signed with the same Developer ID identity and notarized. Unsigned,
+ad-hoc-signed, or differently signed older DMGs cannot be promised an
+in-place update; install one signed release manually to establish that chain.
+
 The desktop app and the Hermes backend it talks to update on separate clocks — the app package on your machine, the backend wherever it runs. When more than one update target exists (a remote gateway, or several registered gateways), the update affordances (**Update now** on the About panel, the ⌘K **Update Hermes** row, and the update-ready toast) update **everything**: the connected backend first, then every other eligible registered gateway (Hermes Cloud entries are platform-managed and skipped), and the desktop app itself last, since applying the client update relaunches the app. Single-machine installs keep the one-button experience.
 
 After any backend update, the app also re-checks its own version and warns with a one-click **Update desktop app** action if the GUI is still behind — so updating a remote backend can never silently leave you on a stale desktop build.
@@ -490,6 +509,15 @@ npm run pack         # unpacked app under release/ (no installer)
 ```
 
 macOS/Windows signing and notarization run automatically when the relevant credentials are present in the environment (`CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_*` for macOS, `WIN_CSC_*` for Windows).
+
+To publish a signed macOS hosted update, use the guarded **Release signed
+OpenComputer macOS updater** workflow. It is intentionally manual and targets
+the protected `desktop-release` environment. It validates that the supplied
+tag matches `apps/desktop/package.json`, builds a universal DMG plus updater ZIP,
+requires Developer ID signing and notarization credentials, verifies the
+bundle, and uploads `latest-mac.yml` and the matching assets. Leave
+**Publish release** unchecked to inspect a draft first; only a published,
+non-draft GitHub release becomes visible to installed apps.
 
 ### macOS permissions and local rebuilds (TCC)
 

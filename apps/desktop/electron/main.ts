@@ -29,6 +29,7 @@ import {
   shell,
   systemPreferences
 } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import nodePty from 'node-pty'
 
 import { classifyActiveRuntime } from './active-runtime-state'
@@ -190,6 +191,10 @@ import {
 } from './git-worktree-ops'
 import { clearStaleGitLocks } from './gitlock'
 import { readAndConsumeHandoffResult } from './handoff-result'
+import {
+  configurePackagedAppUpdater,
+  type PackagedAppUpdaterController
+} from './packaged-app-updater'
 import {
   ATTACHMENT_UPLOAD_DEFAULT_MAX_BYTES,
   clampDataUrlReadMaxMb,
@@ -2980,6 +2985,21 @@ async function readCommitLog(cwd, branch, isShallow) {
 }
 
 let updateInFlight = false
+let packagedAppUpdater: PackagedAppUpdaterController | null = null
+
+// Installed DMGs update from signed GitHub release artifacts, while source
+// checkouts keep using the existing runtime/source updater. Keep both checks
+// reachable from the native menu: the renderer continues to expose the richer
+// backend update status, and the package check never mutates a source tree.
+function checkForPackagedAppUpdate() {
+  if (!packagedAppUpdater?.enabled) {
+    rememberLog('[packaged-updater] manual check unavailable for this install')
+
+    return
+  }
+
+  void packagedAppUpdater.checkForUpdates({ interactive: true })
+}
 
 // Set to true when the desktop is about to quit so a detached swap/install/
 // uninstall script can take over. On macOS, app.quit() closes windows but
@@ -6108,7 +6128,10 @@ function buildApplicationMenu() {
 
   const checkForUpdatesItem = {
     label: 'Check for Updates…',
-    click: () => sendOpenUpdatesRequested()
+    click: () => {
+      checkForPackagedAppUpdate()
+      sendOpenUpdatesRequested()
+    }
   }
 
   if (IS_MAC) {
@@ -15588,6 +15611,19 @@ app.whenReady().then(() => {
   }
 
   createWindow()
+
+  // A DMG-installed client is a separate release artifact from the VM-backed
+  // runtime. Use electron-updater only after the window exists (native restart
+  // prompts need a ready app) and only for a packaged macOS build. The update
+  // feed itself is fixed in electron-builder's publish configuration.
+  packagedAppUpdater = configurePackagedAppUpdater({
+    dialog,
+    isPackaged: IS_PACKAGED,
+    log: rememberLog,
+    platform: process.platform,
+    updater: autoUpdater
+  })
+  void packagedAppUpdater.checkForUpdates()
 
   // Win/Linux cold start: the launching hermes:// URL is in our own argv.
   const _coldStartLink = _extractDeepLink(process.argv)

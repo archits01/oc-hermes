@@ -7,7 +7,7 @@
   "author": "Nous Research",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/hermes-agent.git"
+    "url": "git+https://github.com/archits01/oc-hermes.git"
   },
   "type": "module",
   "main": "dist/electron-main.mjs",
@@ -120,6 +120,7 @@
     "d3-force": "3.0.0",
     "dnd-core": "14.0.1",
     "dompurify": "3.4.13",
+    "electron-updater": "6.8.9",
     "emojibase-data": "16.0.3",
     "fflate": "0.8.3",
     "frimousse": "0.3.0",
@@ -228,6 +229,14 @@
     ],
     "asar": true,
     "afterSign": "scripts/notarize.mjs",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "archits01",
+        "repo": "oc-hermes",
+        "releaseType": "release"
+      }
+    ],
     "asarUnpack": [
       "**/*.node",
       "**/prebuilds/**",
