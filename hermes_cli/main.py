@@ -4873,6 +4873,8 @@ _LAZY_COMMAND_EXPORTS = {
         "_record_npm_lockfile_hash",
         "_refresh_active_lazy_features",
         "_refresh_active_memory_provider_dependencies",
+        "_reexec_dependency_sync_off_windows_shim",
+        "_UPDATE_REEXEC_ENV",
         "_refresh_bootstrap_cache_scripts",
         "_refresh_windows_gateway_launchers",
         "_reload_updated_runtime_modules",
@@ -8698,38 +8700,105 @@ def _recover_core_update_marker_locked() -> None:
             print(f"    {sys.executable} -m pip install -e '.[all]'")
 
 
-def _windows_running_hermes_launcher_locked() -> bool:
-    """True when a venv ``hermes*.exe`` shim is this process or an ancestor.
+def _norm_exe_path(path) -> str:
+    """Case-folded resolved path, for comparing executables on Windows."""
+    try:
+        return str(Path(path).resolve()).lower()
+    except OSError:
+        return str(path).lower()
 
-    Best-effort: returns False when psutil is unavailable or inspection fails.
-    """
+
+def _windows_shim_in_process_chain() -> Path | None:
+    """Return this install's Windows console shim when it owns the process."""
     if not _is_windows():
-        return False
+        return None
     scripts_dir = _venv_scripts_dir()
     if scripts_dir is None:
-        return False
-    shims = _hermes_exe_shims(scripts_dir)
+        return None
+    shims = {_norm_exe_path(shim): shim for shim in _hermes_exe_shims(scripts_dir)}
     if not shims:
-        return False
-    shim_set: set[str] = set()
-    for shim in shims:
-        try:
-            shim_set.add(str(shim.resolve()).lower())
-        except OSError:
-            shim_set.add(str(shim).lower())
+        return None
+
+    def _match(candidate) -> Path | None:
+        path = Path(candidate)
+        if path.name.lower() == "__main__.py":
+            path = path.parent
+        return shims.get(_norm_exe_path(path))
+
+    candidates: list[str] = list(sys.argv[:1])
+    main_mod = sys.modules.get("__main__")
+    for attr in (
+        getattr(main_mod, "__file__", None),
+        getattr(getattr(main_mod, "__spec__", None), "origin", None),
+    ):
+        if attr:
+            candidates.append(attr)
+    for candidate in candidates:
+        matched = _match(candidate)
+        if matched is not None:
+            return matched
+
     try:
         import psutil
 
         me = psutil.Process()
         for proc in [me] + list(me.parents()):
             try:
-                exe_norm = str(Path(proc.exe()).resolve()).lower()
+                matched = _match(proc.exe())
             except Exception:
                 continue
-            if exe_norm in shim_set:
-                return True
+            if matched is not None:
+                return matched
     except Exception:
+        pass
+    return None
+
+
+def _windows_running_hermes_launcher_locked() -> bool:
+    """True when a venv ``hermes*.exe`` shim is this process or an ancestor.
+
+    Best-effort: returns False when psutil is unavailable or inspection fails.
+    """
+    return _windows_shim_in_process_chain() is not None
+
+
+# Set on the re-exec'd child so it can never spawn another one.
+_UPDATE_REEXEC_ENV = "HERMES_UPDATE_REEXEC"
+
+
+def _reexec_dependency_sync_off_windows_shim() -> bool:
+    """Hand dependency synchronization to the venv interpreter on Windows."""
+    if os.environ.get(_UPDATE_REEXEC_ENV) == "1":
         return False
+    shim = _windows_shim_in_process_chain()
+    if shim is None:
+        return False
+
+    from hermes_constants import venv_python_path
+
+    python_exe = venv_python_path(shim.parent.parent, windows=True)
+    cmd = [str(python_exe), "-m", "hermes_cli.main", *sys.argv[1:]]
+    if python_exe.is_file():
+        try:
+            subprocess.Popen(
+                cmd,
+                env={**os.environ, _UPDATE_REEXEC_ENV: "1"},
+                stdin=subprocess.DEVNULL,
+            )
+            print(
+                f"→ Windows: {shim.name} cannot replace itself while it runs; "
+                "finishing the dependency install under the venv Python."
+            )
+            print(
+                "  The code update is already applied. The install continues "
+                "below and this shell returns right away."
+            )
+            return True
+        except OSError as exc:
+            logger.debug("Dependency-sync hand-off via %s failed: %s", python_exe, exc)
+        print(f"  ⚠ Could not hand the dependency install off {shim.name}.")
+        print("    Continuing in-process; if it cannot replace the shim, run:")
+        print(f"    {subprocess.list2cmdline(cmd)}")
     return False
 
 
