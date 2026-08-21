@@ -24,6 +24,21 @@ def load_sync_module():
     return module
 
 
+def apply_fixture(tmp_path):
+    sync = load_sync_module()
+    data_root = tmp_path / "data"
+    backup_root = tmp_path / "backups"
+    (data_root / "plugins/platforms").mkdir(parents=True)
+    module_path = data_root / "approved/unipile_media_followup.py"
+    module_path.parent.mkdir(parents=True)
+    shutil.copy2(PINNED_MEDIA, module_path)
+    (data_root / "runtime.env").write_text(
+        f"LMI_MEDIA_FOLLOWUP_MODULE_PATH={module_path}\n", encoding="utf-8"
+    )
+    sync.synchronize(repo_root=REPO, data_root=data_root, backup_root=backup_root)
+    return sync, data_root, backup_root
+
+
 def test_apply_copies_exact_managed_hashes_and_creates_backup(tmp_path):
     sync = load_sync_module()
     data_root = tmp_path / "data"
@@ -76,3 +91,39 @@ def test_wrong_dashboard_module_hash_blocks_without_writing(tmp_path):
             backup_root=tmp_path / "backups",
         )
     assert not (data_root / "plugins/platforms/lmi_unipile_overlay").exists()
+
+
+@pytest.mark.parametrize("missing", ["overlay", "common", "whatsapp", "instagram"])
+def test_check_fails_closed_when_managed_destination_is_absent(tmp_path, missing):
+    sync, data_root, backup_root = apply_fixture(tmp_path)
+    if missing == "overlay":
+        shutil.rmtree(data_root / "plugins/platforms/lmi_unipile_overlay")
+    else:
+        target = {
+            "common": data_root / "plugins/platforms/_unipile_common.py",
+            "whatsapp": data_root / "plugins/platforms/whatsapp_unipile/adapter.py",
+            "instagram": data_root / "plugins/platforms/instagram/adapter.py",
+        }[missing]
+        target.unlink()
+
+    with pytest.raises(sync.SyncBlocked, match="managed destination is missing"):
+        sync.synchronize(
+            repo_root=REPO,
+            data_root=data_root,
+            backup_root=backup_root,
+            check_only=True,
+        )
+
+
+def test_check_fails_closed_when_managed_destination_hash_changes(tmp_path):
+    sync, data_root, backup_root = apply_fixture(tmp_path)
+    adapter = data_root / "plugins/platforms/instagram/adapter.py"
+    adapter.write_bytes(adapter.read_bytes() + b"\n# unexpected mutation\n")
+
+    with pytest.raises(sync.SyncBlocked, match="managed destination hash mismatch"):
+        sync.synchronize(
+            repo_root=REPO,
+            data_root=data_root,
+            backup_root=backup_root,
+            check_only=True,
+        )

@@ -211,10 +211,11 @@ def synchronize(
     source_hashes = verify_sources(repo_root)
     compile_sources(repo_root, EXPECTED_FILES)
     module_hash = verify_media_module(data_root) if verify_module else None
-    before = verify_targets(data_root, EXPECTED_FILES) if all(
-        (data_root / target).is_file() for target in TARGETS.values()
-    ) else {}
     if check_only:
+        # A check is a readiness gate, not a partial inventory. Every
+        # managed destination must exist and match its reviewed source before
+        # the updater can claim the deployment is healthy.
+        before = verify_targets(data_root, EXPECTED_FILES)
         return {"mode": "check", "source_hashes": source_hashes, "target_hashes": before, "media_module_sha256": module_hash}
 
     backup = backup_targets(data_root, backup_root, EXPECTED_FILES)
