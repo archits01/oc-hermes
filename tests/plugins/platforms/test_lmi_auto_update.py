@@ -63,3 +63,124 @@ def test_lightweight_updater_contains_sync_and_safe_update_gates():
     assert "in_restart_blackout" in source
     assert "services_ready" in source
     assert "8643 8645 8646" not in source
+
+
+def test_noop_drift_defers_in_blackout_then_repairs_and_restarts(tmp_path):
+    """A no-op tick must not consume overlay drift during a restart blackout."""
+    import os
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    home = tmp_path / "data"
+    fake_bin = tmp_path / "bin"
+    repo_git = repo / ".git"
+    python_dir = repo / "venv" / "bin"
+    ops_dir = repo / "scripts" / "ops"
+    repo_git.mkdir(parents=True)
+    python_dir.mkdir(parents=True)
+    ops_dir.mkdir(parents=True)
+    home.mkdir()
+    (home / "config.yaml").write_text("platforms: {}\n", encoding="utf-8")
+    fake_media = ops_dir / "lmi_media_overlay_sync.py"
+    fake_ports = ops_dir / "lmi_enabled_platform_ports.py"
+    fake_media.write_text("# fake media sync\n", encoding="utf-8")
+    fake_ports.write_text("# fake platform helper\n", encoding="utf-8")
+
+    marker = tmp_path / "overlay-repaired"
+    restarts = tmp_path / "restarts"
+    fake_python = python_dir / "python"
+    fake_python.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, pathlib, sys\n"
+        "name = pathlib.Path(sys.argv[1]).name\n"
+        "if name == 'lmi_media_overlay_sync.py':\n"
+        "    if '--check' in sys.argv and not pathlib.Path(os.environ['SYNC_MARKER']).exists():\n"
+        "        raise SystemExit(1)\n"
+        "    pathlib.Path(os.environ['SYNC_MARKER']).write_text('repaired')\n"
+        "elif name == 'lmi_enabled_platform_ports.py':\n"
+        "    print('8645 8646')\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    fake_bin.mkdir()
+
+    (fake_bin / "git").write_text(
+        "#!/usr/bin/env python3\n"
+        "import sys\n"
+        "a = sys.argv\n"
+        "if 'remote' in a and 'get-url' in a: print('https://github.com/archits01/oc-hermes.git')\n"
+        "elif 'rev-parse' in a and 'HEAD' in a: print('same-head')\n"
+        "elif 'rev-parse' in a and 'origin/oc-branding' in a: print('same-head')\n"
+        "elif 'branch' in a: print('oc-branding')\n"
+        "sys.exit(0)\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "systemctl").write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, pathlib, sys\n"
+        "if len(sys.argv) > 1 and sys.argv[1] == 'restart':\n"
+        "    with pathlib.Path(os.environ['RESTARTS']).open('a') as f: f.write(sys.argv[2] + '\\n')\n"
+        "sys.exit(0)\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "ss").write_text(
+        "#!/bin/sh\n"
+        "printf '%s\\n' 'LISTEN 0 0 127.0.0.1:8645 0.0.0.0:*' 'LISTEN 0 0 127.0.0.1:8646 0.0.0.0:*'\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "flock").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    (fake_bin / "timeout").write_text(
+        "#!/bin/sh\n"
+        "shift\n"
+        "\"$@\"\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "date").write_text(
+        "#!/bin/sh\n"
+        "case \"$1\" in\n"
+        "  +%u) echo 1 ;;\n"
+        "  +%H%M) echo 1500 ;;\n"
+        "  *) /bin/date \"$@\" ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "curl").write_text(
+        "#!" + sys.executable + "\nprint('{\"gateway_running\":true}')\n",
+        encoding="utf-8",
+    )
+    for command in ("git", "systemctl", "ss", "flock", "timeout", "date", "curl"):
+        (fake_bin / command).chmod(0o755)
+
+    script = OPS / "lmi_opencomputer_v2_auto_update.sh"
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{fake_bin}:{env['PATH']}",
+            "LMI_AUTO_UPDATE_REPO": str(repo),
+            "LMI_AUTO_UPDATE_HOME": str(home),
+            "LMI_AUTO_UPDATE_LOG": str(tmp_path / "update.log"),
+            "LMI_AUTO_UPDATE_LOCK": str(tmp_path / "update.lock"),
+            "LMI_AUTO_UPDATE_MEDIA_SYNC": str(fake_media),
+            "LMI_AUTO_UPDATE_PLATFORM_PORTS_HELPER": str(fake_ports),
+            "LMI_AUTO_UPDATE_RESTART_SETTLE_SECONDS": "0",
+            "SYNC_MARKER": str(marker),
+            "RESTARTS": str(restarts),
+            "LMI_AUTO_UPDATE_FORCE_BLACKOUT": "1",
+        }
+    )
+
+    first = subprocess.run([str(script)], env=env, text=True, capture_output=True)
+    assert first.returncode == 0, first.stderr
+    assert not marker.exists()
+    assert not restarts.exists()
+
+    env.pop("LMI_AUTO_UPDATE_FORCE_BLACKOUT")
+    second = subprocess.run([str(script)], env=env, text=True, capture_output=True)
+    assert second.returncode == 0, second.stderr
+    assert marker.exists(), second.stderr
+    assert marker.read_text(encoding="utf-8") == "repaired"
+    assert restarts.read_text(encoding="utf-8").splitlines() == [
+        "opencomputer-v2-gateway",
+        "opencomputer-v2-serve",
+    ]
