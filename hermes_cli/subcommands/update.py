@@ -83,6 +83,15 @@ def build_update_parser(subparsers, *, cmd_update: Callable) -> None:
         ),
     )
     update_parser.add_argument(
+        "--keep-stash",
+        action="store_true",
+        default=False,
+        help=(
+            "Keep local source changes in the autostash after updating; do not "
+            "re-apply or drop them (used by detached Desktop update hand-offs)."
+        ),
+    )
+    update_parser.add_argument(
         "--branch",
         default=None,
         metavar="NAME",
