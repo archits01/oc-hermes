@@ -16,11 +16,13 @@ readonly BACKUP_ROOT="/opt/opencomputer-v2-backups"
 readonly LOCK_FILE="/run/opencomputer-v2-update.lock"
 readonly QUEUE_HELPER="${REPO}/plugins/platforms/_lmi_live_reply_queue.py"
 readonly LMI_MEDIA_SYNC="${REPO}/scripts/ops/lmi_media_overlay_sync.py"
+readonly PLATFORM_PORTS_HELPER="${REPO}/scripts/ops/lmi_enabled_platform_ports.py"
 readonly LOCAL_DESKTOP_STATUS="http://127.0.0.1:29129/api/status"
 
 engagement_ports_ready() {
-  local port
-  for port in 8643 8645 8646; do
+  local port required_ports
+  required_ports="$(${REPO}/venv/bin/python "${PLATFORM_PORTS_HELPER}" "${HOME_DIR}/config.yaml")" || return 1
+  for port in ${required_ports}; do
     ss -ltn | grep -qE ":${port}[[:space:]]" || return 1
   done
 }
@@ -56,7 +58,8 @@ for required in \
   "${HOME_DIR}/config.yaml" \
   "${HOME_DIR}/runtime.env" \
   "${HOME_DIR}/plugins/platforms" \
-  "${LMI_MEDIA_SYNC}"; do
+  "${LMI_MEDIA_SYNC}" \
+  "${PLATFORM_PORTS_HELPER}"; do
   [[ -e ${required} ]] || { echo "ERROR: missing ${required}" >&2; exit 1; }
 done
 
