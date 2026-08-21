@@ -30,9 +30,9 @@ source_inputs:
   - path: _unipile_common.py
     sha256: 65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28
   - path: whatsapp_unipile/adapter.py
-    sha256: 1f816d53cae9a7635d60cb54734cbaa7a22089da6e45050e09cc127b896eeccb
+    sha256: c0a50292b5261a922570d3a2c81ecc204cab28e1227484306d7638121f8eb61f
   - path: instagram/adapter.py
-    sha256: e8b95cb2a09693626cf891bfd2603c2e91f36563219bf334c176c52152cd2b94
+    sha256: b7e8a1bbd6cc05f87488d5e366617ca380d693461d2be160ab9eadadbdf55f40
   - path: _lmi_media_runtime.py
     sha256: f8a22239ff363b8b27f8463c75bab03b9d78ef1cb5b3fa381d801c57990297dd
   - path: _lmi_media_bootstrap.py
