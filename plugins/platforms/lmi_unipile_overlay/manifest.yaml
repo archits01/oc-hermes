@@ -1,0 +1,59 @@
+# Canonical source manifest for the LMI Unipile live overlays.
+#
+# The referenced live files are read-only review inputs.  This manifest does
+# not install, enable, deploy, or call a provider.  An operator must explicitly
+# review and copy the pinned inputs into a deployment-owned environment.
+manifest_version: 1
+name: lmi-unipile-live-overlay
+kind: platform-overlay
+status: review-only
+deployment:
+  enabled: false
+  provider_calls: prohibited
+  target: plugins/platforms/lmi_unipile_overlay
+  live_overlay_root: /opt/opencomputer-v2-data/plugins
+
+media_bridge_source:
+  repository: https://github.com/archits01/lmi-dashboard.git
+  commit: ca3f3c0aec6b90b134c200acfd4dbb3a8382d669
+  path: vm/leadgen/unipile_media_followup.py
+
+channels:
+  - name: whatsapp
+    adapter_input: whatsapp_unipile/adapter.py
+    env_prefix: WHATSAPP_UNIPILE_
+  - name: instagram
+    adapter_input: instagram/adapter.py
+    env_prefix: INSTAGRAM_UNIPILE_
+
+source_inputs:
+  - path: _unipile_common.py
+    sha256: 65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28
+  - path: whatsapp_unipile/adapter.py
+    sha256: b7ffda1cc4c31ab3c3987ae24c195800b79239c72fe3ec1dc98b3abfb8746949
+  - path: instagram/adapter.py
+    sha256: 6b2300757e7ad0a4a04b38fc3efd3fe0ee1b8beb487b4fb5c6a802e1995602a9
+media_bridge:
+  path: unipile_media_followup.py
+  sha256: f4c5e79114e315e4247c28041a6adfcb96820b8ffd8ffa7316406ff19a116f42
+  required_templates:
+    offer: portfolio-media-v1
+    caption: portfolio-delivery-v1
+  required_inputs:
+    - exact inbound provider message id
+    - operator-approved media ids
+  forbidden_inputs:
+    - arbitrary file paths
+    - URLs
+    - model-generated captions
+
+adapter_bridge:
+  module: plugins.platforms.lmi_unipile_overlay.bridge
+  tools:
+    - whatsapp_offer_media
+    - whatsapp_send_approved_media
+    - instagram_offer_media
+    - instagram_send_approved_media
+  consent: exact-inbound-message-id-only
+  scope: adapter-bound-session-only
+  media_catalog: reviewed-bridge-approved_media
