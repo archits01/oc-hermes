@@ -11,10 +11,11 @@ readonly REPO="/opt/opencomputer-v2"
 readonly HOME_DIR="/opt/opencomputer-v2-data"
 readonly SERVICE="opencomputer-v2-gateway.service"
 readonly BRANCH="oc-branding"
-readonly EXPECTED_REMOTE="https://github.com/archits01/hermes-agent.git"
+readonly EXPECTED_REMOTE="https://github.com/archits01/oc-hermes.git"
 readonly BACKUP_ROOT="/opt/opencomputer-v2-backups"
 readonly LOCK_FILE="/run/opencomputer-v2-update.lock"
 readonly QUEUE_HELPER="${REPO}/plugins/platforms/_lmi_live_reply_queue.py"
+readonly LMI_MEDIA_SYNC="${REPO}/scripts/ops/lmi_media_overlay_sync.py"
 readonly LOCAL_DESKTOP_STATUS="http://127.0.0.1:29129/api/status"
 
 engagement_ports_ready() {
@@ -54,7 +55,8 @@ for required in \
   "${REPO}/venv/bin/hermes" \
   "${HOME_DIR}/config.yaml" \
   "${HOME_DIR}/runtime.env" \
-  "${HOME_DIR}/plugins/platforms"; do
+  "${HOME_DIR}/plugins/platforms" \
+  "${LMI_MEDIA_SYNC}"; do
   [[ -e ${required} ]] || { echo "ERROR: missing ${required}" >&2; exit 1; }
 done
 
@@ -71,6 +73,7 @@ export HERMES_HOME="${HOME_DIR}"
 
 if [[ ${mode} == "check" ]]; then
   "${REPO}/venv/bin/hermes" update --check --branch "${BRANCH}"
+  "${REPO}/venv/bin/python" "${LMI_MEDIA_SYNC}" --check
   systemctl is-active --quiet "${SERVICE}"
   desktop_status_ready
   engagement_ports_ready
@@ -100,6 +103,16 @@ fi
 # updater removed untracked files; never restore over a tracked upstream file.
 if [[ ! -f ${QUEUE_HELPER} && -f ${backup}/_lmi_live_reply_queue.py ]]; then
   install -m 0644 "${backup}/_lmi_live_reply_queue.py" "${QUEUE_HELPER}"
+fi
+
+# External LMI adapters and the shared media runtime live under HERMES_HOME,
+# not the Hermes checkout. Sync them from the now-verified Git commit before
+# restarting either service. A failed hash/backup/compile check must leave the
+# old process running and requires an operator retry; it must never continue
+# into a restart with a partial overlay.
+if ! "${REPO}/venv/bin/python" "${LMI_MEDIA_SYNC}"; then
+    echo "CRITICAL LMI media overlay sync failed - services NOT restarted" >&2
+    exit 1
 fi
 
 "${REPO}/venv/bin/python" -m py_compile \
