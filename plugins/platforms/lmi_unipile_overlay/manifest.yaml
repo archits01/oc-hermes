@@ -33,6 +33,15 @@ source_inputs:
     sha256: 83f183bcffa483f4839414e33bc47008a29dfbce9b23abb8e0eb3619bf50ba6d
   - path: instagram/adapter.py
     sha256: e7429a174336c28801c07d4f2a3bf287e84f5c48fe616905371f031e3aebd63e
+deployment_sources:
+  root: plugins/platforms/lmi_unipile_overlay/live_inputs
+  targets:
+    - source: _unipile_common.py
+      target: plugins/platforms/_unipile_common.py
+    - source: whatsapp_unipile/adapter.py
+      target: plugins/platforms/whatsapp_unipile/adapter.py
+    - source: instagram/adapter.py
+      target: plugins/platforms/instagram/adapter.py
 bundled_runtime:
   - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_runtime.py
     sha256: 371096adbf0af11eac1e84e7ddc3e792e80c07bfe530d300ae16fb33b57f60c9
