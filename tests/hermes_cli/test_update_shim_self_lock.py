@@ -251,6 +251,16 @@ def test_sync_guard_is_a_noop_when_nothing_is_held(venv, monkeypatch):
     assert calls == []
 
 
+def test_sync_guard_is_a_noop_on_macos(monkeypatch):
+    """macOS must not resolve or invoke the Windows-only hand-off path."""
+    from hermes_cli import update_cmd
+
+    monkeypatch.setattr(cli_main, "_is_windows", lambda: False)
+    monkeypatch.setattr(cli_main, "_detect_self_loaded_native_modules", lambda: [])
+
+    update_cmd._abort_dependency_sync_if_self_locked()
+
+
 # ---------------------------------------------------------------------------
 # Reboot-deferred renames
 # ---------------------------------------------------------------------------
