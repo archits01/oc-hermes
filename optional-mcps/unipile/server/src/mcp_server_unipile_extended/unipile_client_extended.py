@@ -4,6 +4,17 @@ from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+
+class UnsupportedUnipileCapability(NotImplementedError):
+    """Raised when this bridge cannot safely implement a requested action.
+
+    The provider routes previously used for connection requests and post
+    deletion are not part of the verified Unipile API contract.  Keeping a
+    typed, loud failure here prevents callers that import the client directly
+    from mistaking a disabled capability for a successful no-op.
+    """
+
+
 class UnipileClientExtended:
     def __init__(self, dsn: str, api_key: str):
         """Initialize the Unipile client with full capabilities"""
@@ -90,14 +101,18 @@ class UnipileClientExtended:
 
     def send_connection_request(self, account_id: str, profile_url: str,
                                message: Optional[str] = None) -> Dict:
-        """Send a LinkedIn connection request"""
-        url = f"{self.base_url}/api/v1/hosted/accounts/{account_id}/users"
-        payload = {'profile_url': profile_url}
-        if message:
-            payload['message'] = message
-        response = requests.post(url, headers=self.headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+        """Reject the unverified connection-request route without a request.
+
+        ``/api/v1/hosted/accounts/{account_id}/users`` was previously treated
+        as a LinkedIn connection-request endpoint, but it is not a verified
+        public Unipile operation for this bridge.  Do not silently fall back
+        to a guessed provider route.
+        """
+        del account_id, profile_url, message
+        raise UnsupportedUnipileCapability(
+            "LinkedIn connection requests are unsupported: no verified "
+            "Unipile endpoint is configured; no provider request was sent"
+        )
 
     @staticmethod
     def _attachment_content_type(path: str) -> str:
@@ -169,27 +184,12 @@ class UnipileClientExtended:
                 _os.unlink(tmp_file)
 
     def delete_post(self, account_id: str, post_id: str) -> Dict:
-        """Delete a LinkedIn or Instagram post owned by account_id.
-
-        DELETE /api/v1/posts/{post_id}?account_id=...
-        LinkedIn: activity ID, social_id, or urn:li:activity:ID.
-        Instagram: provider_id, not the public shortcode.
-        """
-        url = f"{self.base_url}/api/v1/posts/{post_id}"
-        params = {"account_id": account_id}
-        response = requests.delete(url, headers=self.headers, params=params)
-        response.raise_for_status()
-        if response.content:
-            try:
-                data = response.json()
-                if isinstance(data, dict):
-                    data.setdefault("object", "PostDeleted")
-                    data.setdefault("post_id", post_id)
-                    data.setdefault("account_id", account_id)
-                    return data
-            except ValueError:
-                pass
-        return {"object": "PostDeleted", "post_id": post_id, "account_id": account_id, "status": response.status_code}
+        """Reject the unverified post-deletion route without a request."""
+        del account_id, post_id
+        raise UnsupportedUnipileCapability(
+            "Post deletion is unsupported: no verified Unipile endpoint is "
+            "configured; no provider request was sent"
+        )
 
     def send_email(self, account_id: str, to: List[str], subject: str, body: str,
                   cc: Optional[List[str]] = None, bcc: Optional[List[str]] = None) -> Dict:

@@ -580,19 +580,6 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                 },
             ),
             types.Tool(
-                name="unipile_send_connection_request",
-                description="Send a LinkedIn connection request with optional personalized note",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "account_id": {"type": "string", "description": "LinkedIn account ID"},
-                        "profile_url": {"type": "string", "description": "LinkedIn profile URL (e.g., https://linkedin.com/in/username)"},
-                        "message": {"type": "string", "description": "Optional personalized connection note (max 300 chars)"}
-                    },
-                    "required": ["account_id", "profile_url"]
-                },
-            ),
-            types.Tool(
                 name="unipile_create_linkedin_post",
                 description="Create a LinkedIn post with optional image. Use image_generate first to create an image, then pass its file path here. Returns post_id for tracking engagement.",
                 inputSchema={
@@ -619,19 +606,6 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                     "required": ["account_id", "text", "image_path"]
                 },
             ),
-            types.Tool(
-                name="unipile_delete_post",
-                description="Delete a LinkedIn or Instagram post owned by account_id. LinkedIn: activity ID / social_id / urn:li:activity:ID. Instagram: provider_id, not the public shortcode.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "account_id": {"type": "string", "description": "Same Unipile account that published the post"},
-                        "post_id": {"type": "string", "description": "LinkedIn activity/social_id or Instagram provider_id"},
-                    },
-                    "required": ["account_id", "post_id"]
-                },
-            ),
-
             # POST ENGAGEMENT operations
             types.Tool(
                 name="unipile_get_linkedin_post",
@@ -935,12 +909,6 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                     chat_id=arguments.get("chat_id"),
                     attendee_id=arguments.get("attendee_id")
                 )
-            elif name == "unipile_send_connection_request":
-                result = unipile.send_connection_request(
-                    account_id=arguments["account_id"],
-                    profile_url=arguments["profile_url"],
-                    message=arguments.get("message")
-                )
             elif name == "unipile_create_linkedin_post":
                 result = unipile.create_post(
                     account_id=arguments["account_id"],
@@ -953,11 +921,6 @@ async def main(dsn: Optional[str] = None, api_key: Optional[str] = None):
                     account_id=arguments["account_id"],
                     text=arguments["text"],
                     image_path=arguments.get("image_path"),
-                )
-            elif name == "unipile_delete_post":
-                result = unipile.delete_post(
-                    account_id=arguments["account_id"],
-                    post_id=arguments["post_id"],
                 )
             elif name == "unipile_get_linkedin_post":
                 result = unipile.get_post(
