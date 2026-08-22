@@ -112,7 +112,17 @@ test('pin: preferred_session present opens the resolved session and keeps the pi
       intent: 'main',
       awaitHydration: true,
       expectHistory: true,
+<<<<<<< HEAD
       keepAllProfilesScope: false
+=======
+      // false: clicking a bot moves the WORKSPACE onto that bot, not just the
+      // transcript. With true, `$activeGatewayProfile` stayed on the previously
+      // active profile, so "New session" from inside any bot was created on
+      // that other backend (measured: four new chats from different bots all
+      // landed in `ops`).
+      keepAllProfilesScope: false,
+      retryHydrationTimeoutOnce: true
+>>>>>>> upstream/main
     }
   }])
   assert.equal(runtime.saved.length, 0, 'a live pin must not be rewritten')
