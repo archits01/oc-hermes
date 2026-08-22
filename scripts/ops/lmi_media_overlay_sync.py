@@ -41,10 +41,10 @@ EXPECTED_FILES = {
     "plugins/platforms/lmi_unipile_overlay/README.md": "b8b4c62b67342b518b044ac6d7db542d206e6103bd3c390b5645a4c3346db5ed",
     "plugins/platforms/lmi_unipile_overlay/__init__.py": "cc7aef1f05acd0c310ebdffa1659f343508c971dd49a43422b1f9ee377b94b73",
     "plugins/platforms/lmi_unipile_overlay/_lmi_media_runtime.py": "371096adbf0af11eac1e84e7ddc3e792e80c07bfe530d300ae16fb33b57f60c9",
-    "plugins/platforms/lmi_unipile_overlay/_lmi_media_bootstrap.py": "26bd4b5039236f11cd095fff413b49ec0c56a379e2f29caa228ac7bdd4cad854",
+    "plugins/platforms/lmi_unipile_overlay/_lmi_media_bootstrap.py": "7501f1371db1ecfcbf16cf3ce2c94b1fd38c6ee69ebc48944715a551599639be",
     "plugins/platforms/lmi_unipile_overlay/bridge.py": "0d210ad33761062c6fd9c0936b39c1c3eeab1af175123e4799ea153615fc3bf3",
     "plugins/platforms/lmi_unipile_overlay/deployment.py": "ee96f39c57c671357fead092eadd3708fbbeffa912d1e7c82f4599e4081a657a",
-    "plugins/platforms/lmi_unipile_overlay/manifest.yaml": "7eed997fd0d10b5a5f2dd1c3495f18fab61d051fde7c175b31d68bc5d3bad6ad",
+    "plugins/platforms/lmi_unipile_overlay/manifest.yaml": "9bf867280373e64bcbb5f24c28e5fd01d3d5de05de250d2793c552c85e0444e9",
     "plugins/platforms/lmi_unipile_overlay/live_inputs/_unipile_common.py": "65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28",
     "plugins/platforms/lmi_unipile_overlay/live_inputs/whatsapp_unipile/adapter.py": "83f183bcffa483f4839414e33bc47008a29dfbce9b23abb8e0eb3619bf50ba6d",
     "plugins/platforms/lmi_unipile_overlay/live_inputs/instagram/adapter.py": "e7429a174336c28801c07d4f2a3bf287e84f5c48fe616905371f031e3aebd63e",
@@ -53,7 +53,7 @@ EXPECTED_FILES = {
 # The runtime module is supplied by the reviewed dashboard commit and is
 # referenced by LMI_MEDIA_FOLLOWUP_MODULE_PATH in runtime.env.  It is checked
 # here even though it is not copied by this script.
-MEDIA_MODULE_SHA256 = "411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb"
+MEDIA_MODULE_SHA256 = "97247849a2fef683f1af912cb54496511b2e0d84e7bf2ce1a6a524c2c2872fdd"
 
 TARGETS = {
     "plugins/platforms/lmi_unipile_overlay/ADAPTER_HARDENING.md": "plugins/platforms/lmi_unipile_overlay/ADAPTER_HARDENING.md",
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         LOCK_PATH.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-        with LOCK_PATH.open("a+") as handle:
+        with LOCK_PATH.open("a+", encoding="utf-8") as handle:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             result = synchronize(
                 data_root=args.data_root,

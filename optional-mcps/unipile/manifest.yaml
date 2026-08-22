@@ -5,7 +5,7 @@
 manifest_version: 1
 
 name: unipile
-description: LinkedIn / email / Instagram / WhatsApp outreach via Unipile — list accounts & connections, read chats/messages, send LinkedIn DMs, send connection requests (with note), create LinkedIn posts, and send emails (CC/BCC). Local stdio bridge, no public port.
+description: LinkedIn / email / Instagram / WhatsApp outreach via Unipile — list accounts & connections, read chats/messages, send LinkedIn DMs, create LinkedIn posts, and send emails (CC/BCC). Local stdio bridge, no public port.
 source: https://www.unipile.com
 
 # How to launch the server once installed. The keys here map 1:1 to the
@@ -65,7 +65,9 @@ post_install: |
   the Unipile dashboard first; the agent acts through those linked accounts.
 
   The exposed tools list accounts/connections, read chats and messages, send
-  LinkedIn DMs, send connection requests, create LinkedIn posts, and send emails.
+  LinkedIn DMs, create LinkedIn posts, and send emails. Connection requests
+  and post deletion are intentionally not exposed because this bridge has no
+  verified provider contract for those actions.
   Write actions send REAL messages and posts from your linked accounts — use them
   deliberately.
 

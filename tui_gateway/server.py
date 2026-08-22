@@ -214,6 +214,13 @@ _LONG_HANDLERS = frozenset(
         "billing.step_up",
         "browser.manage",
         "cli.exec",
+        # Attach uploads can do significant CPU/disk work.  In particular,
+        # pdf.attach runs pdftoppm with a 120s cap; keeping either path inline
+        # would leave prompt.submit and session.interrupt unread on the same
+        # socket.  The handlers use _sess_building and only mutate their own
+        # session attachment list, so pool routing preserves fast-path order.
+        "image.attach_bytes",
+        "pdf.attach",
         # Completion RPCs run inline on the reader thread by default, but both
         # can block it for seconds: complete.path spawns `git ls-files` and
         # fuzzy-ranks the whole repo (slow on large repos / WSL2 mounts), and
@@ -11632,17 +11639,19 @@ def _queue_attached_image(session: dict, img_bytes: bytes, ext: str, *, prefix: 
     ``session["attached_images"]`` so the next ``prompt.submit`` picks it up via
     the existing native-image-attach pipeline. Returns the written path.
     """
-    session["image_counter"] = session.get("image_counter", 0) + 1
+    # Pooled upload/PDF handlers can run concurrently for one session. Use the
+    # same short-lived lock prompt.submit uses when it claims attachments so
+    # counters cannot collide and a list replacement cannot lose an append.
+    with session["history_lock"]:
+        session["image_counter"] = session.get("image_counter", 0) + 1
+        image_counter = session["image_counter"]
     img_dir = _session_images_dir(session)
     img_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    img_path = img_dir / f"{prefix}_{ts}_{session['image_counter']}{ext}"
-    try:
-        img_path.write_bytes(img_bytes)
-    except Exception:
-        session["image_counter"] = max(0, session["image_counter"] - 1)
-        raise
-    session.setdefault("attached_images", []).append(str(img_path))
+    img_path = img_dir / f"{prefix}_{ts}_{image_counter}{ext}"
+    img_path.write_bytes(img_bytes)
+    with session["history_lock"]:
+        session.setdefault("attached_images", []).append(str(img_path))
     return img_path
 
 

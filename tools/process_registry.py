@@ -2312,6 +2312,40 @@ class ProcessRegistry:
         except Exception:
             return 0
 
+    def count_running_by_session_keys(self, session_keys: set[str]) -> dict[str, int]:
+        """Return aggregate running-process ownership for a set of gateway sessions.
+
+        This is the content-free counterpart to :meth:`list_sessions` for
+        restart preflight.  The public list intentionally omits ``session_key``
+        because returning it would leak gateway ownership metadata alongside
+        commands and output.  Callers that only need counts should not rebuild
+        that association from display rows.
+
+        Detached host-PID records are refreshed before the final locked count,
+        matching :meth:`has_active_for_session` and :meth:`has_any_active`.
+        Neither the supplied keys nor process identifiers/commands are exposed
+        in the result.
+        """
+        wanted = {str(key) for key in session_keys if str(key)}
+        with self._lock:
+            sessions = list(self._running.values())
+
+        for session in sessions:
+            self._refresh_detached_session(session)
+
+        with self._lock:
+            owned = sum(
+                1
+                for session in self._running.values()
+                if not session.exited and session.session_key in wanted
+            )
+            unowned = sum(
+                1
+                for session in self._running.values()
+                if not session.exited and session.session_key not in wanted
+            )
+        return {"owned": owned, "unowned": unowned}
+
     def list_sessions(self, task_id: str = None, session_key: str = None) -> list:
         """List all running and recently-finished processes.
 

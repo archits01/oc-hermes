@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # deployment must point at a file with this exact digest; an arbitrary module
 # supplied through the environment is not an acceptable provider boundary.
 PINNED_MEDIA_MODULE_SHA256 = (
-    "411efe57a621183bef06b64478fe8defdaa5602999e834397eaea77aeb8d86bb"
+    "97247849a2fef683f1af912cb54496511b2e0d84e7bf2ce1a6a524c2c2872fdd"
 )
 
 _REQUIRED_ENV = (
