@@ -50,6 +50,21 @@ _SESSION_TTL_SECONDS = 900
 _MAX_PENDING = 12
 
 
+def active_flow_count() -> int:
+    """Return the number of OAuth flows that would be interrupted by a restart.
+
+    This deliberately exposes only an aggregate for the gateway restart
+    preflight.  In particular, it does not return server names, callback URLs,
+    session ids, tokens, or authorization state.
+    """
+    with _sessions_lock:
+        return sum(
+            1
+            for rec in _sessions.values()
+            if not bool(getattr(rec.get("flow"), "worker_done", False))
+        )
+
+
 def _gc_sessions() -> None:
     """Drop expired sessions. Called opportunistically on start."""
     cutoff = time.time() - _SESSION_TTL_SECONDS

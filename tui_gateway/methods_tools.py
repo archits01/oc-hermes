@@ -107,6 +107,216 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5010, str(e))
 
 
+@method("gateway.quiescence")
+def _(rid, params: dict) -> dict:
+    """Return a content-free, this-process restart-preflight snapshot.
+
+    A gateway restart destroys the live ``_sessions`` map and its transient
+    approvals, queued uploads, slash workers, and MCP OAuth listeners.  The
+    normal session/status RPCs intentionally return user-visible data; this
+    administrative read is aggregate-only so an operator can decide whether
+    to restart without receiving transcript, attachment, command, URL, token,
+    session-id, or customer information.
+
+    It is a point-in-time observation, not a restart lock.  A caller must
+    treat ``restart_readiness == 'ready'`` as expiring immediately: a new turn
+    can arrive after the response and before an external supervisor sends a
+    signal.  Introducing a global drain/reject-new-turn control would need an
+    explicit authenticated-operator policy, so this method deliberately has
+    no mutating action.
+    """
+    now = time.time()
+
+    # Copy only the records while holding the map lock.  Per-session state is
+    # read under each history lock below, avoiding a global lock across the
+    # optional process/MCP observations.
+    with _sessions_lock:
+        sessions = [
+            session
+            for session in _sessions.values()
+            if isinstance(session, dict) and not session.get("_finalized")
+        ]
+
+    live_session_keys: set[str] = set()
+    inflight_turns = 0
+    queued_prompts = 0
+    staged_attachments = 0
+    live_slash_workers = 0
+    busy_slash_workers = 0
+    observed_session_records = 0
+
+    for session in sessions:
+        lock = session.get("history_lock")
+        if lock is None:
+            # Legacy/test session records can omit the lock.  They are still
+            # useful for the conservative live-session count above; mark the
+            # rest of their mutable state as unobservable rather than racing.
+            continue
+        try:
+            with lock:
+                key = str(session.get("session_key") or "")
+                if key:
+                    live_session_keys.add(key)
+
+                turn = session.get("inflight_turn")
+                if bool(session.get("running")) or (
+                    isinstance(turn, dict) and bool(turn.get("streaming"))
+                ):
+                    inflight_turns += 1
+
+                queue = []
+                head = session.get("queued_prompt")
+                if isinstance(head, dict):
+                    queue.append(head)
+                queue.extend(
+                    item for item in (session.get("queued_prompts") or []) if isinstance(item, dict)
+                )
+                queued_prompts += len(queue)
+                staged_attachments += len(session.get("attached_images") or [])
+                staged_attachments += sum(len(item.get("image_paths") or []) for item in queue)
+
+                worker = session.get("slash_worker")
+                proc = getattr(worker, "proc", None)
+                if worker is not None and proc is not None and proc.poll() is None:
+                    live_slash_workers += 1
+                    worker_lock = getattr(worker, "_lock", None)
+                    if worker_lock is not None and worker_lock.locked():
+                        busy_slash_workers += 1
+                observed_session_records += 1
+        except Exception:
+            # A contested/invalid session record cannot be safely counted as
+            # quiescent.  It is recorded below without leaking its identity.
+            pass
+
+    session_observation_errors = len(sessions) - observed_session_records
+
+    with _prompt_lock:
+        pending_input_requests = sum(1 for _owner_sid, _event in _pending.values())
+
+    pending_approvals = 0
+    approval_observation_errors = 0
+    try:
+        from tools.approval import get_pending_gateway_approval
+
+        for key in live_session_keys:
+            try:
+                if get_pending_gateway_approval(key) is not None:
+                    pending_approvals += 1
+            except Exception:
+                approval_observation_errors += 1
+    except Exception:
+        # We cannot prove there are no approvals if the source itself cannot
+        # be observed.  The unknown state is deliberately restart-blocking.
+        approval_observation_errors = max(1, len(live_session_keys))
+
+    managed_background_processes = 0
+    unmanaged_background_processes = 0
+    process_observation_errors = 0
+    try:
+        from tools.process_registry import process_registry
+
+        process_counts = process_registry.count_running_by_session_keys(live_session_keys)
+        managed_background_processes = int(process_counts.get("owned") or 0)
+        unmanaged_background_processes = int(process_counts.get("unowned") or 0)
+    except Exception:
+        process_observation_errors = 1
+
+    mcp_connected = 0
+    mcp_connecting = 0
+    mcp_unready = 0
+    mcp_observation_errors = 0
+    try:
+        from tools.mcp_tool import get_mcp_status
+
+        for item in get_mcp_status():
+            status = str(item.get("status") or "")
+            if status == "connected":
+                mcp_connected += 1
+            elif status == "connecting":
+                mcp_connecting += 1
+            elif status not in {"", "disabled"}:
+                mcp_unready += 1
+    except Exception:
+        mcp_observation_errors = 1
+
+    mcp_oauth_pending = 0
+    try:
+        from tui_gateway.mcp_oauth_sessions import active_flow_count
+
+        mcp_oauth_pending = active_flow_count()
+    except Exception:
+        mcp_observation_errors += 1
+
+    mcp_discovery_in_flight = False
+    try:
+        from tui_gateway.entry import mcp_discovery_in_flight as _mcp_discovery_in_flight
+
+        mcp_discovery_in_flight = bool(_mcp_discovery_in_flight())
+    except Exception:
+        mcp_observation_errors += 1
+
+    observations_incomplete = (
+        session_observation_errors
+        + approval_observation_errors
+        + process_observation_errors
+        + mcp_observation_errors
+    )
+    blockers: list[str] = []
+    if sessions:
+        blockers.append("live_sessions")
+    if inflight_turns:
+        blockers.append("inflight_turns")
+    if queued_prompts:
+        blockers.append("queued_prompts")
+    if staged_attachments:
+        blockers.append("staged_attachments")
+    if pending_input_requests:
+        blockers.append("pending_input_requests")
+    if pending_approvals:
+        blockers.append("pending_approvals")
+    if busy_slash_workers:
+        blockers.append("busy_slash_workers")
+    if managed_background_processes:
+        blockers.append("managed_background_processes")
+    if mcp_oauth_pending:
+        blockers.append("pending_mcp_oauth")
+    if mcp_discovery_in_flight:
+        blockers.append("mcp_discovery_in_flight")
+    if observations_incomplete:
+        blockers.append("incomplete_observation")
+
+    return _ok(
+        rid,
+        {
+            "schema_version": 1,
+            "scope": "this_gateway_process_only",
+            "observed_at_unix": now,
+            "restart_readiness": "ready" if not blockers else "blocked",
+            "restart_blockers": blockers,
+            "sessions": {
+                "live": len(sessions),
+                "inflight_turns": inflight_turns,
+                "queued_prompts": queued_prompts,
+                "staged_image_or_pdf_attachments": staged_attachments,
+                "pending_input_requests": pending_input_requests,
+                "pending_approvals": pending_approvals,
+            },
+            "ownership": {
+                "live_slash_workers": live_slash_workers,
+                "busy_slash_workers": busy_slash_workers,
+                "managed_background_processes": managed_background_processes,
+                "unmanaged_background_processes": unmanaged_background_processes,
+                "mcp_connected": mcp_connected,
+                "mcp_connecting": mcp_connecting,
+                "mcp_unready": mcp_unready,
+                "mcp_oauth_pending": mcp_oauth_pending,
+                "mcp_discovery_in_flight": mcp_discovery_in_flight,
+            },
+            "observation_errors": observations_incomplete,
+        },
+    )
+
+
 @method("reload.mcp")
 def _(rid, params: dict) -> dict:
     session = _sessions.get(params.get("session_id", ""))

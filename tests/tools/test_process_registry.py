@@ -650,6 +650,50 @@ class TestListSessions:
         assert by_id["proc_forgotten"].get("session_scoped") is True
         assert "session_scoped" not in by_id["proc_own"]
 
+
+class TestRunningOwnershipCounts:
+    def test_counts_only_running_owned_and_unowned_sessions(self, registry):
+        owned = _make_session(sid="proc_owned")
+        owned.session_key = "gateway-a"
+        foreign = _make_session(sid="proc_foreign")
+        foreign.session_key = "gateway-b"
+        unkeyed = _make_session(sid="proc_unkeyed")
+        completed = _make_session(sid="proc_completed", exited=True)
+        completed.session_key = "gateway-a"
+        registry._running.update(
+            {
+                owned.id: owned,
+                foreign.id: foreign,
+                unkeyed.id: unkeyed,
+                completed.id: completed,
+            }
+        )
+
+        assert registry.count_running_by_session_keys({"gateway-a"}) == {
+            "owned": 1,
+            "unowned": 2,
+        }
+
+    def test_refreshes_detached_records_before_aggregate_count(self, registry, monkeypatch):
+        stale = _make_session(sid="proc_stale")
+        stale.session_key = "gateway-a"
+        stale.detached = True
+        registry._running[stale.id] = stale
+        refreshed = []
+
+        def refresh(session):
+            refreshed.append(session.id)
+            session.exited = True
+            return session
+
+        monkeypatch.setattr(registry, "_refresh_detached_session", refresh)
+
+        assert registry.count_running_by_session_keys({"gateway-a"}) == {
+            "owned": 0,
+            "unowned": 0,
+        }
+        assert refreshed == ["proc_stale"]
+
 # =========================================================================
 # Active process queries
 # =========================================================================
