@@ -829,17 +829,18 @@ def _(rid, params: dict) -> dict:
     except Exception as e:
         return _err(rid, 5027, f"clipboard unavailable: {e}")
 
-    session["image_counter"] = session.get("image_counter", 0) + 1
+    with session["history_lock"]:
+        session["image_counter"] = session.get("image_counter", 0) + 1
+        image_counter = session["image_counter"]
     img_dir = _session_images_dir(session)
     img_dir.mkdir(parents=True, exist_ok=True)
     img_path = (
         img_dir
-        / f"clip_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{session['image_counter']}.png"
+        / f"clip_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{image_counter}.png"
     )
 
     # Save-first: mirrors CLI keybinding path; more robust than has_image() precheck
     if not save_clipboard_image(img_path):
-        session["image_counter"] = max(0, session["image_counter"] - 1)
         msg = (
             "Clipboard has image but extraction failed"
             if has_clipboard_image()
@@ -847,13 +848,15 @@ def _(rid, params: dict) -> dict:
         )
         return _ok(rid, {"attached": False, "message": msg})
 
-    session.setdefault("attached_images", []).append(str(img_path))
+    with session["history_lock"]:
+        session.setdefault("attached_images", []).append(str(img_path))
+        attached_count = len(session["attached_images"])
     return _ok(
         rid,
         {
             "attached": True,
             "path": str(img_path),
-            "count": len(session["attached_images"]),
+            "count": attached_count,
             **_image_meta(img_path),
         },
     )
@@ -886,13 +889,15 @@ def _(rid, params: dict) -> dict:
                 return _err(rid, 4016, f"image not found: {path_token}")
         if image_path.suffix.lower() not in _IMAGE_EXTENSIONS:
             return _err(rid, 4016, f"unsupported image: {image_path.name}")
-        session.setdefault("attached_images", []).append(str(image_path))
+        with session["history_lock"]:
+            session.setdefault("attached_images", []).append(str(image_path))
+            attached_count = len(session["attached_images"])
         return _ok(
             rid,
             {
                 "attached": True,
                 "path": str(image_path),
-                "count": len(session["attached_images"]),
+                "count": attached_count,
                 "remainder": remainder,
                 "text": remainder or f"[User attached image: {image_path.name}]",
                 **_image_meta(image_path),
@@ -949,12 +954,14 @@ def _(rid, params: dict) -> dict:
     except Exception as e:
         return _err(rid, 5027, f"write failed: {e}")
 
+    with session["history_lock"]:
+        attached_count = len(session["attached_images"])
     return _ok(
         rid,
         {
             "attached": True,
             "path": str(img_path),
-            "count": len(session["attached_images"]),
+            "count": attached_count,
             "remainder": "",
             "text": f"[User attached image: {img_path.name}]",
             "bytes": len(img_bytes),
@@ -1076,6 +1083,8 @@ def _(rid, params: dict) -> dict:
             dst = _queue_attached_image(session, src.read_bytes(), ".png", prefix=f"pdf_p{page_num}")
             attached_pages.append({"path": str(dst), "page": page_int, **_image_meta(dst)})
 
+        with session["history_lock"]:
+            attached_count = len(session["attached_images"])
         return _ok(
             rid,
             {
@@ -1083,7 +1092,7 @@ def _(rid, params: dict) -> dict:
                 "filename": display_name,
                 "pages_attached": len(attached_pages),
                 "pages": attached_pages,
-                "count": len(session["attached_images"]),
+                "count": attached_count,
                 "text": f"[User attached PDF: {display_name} ({len(attached_pages)} page(s))]",
             },
         )
@@ -1144,14 +1153,17 @@ def _(rid, params: dict) -> dict:
     raw = str(params.get("path", "") or "").strip()
     if not raw:
         return _err(rid, 4015, "path required")
-    images = session.setdefault("attached_images", [])
-    before = len(images)
-    session["attached_images"] = [path for path in images if path != raw]
+    with session["history_lock"]:
+        images = session.setdefault("attached_images", [])
+        before = len(images)
+        session["attached_images"] = [path for path in images if path != raw]
+        detached = len(session["attached_images"]) != before
+        attached_count = len(session["attached_images"])
     return _ok(
         rid,
         {
-            "detached": len(session["attached_images"]) != before,
-            "count": len(session["attached_images"]),
+            "detached": detached,
+            "count": attached_count,
         },
     )
 
@@ -1172,7 +1184,9 @@ def _(rid, params: dict) -> dict:
         drop_path = dropped["path"]
         remainder = dropped["remainder"]
         if dropped["is_image"]:
-            session.setdefault("attached_images", []).append(str(drop_path))
+            with session["history_lock"]:
+                session.setdefault("attached_images", []).append(str(drop_path))
+                attached_count = len(session["attached_images"])
             text = remainder or f"[User attached image: {drop_path.name}]"
             return _ok(
                 rid,
@@ -1180,7 +1194,7 @@ def _(rid, params: dict) -> dict:
                     "matched": True,
                     "is_image": True,
                     "path": str(drop_path),
-                    "count": len(session["attached_images"]),
+                    "count": attached_count,
                     "text": text,
                     **_image_meta(drop_path),
                 },

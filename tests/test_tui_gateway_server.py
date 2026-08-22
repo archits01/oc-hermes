@@ -36,6 +36,152 @@ def _dispatch_sync(req: dict, transport=None) -> dict | None:
         reset_transport(token)
 
 
+def test_process_stop_is_scoped_to_calling_session(monkeypatch):
+    """A stop request must never reap a sibling session's background job."""
+    sid = "stop-owner"
+    server._sessions[sid] = {"session_key": "owner-key"}
+
+    class _Process:
+        def __init__(self, key):
+            self.session_key = key
+
+    class _Registry:
+        def __init__(self):
+            self.killed = []
+            self.processes = {
+                "owner": _Process("owner-key"),
+                "sibling": _Process("sibling-key"),
+                # Simulate a stale list entry / id reuse race.
+                "stale": _Process("sibling-key"),
+            }
+
+        def list_sessions(self, *, session_key=None):
+            assert session_key == "owner-key"
+            return [
+                {"session_id": "owner", "status": "running"},
+                {"session_id": "stale", "status": "running"},
+                {"session_id": "finished", "status": "exited"},
+            ]
+
+        def get(self, proc_id):
+            return self.processes.get(proc_id)
+
+        def kill_process(self, proc_id, *, source):
+            self.killed.append((proc_id, source))
+            return {"status": "killed"}
+
+    registry = _Registry()
+    import tools.process_registry as process_registry_module
+
+    monkeypatch.setattr(process_registry_module, "process_registry", registry)
+    try:
+        response = server.handle_request(
+            {"id": "stop", "method": "process.stop", "params": {"session_id": sid}}
+        )
+        assert response["result"] == {"killed": 1}
+        assert registry.killed == [("owner", "process.stop")]
+    finally:
+        server._sessions.pop(sid, None)
+
+
+def test_process_stop_requires_a_live_session():
+    response = server.handle_request(
+        {"id": "stop-missing", "method": "process.stop", "params": {"session_id": "missing"}}
+    )
+    assert response["error"]["code"] == 4001
+
+
+def test_process_stop_refuses_unkeyed_session():
+    server._sessions["unkeyed"] = {"agent_ready": None}
+    try:
+        response = server.handle_request(
+            {"id": "stop-unkeyed", "method": "process.stop", "params": {"session_id": "unkeyed"}}
+        )
+        assert response["error"]["code"] == 4012
+    finally:
+        server._sessions.pop("unkeyed", None)
+
+
+def test_shell_exec_rejects_remote_transport_before_command_handling(monkeypatch):
+    """Remote RPC text never reaches the shell, even if it evades denylist rules."""
+    class _RemoteTransport:
+        def write(self, _obj):
+            return True
+
+        def close(self):
+            return None
+
+    invoked = []
+    monkeypatch.setattr(server.subprocess, "run", lambda *args, **kwargs: invoked.append(args))
+    response = _dispatch_sync(
+        {
+            "id": "shell-remote",
+            "method": "shell.exec",
+            "params": {"command": "echo marker; printf injected"},
+        },
+        transport=_RemoteTransport(),
+    )
+    assert response["error"]["code"] == 4031
+    assert invoked == []
+
+
+def test_shell_exec_keeps_local_stdio_tui_path(monkeypatch):
+    """The local TUI's deliberate shell escape hatch remains operational."""
+    completed = types.SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
+    monkeypatch.setattr(server.subprocess, "run", lambda *args, **kwargs: completed)
+    with patch("tools.approval.detect_hardline_command", return_value=(False, "")), patch(
+        "tools.approval.detect_dangerous_command", return_value=(False, None, "")
+    ):
+        response = _dispatch_sync(
+            {"id": "shell-local", "method": "shell.exec", "params": {"command": "echo ok"}},
+            transport=server._stdio_transport,
+        )
+    assert response["result"] == {"stdout": "ok\n", "stderr": "", "code": 0}
+
+
+def test_heavy_attachment_handlers_use_rpc_pool():
+    assert {"image.attach_bytes", "pdf.attach"} <= server._LONG_HANDLERS
+
+
+def test_concurrent_pooled_attachments_get_unique_paths_and_are_not_lost(monkeypatch, tmp_path):
+    """Pooling must preserve the reader thread's former serialization guarantees."""
+    session = _session(profile_home=str(tmp_path))
+    barrier = threading.Barrier(2)
+    original_write_bytes = Path.write_bytes
+    results = []
+    errors = []
+
+    def synchronized_write(path, data):
+        barrier.wait(timeout=5)
+        return original_write_bytes(path, data)
+
+    def queue_one(payload):
+        try:
+            results.append(
+                server._queue_attached_image(
+                    session, payload, ".png", prefix="upload"
+                )
+            )
+        except Exception as exc:  # pragma: no cover - asserted below
+            errors.append(exc)
+
+    monkeypatch.setattr(Path, "write_bytes", synchronized_write)
+    threads = [
+        threading.Thread(target=queue_one, args=(payload,))
+        for payload in (b"first", b"second")
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+
+    assert errors == []
+    assert len(results) == 2
+    assert len({path.name for path in results}) == 2
+    assert set(session["attached_images"]) == {str(path) for path in results}
+    assert {path.read_bytes() for path in results} == {b"first", b"second"}
+
+
 @pytest.fixture(autouse=True)
 def _neuter_agent_prewarm_timer(request, monkeypatch):
     """Stub the deferred agent pre-warm timer for every test in this module.

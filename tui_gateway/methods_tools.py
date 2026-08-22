@@ -38,10 +38,36 @@ def _(rid, params: dict) -> dict:
 
 @method("process.stop")
 def _(rid, params: dict) -> dict:
+    """Stop this session's background processes, never another session's."""
+    # Process ownership lives in the gateway session record; starting or
+    # waiting for an agent build would only add unrelated work to a stop.
+    session, err = _sess_nowait(params, rid)
+    if err:
+        return err
     try:
         from tools.process_registry import process_registry
 
-        return _ok(rid, {"killed": process_registry.kill_all()})
+        session_key = str(session.get("session_key") or "")
+        if not session_key:
+            # An unkeyed session has no ownership selector.  Falling back to
+            # a blank registry selector would recreate the original global
+            # kill surface for any legacy/uninitialized session record.
+            return _err(rid, 4012, "session has no process ownership key")
+        killed = 0
+        # Ask the registry for the session-scoped view, then re-check every
+        # object before killing it.  The second check closes the race where a
+        # process exits/reuses an id between list_sessions() and get().
+        for entry in process_registry.list_sessions(session_key=session_key):
+            if entry.get("status") != "running":
+                continue
+            proc_id = str(entry.get("session_id") or "")
+            proc = process_registry.get(proc_id) if proc_id else None
+            if proc is None or str(getattr(proc, "session_key", "") or "") != session_key:
+                continue
+            result = process_registry.kill_process(proc_id, source="process.stop")
+            if result.get("status") in {"killed", "already_exited"}:
+                killed += 1
+        return _ok(rid, {"killed": killed})
     except Exception as e:
         return _err(rid, 5010, str(e))
 
@@ -2521,6 +2547,19 @@ def _(rid, params: dict) -> dict:
 
 @method("shell.exec")
 def _(rid, params: dict) -> dict:
+    # ``shell.exec`` is the local TUI escape hatch, not a remotely exposed
+    # command-execution API.  A WebSocket client can be authenticated yet
+    # still be a distinct remote surface; its arbitrary command string must
+    # never reach ``shell=True``.  ``handle_request`` is also used by local
+    # unit/in-process callers without a bound transport, so preserve that
+    # established local path.  Real stdio dispatch binds ``_stdio_transport``.
+    transport = current_transport()
+    if transport is not None and transport is not _stdio_transport:
+        return _err(
+            rid,
+            4031,
+            "shell.exec is available only from the local TUI; remote clients must use the normal agent approval flow",
+        )
     cmd = params.get("command", "")
     if not cmd:
         return _err(rid, 4004, "empty command")
