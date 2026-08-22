@@ -44,16 +44,19 @@ services_ready() {
 }
 
 in_restart_blackout() {
-  local hhmm dow
+  local hhmm hhmm_raw dow
   if [[ ${LMI_AUTO_UPDATE_FORCE_BLACKOUT:-} == 1 ]]; then
     return 0
   fi
-  hhmm="$(TZ=Asia/Kolkata date +%H%M)"
+  hhmm_raw="$(TZ=Asia/Kolkata date +%H%M)"
+  # Bash treats zero-prefixed arithmetic values as octal. Force the HHMM
+  # clock value to decimal so 08xx/09xx remain valid blackout times.
+  hhmm=$((10#${hhmm_raw}))
   dow="$(TZ=Asia/Kolkata date +%u)"
-  if [[ ${hhmm} -ge 0600 && ${hhmm} -lt 1400 ]]; then
+  if ((hhmm >= 600 && hhmm < 1400)); then
     return 0
   fi
-  if [[ ${dow} == 7 && ${hhmm} -ge 1845 && ${hhmm} -lt 2015 ]]; then
+  if [[ ${dow} == 7 ]] && ((hhmm >= 1845 && hhmm < 2015)); then
     return 0
   fi
   return 1
