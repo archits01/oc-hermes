@@ -88,10 +88,10 @@ class NousProfile(ProviderProfile):
 
 nous = NousProfile(
     name="nous",
-    aliases=("nous-portal", "nousresearch"),
+    aliases=("nous-portal", "nousresearch", "inferno"),
     env_vars=("NOUS_API_KEY",),
-    display_name="Nous Research",
-    description="Nous Research — Hermes model family",
+    display_name="Inferno",
+    description="Inferno — Hermes model family",
     signup_url="https://nousresearch.com/",
     fallback_models=(
         "hermes-3-405b",

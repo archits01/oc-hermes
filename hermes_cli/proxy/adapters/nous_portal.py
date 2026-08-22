@@ -56,7 +56,7 @@ class NousPortalAdapter(UpstreamAdapter):
 
     @property
     def display_name(self) -> str:
-        return "Nous Portal"
+        return "Inferno"
 
     @property
     def allowed_paths(self) -> FrozenSet[str]:

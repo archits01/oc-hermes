@@ -76,6 +76,8 @@ def _resolve_custom_provider_input(raw: str) -> str | None:
 
 def _normalize_provider(provider: str) -> str:
     normalized = (provider or "").strip().lower()
+    if normalized == "inferno":
+        return "nous"
     if normalized in {"or", "open-router"}:
         return "openrouter"
     if normalized in {"grok-oauth", "xai-oauth", "x-ai-oauth", "xai-grok-oauth"}:
@@ -511,15 +513,19 @@ def auth_status_command(args) -> None:
     if not provider:
         raise SystemExit("Provider is required. Example: `hermes auth status spotify`.")
     status = auth_mod.get_auth_status(provider)
+    display_provider = provider
+    registry_entry = auth_mod.PROVIDER_REGISTRY.get(provider)
+    if registry_entry is not None:
+        display_provider = registry_entry.name
     if not status.get("logged_in"):
         reason = status.get("error")
         if reason:
-            print(f"{provider}: logged out ({reason})")
+            print(f"{display_provider}: logged out ({reason})")
         else:
-            print(f"{provider}: logged out")
+            print(f"{display_provider}: logged out")
         return
 
-    print(f"{provider}: logged in")
+    print(f"{display_provider}: logged in")
     for key in ("auth_type", "client_id", "redirect_uri", "scope", "expires_at", "api_base_url"):
         value = status.get(key)
         if value:
