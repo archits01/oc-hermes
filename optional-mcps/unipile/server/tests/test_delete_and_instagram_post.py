@@ -1,6 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from mcp_server_unipile_extended.unipile_client_extended import UnipileClientExtended
+import pytest
+
+from mcp_server_unipile_extended.unipile_client_extended import (
+    UnipileClientExtended,
+    UnsupportedUnipileCapability,
+)
 
 
 class DummyClient(UnipileClientExtended):
@@ -9,19 +14,21 @@ class DummyClient(UnipileClientExtended):
         self.headers = {"X-API-KEY": "test-key", "accept": "application/json"}
 
 
-def test_delete_post_empty_body():
+def test_delete_post_is_explicitly_unsupported_without_provider_request():
     client = DummyClient()
-    response = MagicMock()
-    response.content = b""
-    response.status_code = 204
-    response.raise_for_status.return_value = None
-    with patch("mcp_server_unipile_extended.unipile_client_extended.requests.delete", return_value=response) as mocked:
-        result = client.delete_post("acc-1", "post-9")
-    mocked.assert_called_once()
-    assert mocked.call_args.kwargs["params"] == {"account_id": "acc-1"}
-    assert result["object"] == "PostDeleted"
-    assert result["post_id"] == "post-9"
-    assert result["account_id"] == "acc-1"
+    with patch("mcp_server_unipile_extended.unipile_client_extended.requests.delete") as mocked:
+        with pytest.raises(UnsupportedUnipileCapability, match="Post deletion is unsupported"):
+            client.delete_post("acc-1", "post-9")
+    mocked.assert_not_called()
+
+
+def test_connection_request_is_explicitly_unsupported_without_provider_request():
+    with patch("mcp_server_unipile_extended.unipile_client_extended.requests.post") as mocked:
+        with pytest.raises(UnsupportedUnipileCapability, match="connection requests are unsupported"):
+            DummyClient().send_connection_request(
+                "acc-1", "https://linkedin.example/in/person", "hello"
+            )
+    mocked.assert_not_called()
 
 
 def test_attachment_content_type_webp():
