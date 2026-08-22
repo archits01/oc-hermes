@@ -65,7 +65,8 @@ def test_lightweight_updater_contains_sync_and_safe_update_gates():
     assert "8643 8645 8646" not in source
 
 
-def test_noop_drift_defers_in_blackout_then_repairs_and_restarts(tmp_path):
+@pytest.mark.parametrize("blackout_hhmm", ["0800", "0830", "0900", "0959"])
+def test_noop_drift_defers_in_blackout_then_repairs_and_restarts(tmp_path, blackout_hhmm):
     """A no-op tick must not consume overlay drift during a restart blackout."""
     import os
     import subprocess
@@ -140,7 +141,7 @@ def test_noop_drift_defers_in_blackout_then_repairs_and_restarts(tmp_path):
         "#!/bin/sh\n"
         "case \"$1\" in\n"
         "  +%u) echo 1 ;;\n"
-        "  +%H%M) echo 1500 ;;\n"
+        "  +%H%M) echo \"${FAKE_HHMM:-1500}\" ;;\n"
         "  *) /bin/date \"$@\" ;;\n"
         "esac\n",
         encoding="utf-8",
@@ -166,16 +167,20 @@ def test_noop_drift_defers_in_blackout_then_repairs_and_restarts(tmp_path):
             "LMI_AUTO_UPDATE_RESTART_SETTLE_SECONDS": "0",
             "SYNC_MARKER": str(marker),
             "RESTARTS": str(restarts),
-            "LMI_AUTO_UPDATE_FORCE_BLACKOUT": "1",
+            "FAKE_HHMM": blackout_hhmm,
         }
     )
 
     first = subprocess.run([str(script)], env=env, text=True, capture_output=True)
     assert first.returncode == 0, first.stderr
+    assert "value too great for base" not in first.stderr
     assert not marker.exists()
     assert not restarts.exists()
+    assert "OVERLAY DRIFT detected during restart blackout; repair deferred" in (
+        tmp_path / "update.log"
+    ).read_text(encoding="utf-8")
 
-    env.pop("LMI_AUTO_UPDATE_FORCE_BLACKOUT")
+    env["FAKE_HHMM"] = "1500"
     second = subprocess.run([str(script)], env=env, text=True, capture_output=True)
     assert second.returncode == 0, second.stderr
     assert marker.exists(), second.stderr
