@@ -27,6 +27,8 @@ function loadTracker(toastsEnabled) {
       let value = {}
       return { get: () => value, set: next => { value = next } }
     })(),
+    botRosterMeta: (bot, meta) => meta?.[bot.name] || null,
+    botSelectionKey: bot => bot.name,
     displayName: bot => bot.name
   }
   const section = source
@@ -68,3 +70,22 @@ test('pref defaults OFF and persists via ctx.storage under activity-toasts', () 
   )
   assert.match(source, /storage\?\.get\?\.\('activity-toasts'\)/)
 })
+<<<<<<< HEAD
+=======
+
+test('activity in the hidden canonical Bot Chat still badges (the "6d ago" class)', () => {
+  // The canonical Bot Chat is hidden from session lists, so last_session
+  // never advances when a DM lands there — only canonical_session does.
+  const t = loadTracker(false)
+  const at = ts => [
+    {
+      name: 'researcher',
+      last_session: { last_active: 100, preview: 'ancient scratch chat' },
+      canonical_session: { last_active: ts, preview: 'Message from writer: hi' }
+    }
+  ]
+  t.trackInboundActivity(at(150)) // seeding poll
+  t.trackInboundActivity(at(250)) // Bot Chat got a DM; last_session unchanged
+  assert.equal(t.$botUnread.get().researcher, true, 'hidden Bot Chat activity must set unread')
+})
+>>>>>>> upstream/main
