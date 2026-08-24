@@ -267,6 +267,18 @@ if (/\bgit\s+(?:merge|push|checkout|pull)\b/.test(localForkSync)) {
   fail('unsafe local fork-sync still contains a direct git merge/push/checkout/pull command')
 }
 
+const boundaryChecker = read('.github/scripts/assert-opencomputer-boundary.mjs')
+expectTextIncludes(
+  boundaryChecker,
+  "'--no-renames'",
+  'ownership boundary checker can hide the source side of a rename'
+)
+expectTextIncludes(
+  boundaryChecker,
+  "process.argv.includes('--self-test')",
+  'ownership boundary checker no longer has a rename-source regression self-test'
+)
+
 const forkSyncWorkflow = read('.github/workflows/fork-sync.yml')
 expectTextIncludes(
   forkSyncWorkflow,
@@ -300,6 +312,11 @@ expectTextIncludes(
   forkSyncWorkflow,
   'node .github/scripts/assert-opencomputer-boundary.mjs upstream/main HEAD',
   'scheduled sync does not enforce the GitHub/VM ownership boundary'
+)
+expectTextIncludes(
+  forkSyncWorkflow,
+  'node .github/scripts/assert-opencomputer-boundary.mjs --self-test',
+  'scheduled sync does not execute the ownership-boundary regression self-test'
 )
 for (const issue of forkSyncWorkflowFailures(forkSyncWorkflow)) {
   fail(issue)
