@@ -1530,7 +1530,7 @@ export const ja = defineLocale({
       menuItem: 'リモートホストに接続…',
       badge: (host: string) => `${host} で実行中`,
       title: (profile: string) => `${profile} をリモートホストに接続`,
-      description: 'このプロファイルのセッションは、このパソコンではなく指定したリモートの Hermes で実行されます。',
+      description: 'このプロファイルのセッションは、このパソコンではなく指定したリモートの OpenComputer で実行されます。',
       urlLabel: 'リモートアドレス',
       urlPlaceholder: 'https://hermes.example.com',
       urlInvalid: 'http:// または https:// で始まる完全なアドレスを入力してください',

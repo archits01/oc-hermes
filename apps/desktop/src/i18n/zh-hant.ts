@@ -1474,7 +1474,7 @@ export const zhHant = defineLocale({
       menuItem: '連線至遠端主機…',
       badge: (host: string) => `執行於 ${host}`,
       title: (profile: string) => `將 ${profile} 連線至遠端主機`,
-      description: '此設定檔中的工作階段將在你指定的遠端 Hermes 上執行，而不是這台電腦。',
+      description: '此設定檔中的工作階段將在你指定的遠端 OpenComputer 上執行，而不是這台電腦。',
       urlLabel: '遠端位址',
       urlPlaceholder: 'https://hermes.example.com',
       urlInvalid: '請輸入以 http:// 或 https:// 開頭的完整位址',

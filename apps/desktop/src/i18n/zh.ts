@@ -2004,7 +2004,7 @@ export const zh: Translations = {
       menuItem: '连接到远程主机…',
       badge: (host: string) => `运行于 ${host}`,
       title: (profile: string) => `将 ${profile} 连接到远程主机`,
-      description: '此配置档案中的会话将在你指定的远程 Hermes 上运行，而不是这台电脑。',
+      description: '此配置档案中的会话将在你指定的远程 OpenComputer 上运行，而不是这台电脑。',
       urlLabel: '远程地址',
       urlPlaceholder: 'https://hermes.example.com',
       urlInvalid: '请输入以 http:// 或 https:// 开头的完整地址',

@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../plugin.js', import.meta.url), 'utf8')
 
 // The activeBots helper must stay a self-contained slice between the
 // liveness-window constant and the BotRow section so tests can extract it.
-function loadActiveBots() {
+function loadActiveBotsSlice() {
   const start = source.indexOf('const ACTIVE_WINDOW_S')
   const end = source.indexOf('// ── bot row ─')
 
@@ -15,11 +15,19 @@ function loadActiveBots() {
 
   const context = {}
   vm.runInNewContext(
-    `${source.slice(start, end)}\nglobalThis.__activeBots = activeBots;`,
+    `${source.slice(start, end)}\nglobalThis.__activeBots = activeBots;\nglobalThis.__botActivitySession = botActivitySession;`,
     context
   )
 
-  return context.__activeBots
+  return context
+}
+
+function loadActiveBots() {
+  return loadActiveBotsSlice().__activeBots
+}
+
+function loadBotActivitySession() {
+  return loadActiveBotsSlice().__botActivitySession
 }
 
 // Fixed clock so "inside the window" vs "stale" is deterministic.

@@ -1396,7 +1396,7 @@ export const ar = defineLocale({
       menuItem: 'الاتصال بمضيف بعيد…',
       badge: (host: string) => `يعمل على ${host}`,
       title: (profile: string) => `ربط ${profile} بمضيف بعيد`,
-      description: 'ستعمل جلسات هذا الملف الشخصي على خادم Hermes البعيد الذي تحدده، بدلاً من هذا الجهاز.',
+      description: 'ستعمل جلسات هذا الملف الشخصي على خادم OpenComputer البعيد الذي تحدده، بدلاً من هذا الجهاز.',
       urlLabel: 'العنوان البعيد',
       urlPlaceholder: 'https://hermes.example.com',
       urlInvalid: 'أدخل عنواناً كاملاً يبدأ بـ http:// أو https://',

@@ -15,6 +15,12 @@ function sourceBetween(start, end) {
   return source.slice(from, to)
 }
 
+// BotRow's activity resolver — extract the REAL helper so the harness can't
+// drift from production behavior.
+function activitySessionSource() {
+  return sourceBetween('function botActivitySession(', '/** Bots that are working')
+}
+
 function renderBotRow(input = 'alpha') {
   const bot = typeof input === 'string' ? { name: input } : input
   const name = bot.name

@@ -135,7 +135,10 @@ function setActivityToasts(enabled) {
 }
 
 /** Detect new inbound activity from a fresh roster: last_active moved past
- *  the watermark for a bot whose chat isn't on screen -> unread + toast. */
+ *  the watermark for a bot whose chat isn't on screen -> unread + toast.
+ *  Watermarks follow botActivitySession (canonical Bot Chat included) —
+ *  last_session alone never sees the hidden Bot Chat, so DMs delivered
+ *  there would neither badge nor toast. */
 function trackInboundActivity(roster) {
   const seeding = !watermarksSeeded
   watermarksSeeded = true
@@ -4794,7 +4797,7 @@ function isDefaultBot(bot) {
 
 function newBotChat(bot) {
   if (typeof host.newChat !== 'function') {
-    host.notify?.({ kind: 'error', message: 'Update Hermes Desktop to open another Bot chat.' })
+    host.notify?.({ kind: 'error', message: 'Update OpenComputer Desktop to open another Bot chat.' })
 
     return
   }
@@ -4802,7 +4805,7 @@ function newBotChat(bot) {
   const route = botConnectionRoute(bot)
 
   if (!route) {
-    host.notify?.({ kind: 'error', message: 'Update Hermes Desktop to open another Bot chat.' })
+    host.notify?.({ kind: 'error', message: 'Update OpenComputer Desktop to open another Bot chat.' })
 
     return
   }
@@ -5523,7 +5526,7 @@ async function prepareBotSource(bot) {
   const route = botConnectionRoute(bot)
 
   if (route && typeof host.requestProfile !== 'function') {
-    throw new Error('Update Hermes Desktop to chat with agents on other connections.')
+    throw new Error('Update OpenComputer Desktop to chat with agents on other connections.')
   }
 
   if (!route && typeof host.ensureAgent === 'function') {
@@ -7871,16 +7874,17 @@ function workerActiveAt(bot, now = Date.now()) {
 }
 
 /** Bots that are working right now: the profile the gateway is running a
- *  turn for (busy), plus any bot whose last message landed inside the
- *  liveness window. Pure — output follows the input roster's order, so
- *  presence never reorders or hides the normal list. */
+ *  turn for (busy), any bot whose last message landed inside the liveness
+ *  window, plus any bot with a live kanban/tool worker. Pure — output
+ *  follows the input roster's order, so presence never reorders or hides
+ *  the normal list. */
 function activeBots(roster, activeProfile, gatewayState, now = Date.now()) {
   return (roster || []).filter(bot => {
     const busyTurn = !bot.remoteSource && bot.name === activeProfile && gatewayState === 'busy'
-    const last = bot.last_session?.last_active || 0
+    const last = botActivitySession(bot)?.last_active || 0
     const inWindow = Boolean(last && now / 1000 - last < ACTIVE_WINDOW_S)
 
-    return busyTurn || inWindow
+    return busyTurn || inWindow || workerActiveAt(bot, now)
   })
 }
 
@@ -8112,10 +8116,10 @@ function BotRow({ bot, onDelete, onEdit, onGroup, showHandle }) {
                     'aria-label': 'unread'
                   })
                 : null,
-              last
+              rowAgeTs
                 ? jsx('span', {
                     className: 'shrink-0 text-[0.6875rem] text-(--ui-text-quaternary)',
-                    children: relativeTime(last.last_active * 1000)
+                    children: relativeTime(rowAgeTs * 1000)
                   })
                 : null
             ]
@@ -13115,16 +13119,36 @@ function GroupChatWorkspace({ group, members, onBack, visible = true }) {
 /** Live closers for group-chat MAIN-window tabs, by group name — so a
  *  disband (or the room view's own Back) can retire the tab it opened. */
 const groupChatMainTabs = new Map()
-// Restored 2026-08-24. Upstream d29f76c70e (#89788 follow-up) added THREE things:
-// this atom, the recordGroupMainTab/dropGroupMainTab mutators that bump it, and
-// the `useValue($groupMainTabsRev)` subscription in BotsPane. A later merge into
-// this fork kept only the subscription and silently dropped the declaration - a
-// clean merge with no conflict, which is exactly the failure fork-sync.yml's
-// guard list exists to catch. The result was a hard ReferenceError:
-//     "hermes-bots:pane" failed to render - $groupMainTabsRev is not defined
-// The Map above is read-only in this fork (only .has/.get survive), so the
-// mutators are not needed here; the atom is what the render path requires.
+
+/** Reactive shadow of `groupChatMainTabs` membership. The Map itself can't
+ *  notify React, and #89788's first fix read it non-reactively: a BotsPane
+ *  render that landed between selecting the group and recording its main
+ *  tab kept the in-pane room on screen forever (the map write repaints
+ *  nothing). Every map mutation goes through the two helpers below so the
+ *  rev bump re-evaluates the gate. */
 const $groupMainTabsRev = atom(0)
+
+function recordGroupMainTab(group, close) {
+  groupChatMainTabs.set(group, close)
+  $groupMainTabsRev.set($groupMainTabsRev.get() + 1)
+}
+
+function dropGroupMainTab(group) {
+  if (groupChatMainTabs.delete(group)) {
+    $groupMainTabsRev.set($groupMainTabsRev.get() + 1)
+  }
+}
+
+/** The in-panel room is the FALLBACK surface, not a second copy: it renders
+ *  only while no main-window tab owns the group. On desktops with the door
+ *  the room already lives in a main tab, and painting it here too produced
+ *  two live panes with independent drafts driving one shared engine (#89788).
+ *  The selection atom stays set either way so the roster row still
+ *  highlights. Callers must subscribe to `$groupMainTabsRev` (BotsPane does)
+ *  so ownership changes re-run this gate. */
+function shouldRenderGroupChatInPane(group) {
+  return Boolean(group && !groupChatMainTabs.has(group))
+}
 
 function closeGroupChatMainTab(group) {
   const close = groupChatMainTabs.get(group)
@@ -13264,7 +13288,7 @@ function BotsHomeView() {
   // A ghost is reconstructed from a persisted owner key while its gateway is
   // offline. That proves the profile name, not its public mention handle.
   const handle = bot.ghost ? '' : botHandle(bot.name, bot)
-  const gateway = bot.connectionLabel || (bot.connectionId === 'local' ? 'This device' : 'Hermes gateway')
+  const gateway = bot.connectionLabel || (bot.connectionId === 'local' ? 'This device' : 'OpenComputer gateway')
   const gatewayKind = bot.connectionKind || (bot.connectionId === 'local' ? 'local' : 'remote')
   const { shape, color, image } = botAppearance(bot.name, meta)
   const photo = image && !isBackfilledFacePng(image) ? image : null
@@ -13868,7 +13892,7 @@ function BotsPane() {
   // No special slot for the primary bot — it competes on recency too.
   const activityOf = bot => {
     const created = botRosterMeta(bot, allMeta)?.created || bot.ui_meta?.['hermes-bots']?.created || 0
-    const lastMsg = (bot.last_session?.last_active || 0) * 1000
+    const lastMsg = (botActivitySession(bot)?.last_active || 0) * 1000
 
     return Math.max(created, lastMsg)
   }
@@ -14068,7 +14092,7 @@ function BotsPane() {
     : null
   const groupChatMembers = groupChatName ? groupChatMemberBots(groupChatName, roster, allMeta) : []
 
-  if (groupChatName && groupChatMembers.length) {
+  if (shouldRenderGroupChatInPane(groupChatName) && groupChatMembers.length) {
     return jsx(GroupChatWorkspace, { group: groupChatName, members: groupChatMembers })
   }
 

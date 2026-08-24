@@ -10,6 +10,8 @@
 
 - The candidate carries the upstream merge and keeps the OpenComputer product identity, LMI messaging source classification, LMI dashboard plugin, default-connection bootstrap, and fork-owned updater targets.
 - Electron integration seams were reconciled as coherent upstream pairs: data-URL limits, authenticated remote downloads, and platform translucency.
+- The concurrent fork correction `f2845b3192` was incorporated and completed with its missing main-tab ownership helpers and fallback-pane gate; the full group-chat regression suite verifies that behavior.
+- User-facing desktop status, upgrade, gateway, remote/cloud, and bootstrap wording remains branded as OpenComputer; Hermes protocol identifiers and CLI commands remain unchanged for runtime compatibility.
 - The scheduled fork-sync invariants now protect the customer-facing OpenComputer surfaces and deliberately do not require VM-owned deployment files.
 
 ## Why

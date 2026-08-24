@@ -185,6 +185,16 @@ jobs:
           grep -q 'archits01/oc-hermes' apps/desktop/electron/packaged-app-updater.ts || { echo "::error::packaged updater no longer targets the fork"; fail=1; }
           grep -q 'archits01/oc-hermes' apps/desktop/electron/update-remote.ts || { echo "::error::desktop source updater no longer targets the fork"; fail=1; }
           grep -q 'import.meta.glob' apps/desktop/src/contrib/plugins.ts || { echo "::error::bundled desktop-plugin discovery lost"; fail=1; }
+          grep -q 'OpenComputer is working' apps/desktop/src/components/assistant-ui/thread/status.tsx || { echo "::error::desktop activity branding lost"; fail=1; }
+          grep -q 'Update OpenComputer Desktop' apps/desktop/src/sdk/index.ts || { echo "::error::desktop upgrade branding lost"; fail=1; }
+          grep -q 'OpenComputer gateway unavailable' apps/desktop/src/store/gateway.ts || { echo "::error::gateway error branding lost"; fail=1; }
+          grep -q 'remote OpenComputer' apps/desktop/src/i18n/en.ts || { echo "::error::remote profile branding lost"; fail=1; }
+          # #89788 is one behavioral unit: the reactive atom, two Map mutators,
+          # and the fallback-pane gate. A previous clean merge kept only a
+          # consumer and caused BotsPane to throw on render.
+          for symbol in '$groupMainTabsRev' 'function recordGroupMainTab' 'function dropGroupMainTab' 'function shouldRenderGroupChatInPane'; do
+            grep -q "$symbol" apps/desktop/src/plugins/hermes-bots/plugin.js || { echo "::error::bots main-tab ownership contract lost: $symbol"; fail=1; }
+          done
           # The LMI platforms must stay classified as messaging sources, or every
           # customer conversation lands in the global Sessions sidebar. Upstream has
           # no idea these adapters exist, so its copy of session-source.ts silently
