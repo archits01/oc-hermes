@@ -11,7 +11,7 @@
 - The candidate carries the upstream merge and keeps OpenComputer product identity, the thin-client connection bootstrap, and signed updater/release plumbing.
 - The GitHub/VM boundary is explicit: Git carries desktop/bootstrap/web/TUI client and release code only; agent, gateway, tools, plugins, optional MCPs, VM cron/health helpers, and LMI adapter sources are restored to upstream or remain VM-owned. The only non-client exceptions are the one-line default product identity and a pre-existing upstream test-whitespace cleanup.
 - The VM now owns the reviewed Unipile MCP source at `/opt/lmi-ops/mcp-src`; its pin checker validates that source and the live config points to it. Sarvam already runs from the VM data-root install.
-- A candidate-sync boundary checker rejects any future non-client source path relative to `upstream/main`, and the invariant checker rejects returned VM-owned LMI source paths.
+- A candidate-sync boundary checker rejects any future non-client source path relative to `upstream/main`, disables Git rename collapsing so a moved server path cannot hide under an allowed client prefix, and the invariant checker rejects returned VM-owned LMI source paths.
 - Electron integration seams were reconciled as coherent upstream pairs: data-URL limits, authenticated remote downloads, and platform translucency.
 - The concurrent fork correction `f2845b3192` was incorporated and completed with its missing main-tab ownership helpers and fallback-pane gate; the full group-chat regression suite verifies that behavior.
 - User-facing desktop status, upgrade, gateway, remote/cloud, and bootstrap wording remains branded as OpenComputer; Hermes protocol identifiers and CLI commands remain unchanged for runtime compatibility.
