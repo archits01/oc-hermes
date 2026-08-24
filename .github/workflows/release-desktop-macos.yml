@@ -37,7 +37,7 @@ jobs:
       - name: Check out immutable release tag
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.tag }}
+          ref: refs/tags/${{ inputs.tag }}
           fetch-depth: 0
 
       - name: Set up Node
@@ -61,6 +61,17 @@ jobs:
             echo "::error::tag $RELEASE_TAG does not match desktop version v$version"
             exit 1
           fi
+          tag_ref="refs/tags/$RELEASE_TAG"
+          git show-ref --verify --quiet "$tag_ref" || {
+            echo "::error::release tag $tag_ref does not exist"
+            exit 1
+          }
+          tag_commit="$(git rev-parse "$tag_ref^{}")"
+          head_commit="$(git rev-parse HEAD)"
+          [[ "$tag_commit" == "$head_commit" ]] || {
+            echo "::error::checked-out commit does not match the peeled release tag"
+            exit 1
+          }
           git diff --exit-code
 
       - name: Install locked dependencies
@@ -90,8 +101,8 @@ jobs:
           (( ${#blocks[@]} > 0 )) || { echo "::error::missing blockmap"; exit 1; }
           app_path="$(find "$release_dir" -type d -name OpenComputer.app -print -quit)"
           [[ -n "$app_path" ]] || { echo "::error::missing packaged OpenComputer.app"; exit 1; }
-          app_update="$(find "$app_path" -type f -name app-update.yml -print -quit)"
-          [[ -n "$app_update" ]] || { echo "::error::missing packaged app-update.yml"; exit 1; }
+          app_update="$app_path/Contents/Resources/app-update.yml"
+          test -f "$app_update" || { echo "::error::missing packaged app-update.yml"; exit 1; }
           node - "$app_update" <<'NODE'
           const fs = require('node:fs')
           const file = process.argv[2]
@@ -120,6 +131,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          expected_commit="$(git rev-parse HEAD)"
+          remote_tag="$(git ls-remote --refs origin "refs/tags/$RELEASE_TAG" | awk 'NR == 1 { print $1 }')"
+          remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}" | awk 'NR == 1 { print $1 }')"
+          remote_commit="${remote_peeled:-$remote_tag}"
+          [[ -n "$remote_commit" && "$remote_commit" == "$expected_commit" ]] || {
+            echo "::error::remote release tag no longer resolves to this checked-out commit"
+            exit 1
+          }
           release_dir="apps/desktop/release"
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
@@ -128,7 +147,7 @@ jobs:
               exit 1
             fi
           else
-            gh release create "$RELEASE_TAG" --draft --title "$RELEASE_TAG" --generate-notes
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
           fi
           shopt -s nullglob
           assets=("$release_dir"/*.dmg "$release_dir"/*.zip "$release_dir"/*.blockmap "$release_dir/latest-mac.yml")
@@ -136,4 +155,15 @@ jobs:
 
       - name: Publish release only when explicitly requested
         if: ${{ inputs.publish }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit="$(git rev-parse HEAD)"
+          remote_tag="$(git ls-remote --refs origin "refs/tags/$RELEASE_TAG" | awk 'NR == 1 { print $1 }')"
+          remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}" | awk 'NR == 1 { print $1 }')"
+          remote_commit="${remote_peeled:-$remote_tag}"
+          [[ -n "$remote_commit" && "$remote_commit" == "$expected_commit" ]] || {
+            echo "::error::remote release tag no longer resolves to this checked-out commit"
+            exit 1
+          }
+          gh release edit "$RELEASE_TAG" --draft=false --latest
