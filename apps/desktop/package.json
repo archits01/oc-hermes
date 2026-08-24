@@ -193,7 +193,7 @@
     "executableName": "OpenComputer",
     "protocols": [
       {
-        "name": "Hermes Protocol",
+        "name": "OpenComputer Protocol",
         "schemes": [
           "hermes"
         ]
@@ -265,7 +265,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "Install OpenComputer",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -287,7 +287,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "OpenComputer",
       "target": [
         "nsis",
         "msi"
@@ -297,7 +297,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "Nous Research <support@nousresearch.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "synopsis": "Native desktop shell for OpenComputer.",
       "target": [
         "AppImage",
         "deb",
@@ -308,8 +308,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "OpenComputer",
+      "uninstallDisplayName": "OpenComputer",
       "warningsAsErrors": false
     }
   }

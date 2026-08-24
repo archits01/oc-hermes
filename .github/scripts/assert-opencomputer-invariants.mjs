@@ -231,25 +231,81 @@ expectRegex(
   'friend-DMG default connection seed lost'
 )
 
+function asPublishers(value) {
+  if (value == null) {
+    return []
+  }
+
+  return Array.isArray(value) ? value : [value]
+}
+
+function effectiveMacPublishers(build, target) {
+  const targetPublish = build?.[target]?.publish
+
+  if (targetPublish !== undefined) {
+    return asPublishers(targetPublish)
+  }
+
+  const macPublish = build?.mac?.publish
+
+  if (macPublish !== undefined) {
+    return asPublishers(macPublish)
+  }
+
+  return asPublishers(build?.publish)
+}
+
+function macPublishErrors(build, target) {
+  const publishers = effectiveMacPublishers(build, target)
+
+  if (
+    publishers.length !== 1 ||
+    publishers[0]?.provider !== 'github' ||
+    publishers[0]?.owner !== 'archits01' ||
+    publishers[0]?.repo !== 'oc-hermes'
+  ) {
+    return [`effective macOS ${target} publisher is not exactly github.com/archits01/oc-hermes`]
+  }
+
+  return []
+}
+
 try {
   const desktopPackage = JSON.parse(read('apps/desktop/package.json'))
-  const extraResources = JSON.stringify(desktopPackage.build?.extraResources ?? [])
+  const build = desktopPackage.build
+  const extraResources = JSON.stringify(build?.extraResources ?? [])
 
   if (!extraResources.includes('default-connection.json')) {
     fail('friend-DMG default connection packaging lost')
   }
 
-  const publish = Array.isArray(desktopPackage.build?.publish)
-    ? desktopPackage.build.publish
-    : [desktopPackage.build?.publish]
-  const githubPublishers = publish.filter(publisher => publisher?.provider === 'github')
+  for (const target of ['mac', 'dmg']) {
+    for (const issue of macPublishErrors(build, target)) {
+      fail(issue)
+    }
+  }
 
   if (
-    githubPublishers.length !== 1 ||
-    githubPublishers[0].owner !== 'archits01' ||
-    githubPublishers[0].repo !== 'oc-hermes'
+    build?.protocols?.[0]?.name !== 'OpenComputer Protocol' ||
+    build?.dmg?.title !== 'Install OpenComputer' ||
+    build?.win?.legalTrademarks !== 'OpenComputer' ||
+    build?.nsis?.shortcutName !== 'OpenComputer' ||
+    build?.nsis?.uninstallDisplayName !== 'OpenComputer' ||
+    build?.linux?.synopsis !== 'Native desktop shell for OpenComputer.'
   ) {
-    fail('effective packaged updater publish target is not github.com/archits01/oc-hermes')
+    fail('desktop package branding lost from a distributable platform target')
+  }
+
+  const macOverride = JSON.parse(JSON.stringify(build))
+  macOverride.mac = { ...(macOverride.mac ?? {}), publish: { provider: 'generic', url: 'https://invalid.example' } }
+  if (macPublishErrors(macOverride, 'dmg').length === 0) {
+    fail('macOS publisher checker self-test missed a build.mac.publish override')
+  }
+
+  const leadingGeneric = JSON.parse(JSON.stringify(build))
+  leadingGeneric.publish = [{ provider: 'generic', url: 'https://invalid.example' }, ...asPublishers(build.publish)]
+  if (macPublishErrors(leadingGeneric, 'dmg').length === 0) {
+    fail('macOS publisher checker self-test missed a leading generic publisher')
   }
 } catch (error) {
   fail(`apps/desktop/package.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
