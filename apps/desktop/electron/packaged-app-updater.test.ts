@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-
 import { EventEmitter } from 'node:events'
 
 import { describe, expect, test, vi } from 'vitest'
@@ -7,8 +6,8 @@ import { describe, expect, test, vi } from 'vitest'
 import {
   configurePackagedAppUpdater,
   PACKAGED_UPDATE_REPOSITORY,
-  shouldEnablePackagedAppUpdater,
-  type PackagedAppUpdaterDriver
+  type PackagedAppUpdaterDriver,
+  shouldEnablePackagedAppUpdater
 } from './packaged-app-updater'
 
 class FakeUpdater extends EventEmitter implements PackagedAppUpdaterDriver {
