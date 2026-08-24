@@ -66,6 +66,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Verify OpenComputer release configuration
+        run: node .github/scripts/assert-opencomputer-invariants.mjs
+
       - name: Build signed and notarized updater artifacts
         working-directory: apps/desktop
         run: |
@@ -87,6 +90,25 @@ jobs:
           (( ${#blocks[@]} > 0 )) || { echo "::error::missing blockmap"; exit 1; }
           app_path="$(find "$release_dir" -type d -name OpenComputer.app -print -quit)"
           [[ -n "$app_path" ]] || { echo "::error::missing packaged OpenComputer.app"; exit 1; }
+          app_update="$(find "$app_path" -type f -name app-update.yml -print -quit)"
+          [[ -n "$app_update" ]] || { echo "::error::missing packaged app-update.yml"; exit 1; }
+          node - "$app_update" <<'NODE'
+          const fs = require('node:fs')
+          const file = process.argv[2]
+          const text = fs.readFileSync(file, 'utf8')
+
+          const valuesFor = key =>
+            [...text.matchAll(new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'gm'))].map(([, value]) =>
+              value.trim().replace(/^['"]|['"]$/g, '')
+            )
+
+          for (const [key, expected] of Object.entries({ provider: 'github', owner: 'archits01', repo: 'oc-hermes' })) {
+            const values = valuesFor(key)
+            if (values.length !== 1 || values[0] !== expected) {
+              throw new Error(`invalid app-update.yml ${key}: expected exactly ${expected}`)
+            }
+          }
+          NODE
           codesign --verify --deep --strict --verbose=2 "$app_path"
           codesign -dvv "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application:'
           xcrun stapler validate "$app_path"
