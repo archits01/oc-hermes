@@ -13,6 +13,11 @@ const source = readFileSync(new URL('../plugin.js', import.meta.url), 'utf8')
 function loadTracker(toastsEnabled) {
   const start = source.indexOf('const rosterWatermarks = new Map()')
   const end = source.indexOf('/** Last good cron list', start)
+  // The tracker keys watermarks off the REAL botActivitySession helper
+  // (defined later in plugin.js) — extract it so the harness can't drift.
+  const helperStart = source.indexOf('function botActivitySession(')
+  const helperEnd = source.indexOf('/** Bots that are working', helperStart)
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'botActivitySession must remain extractable')
   const notifications = []
   const context = {
     pluginCtx: null,
@@ -32,7 +37,8 @@ function loadTracker(toastsEnabled) {
     displayName: bot => bot.name
   }
   const section = source
-    .slice(start, end)
+    .slice(helperStart, helperEnd)
+    .concat('\n', source.slice(start, end))
     .concat('\nglobalThis.__t = { trackInboundActivity, $activityToasts, setActivityToasts };\n')
   vm.runInNewContext(section, context, { filename: 't.js' })
   if (toastsEnabled) {

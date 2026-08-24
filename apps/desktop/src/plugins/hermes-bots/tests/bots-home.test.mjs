@@ -896,7 +896,7 @@ test('older shells without owner routing fail with an update path', async () => 
 
   assert.equal(t.notifications.length, 1)
   assert.match(t.notifications[0].message, /Could not reach Work/)
-  assert.match(String(t.notifications[0].error), /Update Hermes Desktop/)
+  assert.match(String(t.notifications[0].error), /Update OpenComputer Desktop/)
   assertNothingRouted(t, 'remote row on an older shell')
 })
 
