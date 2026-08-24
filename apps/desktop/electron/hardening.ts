@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+<<<<<<< HEAD
 const DEFAULT_FETCH_TIMEOUT_MS = 15_000
 // Default / floor / ceiling for Desktop's data-URL file load (composer attach,
 // image preview, etc.). The whole file is base64-buffered in main, so this is
@@ -12,6 +13,19 @@ const DEFAULT_FETCH_TIMEOUT_MS = 15_000
 const DATA_URL_READ_DEFAULT_MAX_MB = 16
 const DATA_URL_READ_MIN_MAX_MB = 1
 const DATA_URL_READ_MAX_MAX_MB = 4096
+=======
+// Relative, not `@hermes/shared`: the electron bundle is built by esbuild with
+// no tsconfig path resolution (see scripts/bundle-electron-main.mjs), so a bare
+// specifier would typecheck and then fail to bundle.
+import {
+  clampDataUrlReadMaxMb,
+  DATA_URL_READ_DEFAULT_MAX_MB,
+  DATA_URL_READ_MAX_MAX_MB,
+  DATA_URL_READ_MIN_MAX_MB
+} from '../../shared/src/data-url-read-max'
+
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000
+>>>>>>> upstream/main
 // Remote file.attach sends one base64 JSON-RPC frame. Cap the dedicated attach
 // reader so the payload still fits uvicorn's raised ws_max_size (384 MiB)
 // after base64 + framing. Preview stays on the Settings-configurable path.

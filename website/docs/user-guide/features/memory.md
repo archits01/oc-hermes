@@ -240,6 +240,24 @@ memory:
   write_approval: false     # false = write freely (default) | true = require approval
 ```
 
+<<<<<<< HEAD
+=======
+Setting **both** `memory_enabled` and `user_profile_enabled` to `false` turns the
+built-in stores off completely: the `memory` tool is dropped from the schema and
+its guidance block is dropped from the system prompt, so the model is never told
+about a tool it cannot use. An external provider set via `memory.provider`
+(Hindsight, Mem0, Honcho, …) is unaffected and keeps its own tools — use this
+when you want a third-party memory backend *instead of* the built-in files.
+Listing `memory` under `agent.disabled_toolsets` is the heavier switch: it hides
+external provider tools too.
+
+With only `memory_enabled: false` (user profile still on), the tool stays —
+it backs the profile store — but the system prompt swaps the full memory
+guidance for a narrower profile-only block. The tool schema advertises only the
+`user` target, and direct or staged writes to disabled `MEMORY.md` are rejected.
+The inverse configuration advertises only `memory` and rejects `USER.md` writes.
+
+>>>>>>> upstream/main
 ## Controlling memory writes (`write_approval`)
 
 By default the agent saves memory freely — including from the background

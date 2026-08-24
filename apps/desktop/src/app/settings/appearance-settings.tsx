@@ -19,6 +19,7 @@ import { $activeGatewayProfile, $profiles, normalizeProfileKey } from '@/store/p
 import { $reactionsEnabled, setReactionsEnabled } from '@/store/reactions-enabled'
 import { $reasoningCollapsedByDefault, setReasoningCollapsedByDefault } from '@/store/reasoning-disclosure'
 import { $sessionListDensity, type SessionListDensity, setSessionListDensity } from '@/store/session-list-density'
+import { $tabStripDefault, setTabStripDefault, type TabStripDefault } from '@/store/tabstrip-prefs'
 import { $toolViewMode, setToolViewMode } from '@/store/tool-view'
 import {
   $translucency,
@@ -286,6 +287,7 @@ export function AppearanceSettings() {
   const toolViewMode = useStore($toolViewMode)
   const reasoningCollapsedByDefault = useStore($reasoningCollapsedByDefault)
   const sessionListDensity = useStore($sessionListDensity)
+  const tabStripDefault = useStore($tabStripDefault)
   const zoomPercent = useStore($zoomPercent)
   const embedMode = useStore($embedMode)
   const embedAllowed = useStore($embedAllowed)
@@ -361,6 +363,12 @@ export function AppearanceSettings() {
     { id: 'comfortable', label: a.sessionDensityComfortable },
     { id: 'detailed', label: a.sessionDensityDetailed }
   ] as const satisfies readonly { id: SessionListDensity; label: string }[]
+
+  const tabStripOptions = [
+    { id: 'auto', label: a.tabStripAuto },
+    { id: 'always', label: a.tabStripAlways },
+    { id: 'never', label: a.tabStripNever }
+  ] as const satisfies readonly { id: TabStripDefault; label: string }[]
 
   const embedOptions = [
     { id: 'ask', label: a.embedsAsk },
@@ -524,6 +532,7 @@ export function AppearanceSettings() {
 
           <ListRow
             action={
+<<<<<<< HEAD
               <div
                 className="flex items-center gap-3"
                 // Arms the peek for the overlay this row lives in — the
@@ -581,6 +590,34 @@ export function AppearanceSettings() {
                     <span className="w-12 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
                       {a.translucencyFrostTitle}
                     </span>
+=======
+              <SegmentedControl
+                onChange={id => {
+                  triggerHaptic('selection')
+                  setTabStripDefault(id)
+                }}
+                options={tabStripOptions}
+                value={tabStripDefault}
+              />
+            }
+            description={a.tabStripDesc}
+            title={a.tabStripTitle}
+          />
+
+          {/* Linux has neither half of this setting (see TRANSLUCENCY_SUPPORTED),
+              so the row is absent there rather than offering a dead lever. */}
+          {TRANSLUCENCY_SUPPORTED && (
+            <ListRow
+              action={
+                <div
+                  className="flex items-center gap-3"
+                  // Arms the peek for the overlay this row lives in — the
+                  // ghosting rules in styles.css scope to it, so no other
+                  // overlay pays for an opacity transition it never uses.
+                  data-translucency-peek-scope=""
+                >
+                  {GLASS_SUPPORTED && (
+>>>>>>> upstream/main
                     <SegmentedControl
                       onChange={pickTranslucency(setTranslucencyMaterial)}
                       options={GLASS_MATERIALS.map(material => ({
