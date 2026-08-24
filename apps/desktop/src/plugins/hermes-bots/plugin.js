@@ -13115,6 +13115,16 @@ function GroupChatWorkspace({ group, members, onBack, visible = true }) {
 /** Live closers for group-chat MAIN-window tabs, by group name — so a
  *  disband (or the room view's own Back) can retire the tab it opened. */
 const groupChatMainTabs = new Map()
+// Restored 2026-08-24. Upstream d29f76c70e (#89788 follow-up) added THREE things:
+// this atom, the recordGroupMainTab/dropGroupMainTab mutators that bump it, and
+// the `useValue($groupMainTabsRev)` subscription in BotsPane. A later merge into
+// this fork kept only the subscription and silently dropped the declaration - a
+// clean merge with no conflict, which is exactly the failure fork-sync.yml's
+// guard list exists to catch. The result was a hard ReferenceError:
+//     "hermes-bots:pane" failed to render - $groupMainTabsRev is not defined
+// The Map above is read-only in this fork (only .has/.get survive), so the
+// mutators are not needed here; the atom is what the render path requires.
+const $groupMainTabsRev = atom(0)
 
 function closeGroupChatMainTab(group) {
   const close = groupChatMainTabs.get(group)
