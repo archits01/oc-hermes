@@ -330,8 +330,28 @@ expectRegex(
 )
 expectRegex(
   macReleaseWorkflow,
-  /- name: Verify signed updater feed and artifacts[\s\S]*?app_update=.*app-update\.yml[\s\S]*?provider: 'github'[\s\S]*?owner: 'archits01'[\s\S]*?repo: 'oc-hermes'/,
+  /- name: Verify signed updater feed and artifacts[\s\S]*?app_update="\$app_path\/Contents\/Resources\/app-update\.yml"[\s\S]*?provider: 'github'[\s\S]*?owner: 'archits01'[\s\S]*?repo: 'oc-hermes'/,
   'signed macOS release workflow no longer verifies the generated updater feed target'
+)
+expectRegex(
+  macReleaseWorkflow,
+  /- name: Check out immutable release tag[\s\S]*?ref: refs\/tags\/\$\{\{ inputs\.tag \}\}/,
+  'signed macOS release workflow can check out a same-named branch instead of the release tag'
+)
+expectRegex(
+  macReleaseWorkflow,
+  /git show-ref --verify --quiet "\$tag_ref"[\s\S]*?git rev-parse "\$tag_ref\^\{\}"[\s\S]*?tag_commit" == "\$head_commit"/,
+  'signed macOS release workflow no longer proves the peeled tag matches HEAD'
+)
+expectRegex(
+  macReleaseWorkflow,
+  /gh release create "\$RELEASE_TAG" --verify-tag --draft/,
+  'signed macOS release workflow can create a release without an existing verified tag'
+)
+expectRegex(
+  macReleaseWorkflow,
+  /remote_peeled=.*refs\/tags\/\$RELEASE_TAG\^\{\}[\s\S]*?remote_commit=.*remote_peeled[\s\S]*?remote_commit" == "\$expected_commit"/,
+  'signed macOS release workflow no longer verifies remote tag identity before mutation'
 )
 
 const bundledPlugins = read('apps/desktop/src/contrib/plugins.ts')
