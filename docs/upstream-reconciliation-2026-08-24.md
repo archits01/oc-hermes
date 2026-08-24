@@ -15,6 +15,7 @@
 - Gateway transport behavior is tested through real connect-error, disconnected-request, and pending-request-close paths; the plugin-bridge error is separately exercised, and the invariant checker verifies constructor wiring so these API surfaces cannot silently revert to Hermes wording.
 - The invariant checker parses Electron Builder's effective `build.publish` GitHub configuration and requires `archits01/oc-hermes`, rather than trusting an unused updater constant.
 - It resolves the effective macOS updater precedence (`dmg.publish`, then `mac.publish`, then global publish), rejects overrides/multiple publishers, and keeps distributable DMG/Windows/Linux labels branded as OpenComputer.
+- The protected macOS release workflow runs the invariant checker before packaging and verifies the generated packaged `app-update.yml` has exactly `github / archits01 / oc-hermes` before any release asset upload.
 - The scheduled fork-sync invariants now run an executable structural checker (including negative mutation self-tests), preserve unresolved `*-CONFLICTS` evidence indefinitely, use a unique Actions run/attempt branch name, and deliberately do not require VM-owned deployment files.
 - Clean and conflicted candidates preserve the fork workflow plus its invariant checker before a `GITHUB_TOKEN` push, while reporting upstream control-plane changes for deliberate porting.
 - The old local direct-merge script is retired so it cannot bypass the candidate branch and invariant gate; the GitHub workflow is the sole scheduled sync path.

@@ -302,6 +302,12 @@ try {
     fail('macOS publisher checker self-test missed a build.mac.publish override')
   }
 
+  const dmgOverride = JSON.parse(JSON.stringify(build))
+  dmgOverride.dmg = { ...(dmgOverride.dmg ?? {}), publish: { provider: 'generic', url: 'https://invalid.example' } }
+  if (macPublishErrors(dmgOverride, 'dmg').length === 0) {
+    fail('macOS publisher checker self-test missed a build.dmg.publish override')
+  }
+
   const leadingGeneric = JSON.parse(JSON.stringify(build))
   leadingGeneric.publish = [{ provider: 'generic', url: 'https://invalid.example' }, ...asPublishers(build.publish)]
   if (macPublishErrors(leadingGeneric, 'dmg').length === 0) {
@@ -315,6 +321,17 @@ expectIncludes(
   'apps/desktop/electron/update-remote.ts',
   'archits01/oc-hermes',
   'desktop source updater no longer targets the fork'
+)
+const macReleaseWorkflow = read('.github/workflows/release-desktop-macos.yml')
+expectRegex(
+  macReleaseWorkflow,
+  /- name: Verify OpenComputer release configuration\n\s+run: node \.github\/scripts\/assert-opencomputer-invariants\.mjs/,
+  'signed macOS release workflow no longer executes the OpenComputer invariant checker'
+)
+expectRegex(
+  macReleaseWorkflow,
+  /- name: Verify signed updater feed and artifacts[\s\S]*?app_update=.*app-update\.yml[\s\S]*?provider: 'github'[\s\S]*?owner: 'archits01'[\s\S]*?repo: 'oc-hermes'/,
+  'signed macOS release workflow no longer verifies the generated updater feed target'
 )
 
 const bundledPlugins = read('apps/desktop/src/contrib/plugins.ts')
