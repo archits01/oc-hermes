@@ -3,8 +3,8 @@ name: Fork Sync (upstream Hermes → sync candidate)
 # Daily upstream catch-up for the OpenComputer fork.
 #
 # Deliberately does NOT push oc-branding. Customers install from oc-branding
-# (scripts/install.sh, install.ps1 and the desktop update check all resolve to
-# archits01/hermes-agent @ oc-branding), so an unreviewed auto-merge there ships
+# (the branded installers and desktop update check resolve to the OpenComputer
+# fork @ oc-branding), so an unreviewed auto-merge there ships
 # straight to real installs. Instead this produces a candidate branch a human
 # fast-forwards after review.
 #
@@ -160,11 +160,19 @@ jobs:
             optional-mcps/unipile/server/src/mcp_server_unipile_extended/server.py \
             tools/media_store.py \
             apps/desktop/src/plugins/lmi-dashboard/plugin.tsx \
+            apps/desktop/src/contrib/plugins.ts \
+            apps/desktop/src/lib/session-source.ts \
             apps/desktop/electron/default-connection.ts \
-            apps/desktop/public/flower.png \
-            scripts/ops/lmi_opencomputer_v2_update.sh ; do
+            apps/desktop/electron/main.ts \
+            apps/desktop/electron/packaged-app-updater.ts \
+            apps/desktop/electron/update-remote.ts \
+            apps/desktop/package.json \
+            apps/desktop/public/flower.png ; do
             [ -e "$f" ] || { echo "::error::OC file lost in merge: $f"; fail=1; }
           done
+          # VM deployment helpers are intentionally VM-owned under /opt/lmi-ops
+          # after the 2026-08-24 deployment split. They are not fork invariants:
+          # a source merge must neither resurrect nor require them.
           # A clean merge can still silently delete branding when upstream renames a
           # file - that produces no conflict at all, so assert the markers directly.
           grep -q OpenComputer hermes_cli/default_soul.py || { echo "::error::branding lost: default_soul.py"; fail=1; }
@@ -172,6 +180,11 @@ jobs:
           grep -q archits01  scripts/install.sh            || { echo "::error::install.sh no longer points at the fork"; fail=1; }
           grep -q archits01  scripts/install.ps1           || { echo "::error::install.ps1 no longer points at the fork"; fail=1; }
           grep -rq OpenComputer apps/desktop/src/i18n/en.ts || { echo "::error::branding lost: i18n en.ts"; fail=1; }
+          grep -q 'seedDefaultConnectionIfMissing' apps/desktop/electron/main.ts || { echo "::error::friend-DMG default connection seed lost"; fail=1; }
+          grep -q 'default-connection.json' apps/desktop/package.json || { echo "::error::friend-DMG default connection packaging lost"; fail=1; }
+          grep -q 'archits01/oc-hermes' apps/desktop/electron/packaged-app-updater.ts || { echo "::error::packaged updater no longer targets the fork"; fail=1; }
+          grep -q 'archits01/oc-hermes' apps/desktop/electron/update-remote.ts || { echo "::error::desktop source updater no longer targets the fork"; fail=1; }
+          grep -q 'import.meta.glob' apps/desktop/src/contrib/plugins.ts || { echo "::error::bundled desktop-plugin discovery lost"; fail=1; }
           # The LMI platforms must stay classified as messaging sources, or every
           # customer conversation lands in the global Sessions sidebar. Upstream has
           # no idea these adapters exist, so its copy of session-source.ts silently
