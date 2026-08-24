@@ -212,6 +212,10 @@ expectIncludes('apps/desktop/src/components/assistant-ui/thread/status.tsx', 'Op
 expectIncludes('apps/desktop/src/sdk/index.ts', 'Update OpenComputer Desktop', 'desktop upgrade branding lost')
 expectIncludes('apps/desktop/src/store/gateway.ts', 'OpenComputer gateway unavailable', 'gateway error branding lost')
 expectIncludes('apps/desktop/src/i18n/en.ts', 'remote OpenComputer', 'remote profile branding lost')
+expectIncludes('apps/desktop/src/api/client.ts', 'OpenComputer gateway connection closed', 'gateway closed-error branding lost')
+expectIncludes('apps/desktop/src/api/client.ts', 'Could not connect to OpenComputer gateway', 'gateway connect-error branding lost')
+expectIncludes('apps/desktop/src/api/client.ts', 'OpenComputer gateway is not connected', 'gateway disconnected-error branding lost')
+expectIncludes('apps/desktop/src/api/plugins.ts', 'OpenComputer desktop bridge unavailable', 'plugin bridge-error branding lost')
 
 const desktopMain = read('apps/desktop/electron/main.ts')
 expectRegex(
