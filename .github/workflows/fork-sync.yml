@@ -86,10 +86,36 @@ jobs:
         if: steps.gap.outputs.behind != '0'
         id: merge
         run: |
-          BR="sync/upstream-$(date -u +%Y%m%d)"
+          # A date alone collides on rerun. Keep each candidate and its conflict
+          # evidence unique even when Actions retries on the same day.
+          BR="sync/upstream-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Workflow files cannot be pushed by GITHUB_TOKEN, and the checker is
+          # part of the fork's release control plane. Preserve both from the
+          # fork while reporting upstream changes for deliberate porting.
+          FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs)
           echo "branch=$BR" >> "$GITHUB_OUTPUT"
           git checkout -b "$BR"
           if git merge --no-ff --no-edit upstream/main; then
+            # GITHUB_TOKEN cannot push workflow-file changes without the
+            # workflow scope. Preserve the fork's workflows on EVERY path,
+            # including a clean merge, and report upstream workflow changes for
+            # a human to port deliberately.
+            git diff --name-only HEAD^1..HEAD -- "${FORK_CONTROL_PATHS[@]}" > /tmp/wf_changed.txt 2>/dev/null || true
+            if [ -s /tmp/wf_changed.txt ]; then
+              git checkout HEAD^1 -- "${FORK_CONTROL_PATHS[@]}"
+              git diff --name-only --diff-filter=A HEAD^1 -- "${FORK_CONTROL_PATHS[@]}" \
+                | xargs -r git rm -f --quiet --
+              git add -A -- "${FORK_CONTROL_PATHS[@]}"
+              git commit --amend --no-edit >/dev/null
+              {
+                echo "### Upstream workflow changes withheld"
+                echo ""
+                echo "These were not included in the candidate because the GitHub token cannot push workflow edits:"
+                echo '```'
+                cat /tmp/wf_changed.txt
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
             echo "clean=true" >> "$GITHUB_OUTPUT"
           else
             echo "clean=false" >> "$GITHUB_OUTPUT"
@@ -111,21 +137,22 @@ jobs:
             # permission". There is no `workflows:` key in the permissions block and
             # actions:write does not grant it; the only token that can is a PAT with
             # the workflow scope. Rather than require a new secret, keep OUR workflow
-            # files, which is what a fork wants regardless - upstream CI should not
-            # silently replace the fork's own pipelines. Any upstream workflow change
-            # is reported below so it can be ported by hand.
-            git diff --name-only HEAD...upstream/main -- .github/workflows/ > /tmp/wf_changed.txt 2>/dev/null || true
-            git checkout HEAD -- .github/workflows/ 2>/dev/null || true
+            # files and invariant checker, which are the fork's release control plane.
+            # Upstream control-plane changes are reported below so they can be ported by hand.
+            git diff --name-only HEAD...upstream/main -- "${FORK_CONTROL_PATHS[@]}" > /tmp/wf_changed.txt 2>/dev/null || true
+            git checkout HEAD -- "${FORK_CONTROL_PATHS[@]}" 2>/dev/null || true
             git add -A
             # `git checkout HEAD --` restores files we already had, but it cannot
             # remove ones upstream ADDED (2026-08-20: upstream renamed ci.yml to
             # ci.yaml, so ci.yaml stayed staged as a new file and the push was still
-            # rejected). Drop any workflow file that is an addition relative to HEAD.
-            git diff --cached --name-only --diff-filter=A -- .github/workflows/ \
+            # rejected). Drop any control-plane file that is an addition relative to HEAD.
+            git diff --cached --name-only --diff-filter=A -- "${FORK_CONTROL_PATHS[@]}" \
               | xargs -r git rm -f --quiet --
             git commit -m "UNRESOLVED upstream merge $(date -u +%Y-%m-%d) - contains conflict markers, do not ff-only this" >/dev/null
             git branch -M "$CB"
-            git push -f origin "$CB"
+            # Never overwrite a prior unresolved candidate. BR includes the
+            # run id/attempt, and a surprising collision must fail loudly.
+            git push origin "$CB"
             {
               echo "### Upstream sync BLOCKED on conflicts"
               echo ""
@@ -136,8 +163,8 @@ jobs:
               cat /tmp/conflicted.txt
               echo '```'
               if [ -s /tmp/wf_changed.txt ]; then
-                echo "Upstream ALSO changed these workflow files. They were NOT taken"
-                echo "(GITHUB_TOKEN cannot push them); port by hand if wanted:"
+                echo "Upstream ALSO changed these release-control files. They were NOT taken"
+                echo "(workflow edits cannot be pushed by GITHUB_TOKEN); port by hand if wanted:"
                 echo '```'
                 cat /tmp/wf_changed.txt
                 echo '```'
