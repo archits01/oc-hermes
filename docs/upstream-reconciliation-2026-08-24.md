@@ -20,6 +20,8 @@
 - It resolves the effective macOS updater precedence (`dmg.publish`, then `mac.publish`, then global publish), rejects overrides/multiple publishers, and keeps distributable DMG/Windows/Linux labels branded as OpenComputer.
 - The protected macOS release workflow runs the invariant checker before packaging and verifies the generated packaged `app-update.yml` has exactly `github / archits01 / oc-hermes` before any release asset upload.
 - It now checks out only `refs/tags/<tag>`, proves the peeled tag equals the checked-out commit, uses `gh release create --verify-tag`, and rechecks remote tag identity before upload or publish.
+- Packaged-desktop verification derives the app and artifact names from `productName`, so the OpenComputer release test validates `OpenComputer.app` instead of a stale hard-coded `Hermes.app` path.
+- The tracked desktop/bootstrap assets now use the current OpenComputer mark and remove the unused legacy Nous portrait, matching the VM's intended client asset set.
 - The complete desktop plugin suite is part of acceptance; after reconciling stale test fixtures it passes 530 tests, including canonical Bot Chat activity and OpenComputer update-message coverage.
 - The scheduled fork-sync invariants now run an executable structural checker (including negative mutation self-tests), preserve unresolved `*-CONFLICTS` evidence indefinitely, use a unique Actions run/attempt branch name, and deliberately do not require VM-owned deployment files.
 - Clean and conflicted candidates preserve the fork workflow plus its invariant checker before a `GITHUB_TOKEN` push, while reporting upstream control-plane changes for deliberate porting.
