@@ -238,15 +238,23 @@ try {
   if (!extraResources.includes('default-connection.json')) {
     fail('friend-DMG default connection packaging lost')
   }
+
+  const publish = Array.isArray(desktopPackage.build?.publish)
+    ? desktopPackage.build.publish
+    : [desktopPackage.build?.publish]
+  const githubPublishers = publish.filter(publisher => publisher?.provider === 'github')
+
+  if (
+    githubPublishers.length !== 1 ||
+    githubPublishers[0].owner !== 'archits01' ||
+    githubPublishers[0].repo !== 'oc-hermes'
+  ) {
+    fail('effective packaged updater publish target is not github.com/archits01/oc-hermes')
+  }
 } catch (error) {
   fail(`apps/desktop/package.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
 }
 
-expectIncludes(
-  'apps/desktop/electron/packaged-app-updater.ts',
-  'archits01/oc-hermes',
-  'packaged updater no longer targets the fork'
-)
 expectIncludes(
   'apps/desktop/electron/update-remote.ts',
   'archits01/oc-hermes',
