@@ -217,6 +217,13 @@ expectIncludes('apps/desktop/src/api/client.ts', 'Could not connect to OpenCompu
 expectIncludes('apps/desktop/src/api/client.ts', 'OpenComputer gateway is not connected', 'gateway disconnected-error branding lost')
 expectIncludes('apps/desktop/src/api/plugins.ts', 'OpenComputer desktop bridge unavailable', 'plugin bridge-error branding lost')
 
+const apiClient = read('apps/desktop/src/api/client.ts')
+expectRegex(
+  apiClient,
+  /super\(\{[\s\S]*?closedErrorMessage:\s*GATEWAY_ERROR_MESSAGES\.closed,[\s\S]*?connectErrorMessage:\s*GATEWAY_ERROR_MESSAGES\.connect,[\s\S]*?notConnectedErrorMessage:\s*GATEWAY_ERROR_MESSAGES\.notConnected,/,
+  'OpenComputer gateway error messages are no longer wired into HermesGateway'
+)
+
 const desktopMain = read('apps/desktop/electron/main.ts')
 expectRegex(
   desktopMain,

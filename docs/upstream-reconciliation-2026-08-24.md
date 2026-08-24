@@ -12,7 +12,7 @@
 - Electron integration seams were reconciled as coherent upstream pairs: data-URL limits, authenticated remote downloads, and platform translucency.
 - The concurrent fork correction `f2845b3192` was incorporated and completed with its missing main-tab ownership helpers and fallback-pane gate; the full group-chat regression suite verifies that behavior.
 - User-facing desktop status, upgrade, gateway, remote/cloud, and bootstrap wording remains branded as OpenComputer; Hermes protocol identifiers and CLI commands remain unchanged for runtime compatibility.
-- Gateway transport and plugin-bridge failure messages are covered by focused tests and the invariant checker so those reachable API surfaces cannot silently revert to Hermes wording.
+- Gateway transport behavior is tested through real connect-error, disconnected-request, and pending-request-close paths; the plugin-bridge error is separately exercised, and the invariant checker verifies constructor wiring so these API surfaces cannot silently revert to Hermes wording.
 - The scheduled fork-sync invariants now run an executable structural checker (including negative mutation self-tests), preserve unresolved `*-CONFLICTS` evidence indefinitely, use a unique Actions run/attempt branch name, and deliberately do not require VM-owned deployment files.
 - Clean and conflicted candidates preserve the fork workflow plus its invariant checker before a `GITHUB_TOKEN` push, while reporting upstream control-plane changes for deliberate porting.
 - The old local direct-merge script is retired so it cannot bypass the candidate branch and invariant gate; the GitHub workflow is the sole scheduled sync path.
