@@ -3415,6 +3415,27 @@ def compress_context(
                 _rough_in = estimate_messages_tokens_rough(messages)
                 _rough_out = estimate_messages_tokens_rough(compressed)
                 if _rough_out > _rough_in:
+                    # Todo refresh and user-turn anchoring happen after the
+                    # compressor's own size check, so they can tip a break-even
+                    # candidate over. Give it one mechanical salvage pass.
+                    from agent.context_compressor import salvage_grown_transcript
+
+                    _salvaged = salvage_grown_transcript(
+                        messages, compressed, budget=_rough_in
+                    )
+                    if _salvaged is not None:
+                        _salv_est = estimate_messages_tokens_rough(_salvaged)
+                        if _salv_est < _rough_in:
+                            logger.info(
+                                "Compression salvage recovered a shrinking "
+                                "transcript (session=%s, ~%s -> ~%s tokens)",
+                                agent.session_id or "none",
+                                f"{_rough_in:,}",
+                                f"{_salv_est:,}",
+                            )
+                            compressed = _salvaged
+                            _rough_out = _salv_est
+                if _rough_out > _rough_in:
                     logger.warning(
                         "Compression refused: compressed transcript would be "
                         "larger than the original (session=%s, ~%s -> ~%s "
@@ -3423,6 +3444,17 @@ def compress_context(
                         f"{_rough_in:,}",
                         f"{_rough_out:,}",
                     )
+                    # Flag the refusal on the compressor state so manual
+                    # /compress feedback can report it honestly. Without this,
+                    # the CLI compared the returned list against its pre-call
+                    # snapshot, saw a difference (durable-snapshot adoption can
+                    # legitimately change the count), and printed
+                    # "✅ Compressed: 8 → 14 messages" directly under the
+                    # refusal warning (Aug 2026 full-surface CLI QA sweep).
+                    try:
+                        agent.context_compressor._last_compress_refused_would_grow = True
+                    except Exception:
+                        pass
                     try:
                         agent._emit_warning(
                             "⚠️ Compression refused: the generated summary "

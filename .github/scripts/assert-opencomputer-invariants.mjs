@@ -140,11 +140,81 @@ function botsMainTabOwnershipFailures(source) {
   return issues
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function workflowStepBody(source, name) {
+  const pattern = new RegExp(
+    `^\\s*- name: ${escapeRegex(name)}\\n([\\s\\S]*?)(?=^\\s*- name:|(?![\\s\\S]))`,
+    'm'
+  )
+
+  return source.match(pattern)?.[1] ?? ''
+}
+
+function releaseWorkflowFailures(source) {
+  const issues = []
+  const checkout = workflowStepBody(source, 'Check out immutable release tag')
+  const signing = workflowStepBody(source, 'Require signing credentials and version-matched tag')
+  const releaseConfig = workflowStepBody(source, 'Verify OpenComputer release configuration')
+  const updaterFeed = workflowStepBody(source, 'Verify signed updater feed and artifacts')
+  const upload = workflowStepBody(source, 'Upload verified release assets')
+  const publish = workflowStepBody(source, 'Publish release only when explicitly requested')
+  const requireText = (body, text, message) => {
+    if (!body.includes(text)) {
+      issues.push(message)
+    }
+  }
+
+  requireText(checkout, 'ref: refs/tags/${{ inputs.tag }}', 'release checkout is not pinned to refs/tags input')
+  requireText(signing, 'tag_ref="refs/tags/$RELEASE_TAG"', 'release tag ref is not pinned to refs/tags')
+  requireText(signing, 'git show-ref --verify --quiet "$tag_ref"', 'release tag existence is not verified')
+  requireText(signing, 'git rev-parse "$tag_ref^{}"', 'release tag is not peeled to a commit')
+  requireText(signing, '"$tag_commit" == "$head_commit"', 'release tag is not proved equal to HEAD')
+  requireText(releaseConfig, 'node .github/scripts/assert-opencomputer-invariants.mjs', 'release build does not run invariants first')
+  requireText(updaterFeed, 'app_update="$app_path/Contents/Resources/app-update.yml"', 'release verifies a decoy updater file instead of the consumed path')
+  requireText(upload, 'gh release create "$RELEASE_TAG" --verify-tag --draft', 'release creation does not require an existing tag')
+
+  for (const [label, body] of [['upload', upload], ['publish', publish]]) {
+    requireText(body, 'git ls-remote --refs origin "refs/tags/$RELEASE_TAG"', `${label} does not recheck remote tag ref`)
+    requireText(body, 'git ls-remote origin "refs/tags/$RELEASE_TAG^{}"', `${label} does not recheck remote peeled tag`)
+    requireText(body, '"$remote_commit" == "$expected_commit"', `${label} does not bind remote tag to checked-out commit`)
+  }
+
+  return issues
+}
+
+function forkSyncWorkflowFailures(source) {
+  const issues = []
+
+  if (
+    /^\s*git\s+push(?:\s+--[^\s]+)*\s+origin\s+(?:"|'|)?(?:oc-branding|refs\/heads\/oc-branding|HEAD:oc-branding|HEAD:refs\/heads\/oc-branding)(?:"|'|)?(?:\s|$)/m.test(
+      source
+    )
+  ) {
+    issues.push('scheduled sync has an executable direct push to oc-branding')
+  }
+
+  return issues
+}
+
+function replaceNth(source, needle, occurrence, replacement) {
+  let start = -1
+
+  for (let index = 0; index <= occurrence; index += 1) {
+    start = source.indexOf(needle, start + 1)
+    if (start === -1) {
+      return source
+    }
+  }
+
+  return source.slice(0, start) + replacement + source.slice(start + needle.length)
+}
+
 const requiredFiles = [
   'scripts/fork-sync.sh',
-  'optional-mcps/sarvam-voice/server/main.py',
-  'optional-mcps/unipile/server/src/mcp_server_unipile_extended/server.py',
-  'tools/media_store.py',
+  '.github/scripts/assert-opencomputer-boundary.mjs',
   'apps/desktop/src/plugins/lmi-dashboard/plugin.tsx',
   'apps/desktop/src/contrib/plugins.ts',
   'apps/desktop/src/lib/session-source.ts',
@@ -156,9 +226,33 @@ const requiredFiles = [
   'apps/desktop/public/flower.png'
 ]
 
+const vmOwnedLmiSourcePaths = [
+  'optional-mcps/unipile',
+  'optional-mcps/sarvam-voice',
+  'plugins/platforms/lmi_unipile_overlay',
+  'plugins/platforms/_lmi_live_reply_queue.py',
+  'plugins/platforms/_lmi_media_bootstrap.py',
+  'plugins/platforms/_lmi_media_runtime.py',
+  'plugins/platforms/_unipile_common.py',
+  'plugins/platforms/instagram',
+  'plugins/platforms/linkedin',
+  'plugins/platforms/whatsapp_unipile',
+  'scripts/ops/lmi_media_overlay_sync.py',
+  'scripts/ops/lmi_opencomputer_v2_auto_update.sh',
+  'scripts/ops/lmi_unipile_mcp_pin.py',
+  'scripts/ops/oc-autosave.sh',
+  'scripts/ops/opencomputer-v2-health-monitor.sh'
+]
+
 for (const relative of requiredFiles) {
   if (!fs.existsSync(filePath(relative))) {
     fail(`missing required file: ${relative}`)
+  }
+}
+
+for (const relative of vmOwnedLmiSourcePaths) {
+  if (fs.existsSync(filePath(relative))) {
+    fail(`VM-owned LMI source returned to the OpenComputer base: ${relative}`)
   }
 }
 
@@ -194,7 +288,7 @@ expectTextIncludes(
 )
 expectTextIncludes(
   forkSyncWorkflow,
-  'FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs)',
+  'FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs .github/scripts/assert-opencomputer-boundary.mjs)',
   'scheduled sync does not preserve its workflow and invariant-checker control plane'
 )
 expectTextIncludes(
@@ -202,6 +296,24 @@ expectTextIncludes(
   'git checkout HEAD^1 -- "${FORK_CONTROL_PATHS[@]}"',
   'clean upstream control-plane changes are not preserved before candidate push'
 )
+expectTextIncludes(
+  forkSyncWorkflow,
+  'node .github/scripts/assert-opencomputer-boundary.mjs upstream/main HEAD',
+  'scheduled sync does not enforce the GitHub/VM ownership boundary'
+)
+for (const issue of forkSyncWorkflowFailures(forkSyncWorkflow)) {
+  fail(issue)
+}
+
+const directPushMutation = forkSyncWorkflow.replace(
+  'git push origin "${{ steps.merge.outputs.branch }}"',
+  'git push origin HEAD:oc-branding'
+)
+if (directPushMutation === forkSyncWorkflow) {
+  fail('fork-sync direct-push checker self-test fixture was not found')
+} else if (forkSyncWorkflowFailures(directPushMutation).length === 0) {
+  fail('fork-sync direct-push checker failed to detect an executable oc-branding push')
+}
 
 expectIncludes('hermes_cli/default_soul.py', 'OpenComputer', 'branding lost: default_soul.py')
 expectIncludes('scripts/install.sh', 'OpenComputer', 'branding lost: install.sh')
@@ -323,36 +435,54 @@ expectIncludes(
   'desktop source updater no longer targets the fork'
 )
 const macReleaseWorkflow = read('.github/workflows/release-desktop-macos.yml')
-expectRegex(
-  macReleaseWorkflow,
-  /- name: Verify OpenComputer release configuration\n\s+run: node \.github\/scripts\/assert-opencomputer-invariants\.mjs/,
-  'signed macOS release workflow no longer executes the OpenComputer invariant checker'
-)
-expectRegex(
-  macReleaseWorkflow,
-  /- name: Verify signed updater feed and artifacts[\s\S]*?app_update="\$app_path\/Contents\/Resources\/app-update\.yml"[\s\S]*?provider: 'github'[\s\S]*?owner: 'archits01'[\s\S]*?repo: 'oc-hermes'/,
-  'signed macOS release workflow no longer verifies the generated updater feed target'
-)
-expectRegex(
-  macReleaseWorkflow,
-  /- name: Check out immutable release tag[\s\S]*?ref: refs\/tags\/\$\{\{ inputs\.tag \}\}/,
-  'signed macOS release workflow can check out a same-named branch instead of the release tag'
-)
-expectRegex(
-  macReleaseWorkflow,
-  /git show-ref --verify --quiet "\$tag_ref"[\s\S]*?git rev-parse "\$tag_ref\^\{\}"[\s\S]*?tag_commit" == "\$head_commit"/,
-  'signed macOS release workflow no longer proves the peeled tag matches HEAD'
-)
-expectRegex(
-  macReleaseWorkflow,
-  /gh release create "\$RELEASE_TAG" --verify-tag --draft/,
-  'signed macOS release workflow can create a release without an existing verified tag'
-)
-expectRegex(
-  macReleaseWorkflow,
-  /remote_peeled=.*refs\/tags\/\$RELEASE_TAG\^\{\}[\s\S]*?remote_commit=.*remote_peeled[\s\S]*?remote_commit" == "\$expected_commit"/,
-  'signed macOS release workflow no longer verifies remote tag identity before mutation'
-)
+for (const issue of releaseWorkflowFailures(macReleaseWorkflow)) {
+  fail(issue)
+}
+
+const releaseNegativeCases = [
+  [
+    'tag refs/tags pin',
+    source => source.replace('tag_ref="refs/tags/$RELEASE_TAG"', 'tag_ref="refs/heads/$RELEASE_TAG"')
+  ],
+  [
+    'exact packaged updater path',
+    source =>
+      source.replace(
+        'app_update="$app_path/Contents/Resources/app-update.yml"',
+        'app_update="$(find "$app_path" -type f -name app-update.yml -print -quit)"'
+      )
+  ],
+  [
+    'upload remote peeled-tag recheck',
+    source =>
+      replaceNth(
+        source,
+        'remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}"',
+        0,
+        'remote_peeled=""'
+      )
+  ],
+  [
+    'publish remote peeled-tag recheck',
+    source =>
+      replaceNth(
+        source,
+        'remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}"',
+        1,
+        'remote_peeled=""'
+      )
+  ]
+]
+
+for (const [name, mutate] of releaseNegativeCases) {
+  const mutated = mutate(macReleaseWorkflow)
+
+  if (mutated === macReleaseWorkflow) {
+    fail(`release workflow checker self-test fixture was not found: ${name}`)
+  } else if (releaseWorkflowFailures(mutated).length === 0) {
+    fail(`release workflow checker failed to detect a missing ${name}`)
+  }
+}
 
 const bundledPlugins = read('apps/desktop/src/contrib/plugins.ts')
 expectRegex(

@@ -92,7 +92,7 @@ jobs:
           # Workflow files cannot be pushed by GITHUB_TOKEN, and the checker is
           # part of the fork's release control plane. Preserve both from the
           # fork while reporting upstream changes for deliberate porting.
-          FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs)
+          FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs .github/scripts/assert-opencomputer-boundary.mjs)
           echo "branch=$BR" >> "$GITHUB_OUTPUT"
           git checkout -b "$BR"
           if git merge --no-ff --no-edit upstream/main; then
@@ -187,6 +187,7 @@ jobs:
           # after the 2026-08-24 deployment split. The executable checker covers
           # source-owned product invariants without requiring those removed files.
           node .github/scripts/assert-opencomputer-invariants.mjs
+          node .github/scripts/assert-opencomputer-boundary.mjs upstream/main HEAD
           test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0 || {
             echo "::error::conflict markers committed"
             exit 1

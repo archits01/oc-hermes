@@ -8,11 +8,14 @@
 
 ## After (candidate)
 
-- The candidate carries the upstream merge and keeps the OpenComputer product identity, LMI messaging source classification, LMI dashboard plugin, default-connection bootstrap, and fork-owned updater targets.
+- The candidate carries the upstream merge and keeps OpenComputer product identity, the thin-client connection bootstrap, and signed updater/release plumbing.
+- The GitHub/VM boundary is explicit: Git carries desktop/bootstrap/web/TUI client and release code only; agent, gateway, tools, plugins, optional MCPs, VM cron/health helpers, and LMI adapter sources are restored to upstream or remain VM-owned. The only non-client exceptions are the one-line default product identity and a pre-existing upstream test-whitespace cleanup.
+- The VM now owns the reviewed Unipile MCP source at `/opt/lmi-ops/mcp-src`; its pin checker validates that source and the live config points to it. Sarvam already runs from the VM data-root install.
+- A candidate-sync boundary checker rejects any future non-client source path relative to `upstream/main`, and the invariant checker rejects returned VM-owned LMI source paths.
 - Electron integration seams were reconciled as coherent upstream pairs: data-URL limits, authenticated remote downloads, and platform translucency.
 - The concurrent fork correction `f2845b3192` was incorporated and completed with its missing main-tab ownership helpers and fallback-pane gate; the full group-chat regression suite verifies that behavior.
 - User-facing desktop status, upgrade, gateway, remote/cloud, and bootstrap wording remains branded as OpenComputer; Hermes protocol identifiers and CLI commands remain unchanged for runtime compatibility.
-- Gateway transport behavior is tested through real connect-error, disconnected-request, and pending-request-close paths; the plugin-bridge error is separately exercised, and the invariant checker verifies constructor wiring so these API surfaces cannot silently revert to Hermes wording.
+- Desktop gateway error wording is tested through real connect-error, disconnected-request, and pending-request-close paths; the plugin-bridge error is separately exercised, and the invariant checker verifies constructor wiring so these client surfaces cannot silently revert to Hermes wording.
 - The invariant checker parses Electron Builder's effective `build.publish` GitHub configuration and requires `archits01/oc-hermes`, rather than trusting an unused updater constant.
 - It resolves the effective macOS updater precedence (`dmg.publish`, then `mac.publish`, then global publish), rejects overrides/multiple publishers, and keeps distributable DMG/Windows/Linux labels branded as OpenComputer.
 - The protected macOS release workflow runs the invariant checker before packaging and verifies the generated packaged `app-update.yml` has exactly `github / archits01 / oc-hermes` before any release asset upload.
@@ -24,7 +27,7 @@
 
 ## Why
 
-The goal is to consume upstream Hermes improvements without silently turning an OpenComputer/LMI client back into a generic Hermes desktop or coupling source merges to mutable VM operations.
+The goal is to consume upstream Hermes improvements without silently turning an OpenComputer thin client back into a generic Hermes desktop, while keeping LMI agent behavior and operations on the VM rather than in the fork.
 
 ## Verification required before shipping
 

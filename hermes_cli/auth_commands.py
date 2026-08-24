@@ -1,6 +1,7 @@
 """Credential-pool auth subcommands."""
 
 from __future__ import annotations
+from hermes_cli.cli_output import line_input
 
 import math
 import sys
@@ -109,8 +110,6 @@ def _resolve_custom_provider_input(raw: str) -> str | None:
 
 def _normalize_provider(provider: str) -> str:
     normalized = (provider or "").strip().lower()
-    if normalized == "inferno":
-        return "nous"
     if normalized in {"or", "open-router"}:
         return "openrouter"
     if normalized in {"grok-oauth", "xai-oauth", "x-ai-oauth", "xai-grok-oauth"}:
@@ -292,7 +291,7 @@ def auth_add_command(args) -> None:
         label = (getattr(args, "label", None) or "").strip()
         if not label:
             if sys.stdin.isatty():
-                label = input(f"Label (optional, default: {default_label}): ").strip() or default_label
+                label = line_input(f"Label (optional, default: {default_label}): ").strip() or default_label
             else:
                 label = default_label
         entry = PooledCredential(
@@ -610,19 +609,15 @@ def auth_status_command(args) -> None:
     if not provider:
         raise SystemExit("Provider is required. Example: `hermes auth status spotify`.")
     status = auth_mod.get_auth_status(provider)
-    display_provider = provider
-    registry_entry = auth_mod.PROVIDER_REGISTRY.get(provider)
-    if registry_entry is not None:
-        display_provider = registry_entry.name
     if not status.get("logged_in"):
         reason = status.get("error")
         if reason:
-            print(f"{display_provider}: logged out ({reason})")
+            print(f"{provider}: logged out ({reason})")
         else:
-            print(f"{display_provider}: logged out")
+            print(f"{provider}: logged out")
         return
 
-    print(f"{display_provider}: logged in")
+    print(f"{provider}: logged in")
     for key in ("auth_type", "client_id", "redirect_uri", "scope", "expires_at", "api_base_url"):
         value = status.get(key)
         if value:
@@ -766,7 +761,7 @@ def _pick_provider(prompt: str = "Provider") -> str:
     else:
         print(f"\nKnown providers: {', '.join(known)}")
     try:
-        raw = input(f"{prompt}: ").strip()
+        raw = line_input(f"{prompt}: ").strip()
     except (EOFError, KeyboardInterrupt):
         raise SystemExit()
     return _normalize_provider(raw)
@@ -796,7 +791,7 @@ def _interactive_add() -> None:
 
     label = None
     try:
-        typed_label = input("Label / account name (optional): ").strip()
+        typed_label = line_input("Label / account name (optional): ").strip()
     except (EOFError, KeyboardInterrupt):
         return
     if typed_label:
@@ -822,7 +817,7 @@ def _interactive_remove() -> None:
         print(f"  #{i}  {e.label:25s} {e.auth_type:10s} {e.source}{exhausted} [id:{e.id}]")
 
     try:
-        raw = input("Remove #, id, or label (blank to cancel): ").strip()
+        raw = line_input("Remove #, id, or label (blank to cancel): ").strip()
     except (EOFError, KeyboardInterrupt):
         return
     if not raw:

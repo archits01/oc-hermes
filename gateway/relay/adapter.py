@@ -296,6 +296,7 @@ class RelayAdapter(BasePlatformAdapter):
         self,
         chat_type: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        chat_id: Optional[str] = None,
     ) -> bool:
         # Native draft streaming needs BOTH the descriptor flag and the
         # "draft" op. supported_ops is fail-open for legacy connectors
@@ -953,6 +954,24 @@ class RelayAdapter(BasePlatformAdapter):
 
     async def _on_inbound(self, event) -> None:
         """Bridge a connector-delivered MessageEvent into the normal adapter path."""
+        # Inbound replay dedupe (live-canary finding #3, Alice staging): the
+        # relay leg is at-least-once — on WS re-handshake the connector
+        # replays its durable per-instance buffer, and a long multi-tool turn
+        # (60-100s) straddling a quiet socket drop gets its ORIGINAL inbound
+        # replayed after the turn completes, re-running the whole turn (user
+        # saw the final answer 2-5x). Platform message identity (chat_id +
+        # message_id/ts) is stable across replays, so a bounded seen-set
+        # drops them. Consumer-side idempotency; no wire change.
+        dedupe_key = self._inbound_dedupe_key(event)
+        if dedupe_key is not None:
+            if dedupe_key in self._seen_inbound:
+                logger.info(
+                    "relay inbound dropped as replay (dedupe key=%s)", dedupe_key
+                )
+                return
+            self._seen_inbound[dedupe_key] = None
+            while len(self._seen_inbound) > self._SEEN_INBOUND_MAX:
+                self._seen_inbound.pop(next(iter(self._seen_inbound)))
         self._capture_scope(event)
         self._stamp_slack_session_thread(event)
         # Phase 3: a structured prompt answer resolves its waiting primitive
@@ -963,6 +982,37 @@ class RelayAdapter(BasePlatformAdapter):
             return
         await self._localize_inbound_media(event)
         await self.handle_message(event)
+
+    _SEEN_INBOUND_MAX = 512
+
+    def _inbound_dedupe_key(self, event) -> Optional[str]:
+        """Stable replay identity: (platform, chat, platform message id).
+
+        Chat identity lives on ``event.source`` (MessageEvent has no top-level
+        ``chat_id``), and this adapter can front SEVERAL platforms over one
+        relay socket (Phase 1.5 multiplex), so the underlying platform joins
+        the key — two platforms' numeric chat/message ids must never collide
+        into one identity.
+
+        Returns None when the event carries no platform message id (synthetic
+        events, some prompt responses) — those never dedupe, fail-open by
+        design: dropping a real user message is strictly worse than rerunning
+        one, so only dedupe when identity is certain.
+        """
+        source = getattr(event, "source", None)
+        message_id = getattr(event, "message_id", None)
+        chat_id = getattr(source, "chat_id", None)
+        if not message_id or not chat_id:
+            return None
+        # Normalize the platform component: production wire decoding always
+        # yields a Platform enum (unknowns canonicalize to Platform.RELAY),
+        # but alternate constructors may carry the plain string. Use the
+        # enum's value when present, the string itself otherwise — both
+        # spellings of one platform must produce ONE key, and two different
+        # string platforms must not collapse into the same empty component.
+        raw_platform = getattr(source, "platform", None)
+        platform = getattr(raw_platform, "value", raw_platform) or ""
+        return f"{platform}:{chat_id}:{message_id}"
 
     def _relay_slack_extra(self) -> Dict[str, Any]:
         """The Slack-behavior subset of the RELAY platform config.
@@ -1643,6 +1693,31 @@ class RelayAdapter(BasePlatformAdapter):
                 success=False,
                 error=f"relay does not front platform {platform_value}",
             )
+        _sfp_metadata = dict(metadata or {})
+        # Gateway-internal interim marker (see send()): strip before the
+        # wire; an interim send through this door also skips interception.
+        _interim = bool(_sfp_metadata.pop("_interim_send", False))
+        # Finding #7 (live canary): the delivery resolver calls THIS method
+        # directly (gateway/delivery.py), bypassing send() — an open native
+        # stream must absorb the turn-final here too, or the stream is left
+        # unsealed (frozen live indicator) and the final posts as a separate
+        # duplicate message.
+        if not _interim:
+            _sfp_key = self._match_open_draft(str(chat_id), _sfp_metadata)
+        else:
+            _sfp_key = None
+        if _sfp_key is not None:
+            seal = await self._seal_open_draft(
+                chat_id, content, _sfp_metadata, draft_key=_sfp_key
+            )
+            if seal.success:
+                return seal
+            # Failed seal falls through to the plain send below (review
+            # finding, PR 85796 point 1): never swallow the turn-final.
+            logger.warning(
+                "relay seal failed (%s); delivering turn-final as plain send",
+                seal.error,
+            )
         if self._transport is None:
             return SendResult(success=False, error="no transport")
         result = await self._transport.send_outbound(
@@ -1651,7 +1726,17 @@ class RelayAdapter(BasePlatformAdapter):
                 "chat_id": chat_id,
                 "content": content,
                 "reply_to": reply_to,
-                "metadata": self._with_scope(chat_id, metadata),
+                # format_hints on the explicit-platform lane too: this is the
+                # scheduled/cron delivery path — the in_channel brief itself —
+                # and it must render blocks exactly like an interactive send.
+                # Stamps _sfp_metadata (the interim-marker-stripped copy, per
+                # the seal path above), composing both sides of the merge.
+                "metadata": self._with_scope(
+                    chat_id,
+                    self._with_format_hints_for_platform(
+                        str(platform_value), _sfp_metadata
+                    ),
+                ),
             },
             platform=str(platform_value),
         )
@@ -1766,6 +1851,41 @@ class RelayAdapter(BasePlatformAdapter):
     ) -> SendResult:
         send_metadata = dict(metadata or {})
         explicit_platform = send_metadata.pop("_relay_logical_platform", None)
+        # Consumer-declared interim send (commentary, tail flush): NOT the
+        # turn-final, so it must never trigger seal-interception — sealing
+        # the live stream with interim text orphans the true final into a
+        # plain-send duplicate (live finding, 2026-08-16 canary). The
+        # marker is gateway-internal; strip before the wire.
+        _interim = bool(send_metadata.pop("_interim_send", False))
+        # NS-658 seal-interception — checked BEFORE the explicit-platform
+        # branch (finding #7, live canary): the delivery-resolver lane
+        # (follow-up queue, media-accompanied finals, scheduled sends) routes
+        # through send_for_platform, which posted a plain send while the
+        # native stream stayed open — the user got the stream frozen
+        # mid-word (live indicator, never sealed) PLUS the final as a
+        # separate message. An open stream absorbs the turn-final send no
+        # matter which egress door it arrives through; the stream IS the
+        # message.
+        if not _interim:
+            _send_key = self._match_open_draft(str(chat_id), send_metadata)
+        else:
+            _send_key = None
+        if _send_key is not None:
+            seal = await self._seal_open_draft(
+                chat_id, content, send_metadata, draft_key=_send_key
+            )
+            if seal.success:
+                return seal
+            # Review finding (PR 85796, point 1): a failed seal must NOT
+            # swallow the turn-final — the stream consumer has already
+            # disabled the draft transport, so returning failure here means
+            # the user never gets the answer. Fall through to a plain send
+            # (the orphaned stream is sealed connector-side by recycling /
+            # MAX_OPEN_STREAMS eviction).
+            logger.warning(
+                "relay seal failed (%s); delivering turn-final as plain send",
+                seal.error,
+            )
         if explicit_platform:
             return await self.send_for_platform(
                 explicit_platform,
