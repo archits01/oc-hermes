@@ -10,7 +10,12 @@ readonly SERVICE="opencomputer-v2-gateway.service"
 readonly SERVE_SERVICE="opencomputer-v2-serve.service"
 readonly TUNNEL_SERVICE="opencomputer-v2-fixed-tunnel.service"
 readonly HOME_DIR="/opt/opencomputer-v2-data"
-readonly PLATFORM_PORTS_HELPER="/opt/opencomputer-v2/scripts/ops/lmi_enabled_platform_ports.py"
+# Optional deployment-specific helper that resolves which platform ports should
+# be listening. Set OC_PLATFORM_PORTS_HELPER to an executable path to enable
+# the check; left empty the monitor simply skips it. Kept generic so this
+# fork stays a clean base - deployment-specific helpers live with the
+# deployment, not in the engine.
+readonly PLATFORM_PORTS_HELPER="${OC_PLATFORM_PORTS_HELPER:-}"
 readonly STATE_FILE="${HOME_DIR}/.health-monitor-state"
 readonly LOG_FILE="${HOME_DIR}/logs/health-monitor.log"
 readonly MAX_LOG_LINES=5000
@@ -61,7 +66,9 @@ for port in 8642 8650 8651 29129; do
 done
 
 enabled_platform_ports=""
-if [ ! -f "${PLATFORM_PORTS_HELPER}" ]; then
+if [ -z "${PLATFORM_PORTS_HELPER}" ]; then
+  :   # no helper configured for this deployment - skip the port check entirely
+elif [ ! -f "${PLATFORM_PORTS_HELPER}" ]; then
   issues="${issues}• Enabled-platform port resolver is unavailable\n"
 else
   enabled_platform_ports="$(python3 "${PLATFORM_PORTS_HELPER}" "${HOME_DIR}/config.yaml" 2>/dev/null)" ||
