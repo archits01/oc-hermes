@@ -39,6 +39,107 @@ function expectRegex(source, expression, message) {
   }
 }
 
+function functionBody(source, name) {
+  const signature = source.indexOf(`function ${name}(`)
+  const opening = signature === -1 ? -1 : source.indexOf('{', signature)
+
+  if (opening === -1) {
+    return ''
+  }
+
+  let depth = 0
+  let quote = null
+  let escaped = false
+
+  for (let index = opening; index < source.length; index += 1) {
+    const character = source[index]
+    const next = source[index + 1]
+
+    if (quote) {
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === quote) {
+        quote = null
+      }
+
+      continue
+    }
+
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character
+      continue
+    }
+
+    if (character === '/' && next === '/') {
+      const end = source.indexOf('\n', index + 2)
+
+      if (end === -1) {
+        return ''
+      }
+
+      index = end
+      continue
+    }
+
+    if (character === '/' && next === '*') {
+      const end = source.indexOf('*/', index + 2)
+
+      if (end === -1) {
+        return ''
+      }
+
+      index = end + 1
+      continue
+    }
+
+    if (character === '{') {
+      depth += 1
+    } else if (character === '}') {
+      depth -= 1
+
+      if (depth === 0) {
+        return source.slice(opening + 1, index)
+      }
+    }
+  }
+
+  return ''
+}
+
+function botsMainTabOwnershipFailures(source) {
+  const issues = []
+  const expect = (body, expression, message) => {
+    if (!expression.test(body)) {
+      issues.push(message)
+    }
+  }
+  const recordGroupMainTab = functionBody(source, 'recordGroupMainTab')
+  const dropGroupMainTab = functionBody(source, 'dropGroupMainTab')
+  const shouldRenderGroupChatInPane = functionBody(source, 'shouldRenderGroupChatInPane')
+  const botsPane = functionBody(source, 'BotsPane')
+  const openGroupChat = functionBody(source, 'openGroupChat')
+  const closeGroupChatMainTab = functionBody(source, 'closeGroupChatMainTab')
+
+  expect(recordGroupMainTab, /groupChatMainTabs\.set\(group, close\)/, 'Bots main-tab record mutator lost its map write')
+  expect(recordGroupMainTab, /\$groupMainTabsRev\.set\(\$groupMainTabsRev\.get\(\) \+ 1\)/, 'Bots main-tab record mutator lost its revision bump')
+  expect(dropGroupMainTab, /groupChatMainTabs\.delete\(group\)/, 'Bots main-tab drop mutator lost its map delete')
+  expect(dropGroupMainTab, /\$groupMainTabsRev\.set\(\$groupMainTabsRev\.get\(\) \+ 1\)/, 'Bots main-tab drop mutator lost its revision bump')
+  expect(shouldRenderGroupChatInPane, /return Boolean\(group && !groupChatMainTabs\.has\(group\)\)/, 'Bots fallback-pane ownership gate lost')
+  expect(botsPane, /useValue\(\$groupMainTabsRev\)/, 'BotsPane no longer subscribes to main-tab ownership changes')
+  expect(
+    botsPane,
+    /if \(shouldRenderGroupChatInPane\(groupChatName\) && groupChatMembers\.length\)/,
+    'BotsPane no longer invokes the fallback-pane ownership gate'
+  )
+  expect(openGroupChat, /recordGroupMainTab\(group, close\)/, 'openGroupChat no longer records main-tab ownership')
+  expect(openGroupChat, /dropGroupMainTab\(group\)/, 'openGroupChat no longer releases ownership on tab close')
+  expect(closeGroupChatMainTab, /dropGroupMainTab\(group\)/, 'closeGroupChatMainTab no longer releases ownership')
+
+  return issues
+}
+
 const requiredFiles = [
   'scripts/fork-sync.sh',
   'optional-mcps/sarvam-voice/server/main.py',
@@ -80,8 +181,26 @@ expectTextIncludes(
 )
 expectTextIncludes(
   forkSyncWorkflow,
+  '${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}',
+  'scheduled sync candidates are not unique per run attempt'
+)
+if (forkSyncWorkflow.includes('git push -f origin "$CB"')) {
+  fail('scheduled sync can overwrite unresolved conflict evidence with a force push')
+}
+expectTextIncludes(
+  forkSyncWorkflow,
   'node .github/scripts/assert-opencomputer-invariants.mjs',
   'scheduled sync no longer runs the executable invariant checker'
+)
+expectTextIncludes(
+  forkSyncWorkflow,
+  'FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs)',
+  'scheduled sync does not preserve its workflow and invariant-checker control plane'
+)
+expectTextIncludes(
+  forkSyncWorkflow,
+  'git checkout HEAD^1 -- "${FORK_CONTROL_PATHS[@]}"',
+  'clean upstream control-plane changes are not preserved before candidate push'
 )
 
 expectIncludes('hermes_cli/default_soul.py', 'OpenComputer', 'branding lost: default_soul.py')
@@ -148,27 +267,26 @@ if (!sourceArray) {
 }
 
 const bots = read('apps/desktop/src/plugins/hermes-bots/plugin.js')
-const recordGroupMainTab = bots.match(/function recordGroupMainTab\(group, close\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
-const dropGroupMainTab = bots.match(/function dropGroupMainTab\(group\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
-const paneBody = bots.match(/function BotsPane\(\) \{([\s\S]*?)\n\}\n\n\/\/ ── plugin/)?.[1] ?? ''
+for (const issue of botsMainTabOwnershipFailures(bots)) {
+  fail(issue)
+}
 
-expectRegex(recordGroupMainTab, /groupChatMainTabs\.set\(group, close\)/, 'Bots main-tab record mutator lost its map write')
-expectRegex(recordGroupMainTab, /\$groupMainTabsRev\.set\(\$groupMainTabsRev\.get\(\) \+ 1\)/, 'Bots main-tab record mutator lost its revision bump')
-expectRegex(dropGroupMainTab, /groupChatMainTabs\.delete\(group\)/, 'Bots main-tab drop mutator lost its map delete')
-expectRegex(dropGroupMainTab, /\$groupMainTabsRev\.set\(\$groupMainTabsRev\.get\(\) \+ 1\)/, 'Bots main-tab drop mutator lost its revision bump')
-expectRegex(
-  bots,
-  /function shouldRenderGroupChatInPane\(group\) \{\n  return Boolean\(group && !groupChatMainTabs\.has\(group\)\)\n\}/,
-  'Bots fallback-pane ownership gate lost'
-)
-expectRegex(paneBody, /useValue\(\$groupMainTabsRev\)/, 'BotsPane no longer subscribes to main-tab ownership changes')
-expectRegex(
-  paneBody,
-  /if \(shouldRenderGroupChatInPane\(groupChatName\) && groupChatMembers\.length\)/,
-  'BotsPane no longer invokes the fallback-pane ownership gate'
-)
-expectRegex(bots, /recordGroupMainTab\(group, close\)/, 'openGroupChat no longer records main-tab ownership')
-expectRegex(bots, /dropGroupMainTab\(group\)/, 'main-tab ownership is never released')
+const ownershipNegativeCases = [
+  ['openGroupChat record call', '      recordGroupMainTab(group, close)'],
+  ['openGroupChat close cleanup', '          dropGroupMainTab(group)'],
+  ['BotsPane revision subscription', '  useValue($groupMainTabsRev)'],
+  ['BotsPane fallback gate', '  if (shouldRenderGroupChatInPane(groupChatName) && groupChatMembers.length)']
+]
+
+for (const [name, statement] of ownershipNegativeCases) {
+  const mutated = bots.replace(statement, `  /* checker self-test removed: ${name} */`)
+
+  if (mutated === bots) {
+    fail(`Bots ownership checker self-test fixture was not found: ${name}`)
+  } else if (botsMainTabOwnershipFailures(mutated).length === 0) {
+    fail(`Bots ownership checker failed to detect a missing ${name}`)
+  }
+}
 
 if (failures.length > 0) {
   for (const message of failures) {
