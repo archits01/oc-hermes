@@ -45,9 +45,10 @@ jobs:
         # Daily runs create a dated branch per day, so without this the fork
         # accumulates one sync/upstream-* ref every 24h. Pruned by MERGE STATE
         # first, not age: a branch fully contained in oc-branding (ahead=0) has
-        # already been absorbed and is debris whatever its date. Only branches
-        # carrying unabsorbed work age out, at 14 days, so an unresolved
-        # -CONFLICTS branch is never silently deleted while it still matters.
+        # already been absorbed and is debris whatever its date. Normal
+        # unabsorbed candidates age out at 14 days, but an unresolved
+        # -CONFLICTS branch is preserved indefinitely until it is absorbed or
+        # an operator explicitly retires it.
         run: |
           git fetch --no-tags origin '+refs/heads/sync/upstream-*:refs/remotes/origin/sync/upstream-*' || true
           cutoff=$(date -u -d '14 days ago' +%s)
@@ -58,6 +59,8 @@ jobs:
             if [ "$ahead" = "0" ]; then
               echo "absorbed (ahead=0), deleting: $br"
               git push origin --delete "$br" || true
+            elif [[ "$br" == *-CONFLICTS ]]; then
+              echo "keeping unresolved conflict evidence: $br"
             elif [ "$when" -lt "$cutoff" ]; then
               echo "unabsorbed but older than 14d, deleting: $br"
               git push origin --delete "$br" || true
@@ -153,57 +156,14 @@ jobs:
       - name: OpenComputer invariants must survive
         if: steps.merge.outputs.clean == 'true'
         run: |
-          fail=0
-          for f in \
-            scripts/fork-sync.sh \
-            optional-mcps/sarvam-voice/server/main.py \
-            optional-mcps/unipile/server/src/mcp_server_unipile_extended/server.py \
-            tools/media_store.py \
-            apps/desktop/src/plugins/lmi-dashboard/plugin.tsx \
-            apps/desktop/src/contrib/plugins.ts \
-            apps/desktop/src/lib/session-source.ts \
-            apps/desktop/electron/default-connection.ts \
-            apps/desktop/electron/main.ts \
-            apps/desktop/electron/packaged-app-updater.ts \
-            apps/desktop/electron/update-remote.ts \
-            apps/desktop/package.json \
-            apps/desktop/public/flower.png ; do
-            [ -e "$f" ] || { echo "::error::OC file lost in merge: $f"; fail=1; }
-          done
           # VM deployment helpers are intentionally VM-owned under /opt/lmi-ops
-          # after the 2026-08-24 deployment split. They are not fork invariants:
-          # a source merge must neither resurrect nor require them.
-          # A clean merge can still silently delete branding when upstream renames a
-          # file - that produces no conflict at all, so assert the markers directly.
-          grep -q OpenComputer hermes_cli/default_soul.py || { echo "::error::branding lost: default_soul.py"; fail=1; }
-          grep -q OpenComputer scripts/install.sh          || { echo "::error::branding lost: install.sh"; fail=1; }
-          grep -q archits01  scripts/install.sh            || { echo "::error::install.sh no longer points at the fork"; fail=1; }
-          grep -q archits01  scripts/install.ps1           || { echo "::error::install.ps1 no longer points at the fork"; fail=1; }
-          grep -rq OpenComputer apps/desktop/src/i18n/en.ts || { echo "::error::branding lost: i18n en.ts"; fail=1; }
-          grep -q 'seedDefaultConnectionIfMissing' apps/desktop/electron/main.ts || { echo "::error::friend-DMG default connection seed lost"; fail=1; }
-          grep -q 'default-connection.json' apps/desktop/package.json || { echo "::error::friend-DMG default connection packaging lost"; fail=1; }
-          grep -q 'archits01/oc-hermes' apps/desktop/electron/packaged-app-updater.ts || { echo "::error::packaged updater no longer targets the fork"; fail=1; }
-          grep -q 'archits01/oc-hermes' apps/desktop/electron/update-remote.ts || { echo "::error::desktop source updater no longer targets the fork"; fail=1; }
-          grep -q 'import.meta.glob' apps/desktop/src/contrib/plugins.ts || { echo "::error::bundled desktop-plugin discovery lost"; fail=1; }
-          grep -q 'OpenComputer is working' apps/desktop/src/components/assistant-ui/thread/status.tsx || { echo "::error::desktop activity branding lost"; fail=1; }
-          grep -q 'Update OpenComputer Desktop' apps/desktop/src/sdk/index.ts || { echo "::error::desktop upgrade branding lost"; fail=1; }
-          grep -q 'OpenComputer gateway unavailable' apps/desktop/src/store/gateway.ts || { echo "::error::gateway error branding lost"; fail=1; }
-          grep -q 'remote OpenComputer' apps/desktop/src/i18n/en.ts || { echo "::error::remote profile branding lost"; fail=1; }
-          # #89788 is one behavioral unit: the reactive atom, two Map mutators,
-          # and the fallback-pane gate. A previous clean merge kept only a
-          # consumer and caused BotsPane to throw on render.
-          for symbol in '$groupMainTabsRev' 'function recordGroupMainTab' 'function dropGroupMainTab' 'function shouldRenderGroupChatInPane'; do
-            grep -q "$symbol" apps/desktop/src/plugins/hermes-bots/plugin.js || { echo "::error::bots main-tab ownership contract lost: $symbol"; fail=1; }
-          done
-          # The LMI platforms must stay classified as messaging sources, or every
-          # customer conversation lands in the global Sessions sidebar. Upstream has
-          # no idea these adapters exist, so its copy of session-source.ts silently
-          # reverts this - which is exactly what happened on 2026-08-19.
-          for p in linkedin instagram whatsapp_unipile messenger_unipile ; do
-            grep -q "'$p'" apps/desktop/src/lib/session-source.ts || { echo "::error::$p dropped from MESSAGING_SESSION_SOURCE_IDS - customer chats will flood the Sessions sidebar"; fail=1; }
-          done
-          test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0   || { echo "::error::conflict markers committed"; fail=1; }
-          exit $fail
+          # after the 2026-08-24 deployment split. The executable checker covers
+          # source-owned product invariants without requiring those removed files.
+          node .github/scripts/assert-opencomputer-invariants.mjs
+          test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0 || {
+            echo "::error::conflict markers committed"
+            exit 1
+          }
 
       - name: Push the candidate
         if: steps.merge.outputs.clean == 'true'
