@@ -899,9 +899,7 @@ def load_skin(name: str) -> SkinConfig:
         if data:
             return _build_skin_config(data)
 
-    # Check built-in skins (desktop Ember is the CLI Ares palette)
-    if name == "ember":
-        name = "ares"
+    # Check built-in skins
     if name in _BUILTIN_SKINS:
         return _build_skin_config(_BUILTIN_SKINS[name])
 

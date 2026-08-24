@@ -55,22 +55,6 @@ def _m():
     return main
 
 
-def _git_cmd_for_repo(cwd: Path) -> list[str]:
-    """Build the git command used by the updater.
-
-    Managed installs can be owned by a different account than the process that
-    runs the updater (the live OpenComputer VM is root-run against a checkout
-    copied from another UID).  Git's dubious-ownership guard is correct for
-    ordinary commands, but it must be scoped explicitly for this already
-    authenticated, known install root.  Keep the exception command-local so
-    we do not mutate a user's global git configuration.
-    """
-    command = ["git", "-c", f"safe.directory={cwd.resolve(strict=False)}"]
-    if sys.platform == "win32":
-        command.extend(["-c", "windows.appendAtomically=false"])
-    return command
-
-
 _UPDATE_RUNTIME_RELOAD_MODULES = (
     "hermes_constants",
     "tools.environments.local",
@@ -1050,11 +1034,50 @@ def _update_complete_message(pre_version: str | None) -> str:
     return "✓ Update complete!"
 
 
-def _update_via_zip(args, *, had_desktop_app_before_update: bool = False):
+def _print_update_summary(
+    *,
+    node_failures: list,
+    desktop_build_ok: bool,
+    pre_update_version: str | None,
+) -> None:
+    """Final update banner. A failed Desktop rebuild is non-fatal for the
+    Python side, but must not print ``✓ Update complete!`` (#88251)."""
+    print()
+    if node_failures or not desktop_build_ok:
+        parts = []
+        if node_failures:
+            parts.append(
+                f"Node.js dependencies for {', '.join(node_failures)} did not refresh"
+            )
+        if not desktop_build_ok:
+            parts.append(
+                "the desktop app was not rebuilt and is still on the previous build"
+            )
+        print("⚠ Update partially complete — " + "; ".join(parts) + ".")
+        if node_failures:
+            print("  Code and Python deps are updated, but the dashboard/TUI may")
+            print("  be in a mixed state until the Node deps are rebuilt.")
+        if not desktop_build_ok:
+            print("  Run `hermes desktop` to retry the desktop rebuild.")
+    else:
+        _print_update_completion(_update_complete_message(pre_update_version))
+
+
+def _write_gateway_update_exit_code(ok: bool) -> None:
+    path = get_hermes_home() / ".update_exit_code"
+    try:
+        path.write_text("0" if ok else "1", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _update_via_zip(args, *, had_desktop_app_before_update: bool = False) -> bool:
     """Update Hermes Agent by downloading a ZIP archive.
 
     Used on Windows when git file I/O is broken (antivirus, NTFS filter
     drivers causing 'Invalid argument' errors on file creation).
+
+    Returns ``False`` when a Desktop rebuild ran and failed; ``True`` otherwise.
     """
     active_tool_dependencies = _m()._capture_active_tool_dependencies()
 
@@ -1091,7 +1114,7 @@ def _update_via_zip(args, *, had_desktop_app_before_update: bool = False):
     # install with vanilla Hermes - branding, LMI plugin and MCPs all gone - on the
     # one code path where the user has no way to notice before it lands.
     zip_url = (
-        f"https://github.com/archits01/hermes-agent/archive/refs/heads/{branch}.zip"
+        f"https://github.com/NousResearch/hermes-agent/archive/refs/heads/{branch}.zip"
     )
 
     print("→ Downloading latest version...")
@@ -1312,7 +1335,7 @@ def _update_via_zip(args, *, had_desktop_app_before_update: bool = False):
 
     node_failures = _update_node_dependencies()
     _m()._build_web_ui(_m().PROJECT_ROOT / "web")
-    _rebuild_desktop_after_update(
+    desktop_build_ok = _rebuild_desktop_after_update(
         _m().PROJECT_ROOT / "apps" / "desktop",
         had_desktop_app_before_update=had_desktop_app_before_update,
     )
@@ -1417,16 +1440,11 @@ def _update_via_zip(args, *, had_desktop_app_before_update: bool = False):
             "Post-update state.db integrity check (zip path) failed: %s", exc
         )
 
-    print()
-    if node_failures:
-        print(
-            "⚠ Update partially complete — Node.js dependencies for "
-            f"{', '.join(node_failures)} did not refresh."
-        )
-        print("  Code and Python deps are updated, but the dashboard/TUI may")
-        print("  be in a mixed state until the Node deps are rebuilt.")
-    else:
-        _print_update_completion(_update_complete_message(pre_update_version))
+    _print_update_summary(
+        node_failures=node_failures,
+        desktop_build_ok=desktop_build_ok,
+        pre_update_version=pre_update_version,
+    )
     try:
         _print_curator_first_run_notice()
     except Exception as e:
@@ -1770,42 +1788,6 @@ def _discard_stashed_changes(
 
     print("→ Discarded local source changes (updates.non_interactive_local_changes=discard).")
     return True
-
-
-def _finalize_update_stash(
-    git_cmd: list[str],
-    cwd: Path,
-    stash_ref: Optional[str],
-    *,
-    keep_stash: bool = False,
-    discard_local_changes: bool = False,
-    prompt_user: bool = False,
-    input_fn=None,
-) -> None:
-    """Apply, discard, or intentionally retain an update autostash.
-
-    Keeping this policy in one helper makes the zero-commit and pulled-update
-    paths behave identically.  ``--keep-stash`` is deliberately a no-op on
-    the checkout: the stash remains available for a later hand-off or manual
-    apply, while the updater continues with the clean updated tree.
-    """
-    if stash_ref is None:
-        return
-    if keep_stash:
-        print(
-            "  ℹ️  Local changes preserved in git stash "
-            f"(ref: {stash_ref}); not re-applied."
-        )
-    elif discard_local_changes:
-        _m()._discard_stashed_changes(git_cmd, cwd, stash_ref)
-    else:
-        _m()._restore_stashed_changes(
-            git_cmd,
-            cwd,
-            stash_ref,
-            prompt_user=prompt_user,
-            input_fn=input_fn,
-        )
 
 OFFICIAL_REPO_URLS = {
     "https://github.com/NousResearch/hermes-agent.git",
@@ -2771,7 +2753,9 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
         print("✗ Not a git repository — cannot check for updates.")
         sys.exit(1)
 
-    git_cmd = _git_cmd_for_repo(_m().PROJECT_ROOT)
+    git_cmd = ["git"]
+    if sys.platform == "win32":
+        git_cmd = ["git", "-c", "windows.appendAtomically=false"]
 
     # A crashed/interrupted fetch can leave .git/shallow.lock (or another git
     # lock file) behind; every later fetch then fails with "File exists" and
@@ -4590,8 +4574,15 @@ def _desktop_app_present(desktop_dir: Path) -> bool:
 
 def _rebuild_desktop_after_update(
     desktop_dir: Path, *, had_desktop_app_before_update: bool
-) -> None:
-    """Rebuild an installed Desktop app when its source or artifact changed."""
+) -> bool:
+    """Rebuild an installed Desktop app when its source or artifact changed.
+
+    Returns ``False`` only when a rebuild was attempted and failed, so the
+    caller can withhold ``✓ Update complete!`` and (in gateway mode) write
+    a failing ``.update_exit_code`` (#88251). Every other outcome — nothing
+    to rebuild, up to date, build succeeded, Desktop never installed —
+    returns ``True``.
+    """
     # The release tree is ignored by git and can disappear during an update.
     # Its pre-update presence is enough to restore it; do not make people who
     # have never used Desktop pay for an Electron build.
@@ -4601,7 +4592,7 @@ def _rebuild_desktop_after_update(
         and _m()._resolve_node_runtime_npm()
         and has_desktop_app
     ):
-        return
+        return True
 
     print("→ Checking if desktop app needs rebuilding...")
     # Consult the content-hash stamp IN-PROCESS first. The spawned
@@ -4620,7 +4611,7 @@ def _rebuild_desktop_after_update(
         skip_desktop_build = False
     if skip_desktop_build:
         print("  ✓ Desktop app up to date")
-        return
+        return True
 
     desktop_build_cmd = [sys.executable, "-m", "hermes_cli.main", "desktop", "--build-only"]
     # Capture the (very loud) Electron/vite build output into update.log
@@ -4645,15 +4636,16 @@ def _rebuild_desktop_after_update(
             desktop_build_cmd, cwd=_m().PROJECT_ROOT, env=build_env
         )
     if build_result.returncode != 0:
-        print("  ⚠ Desktop build failed (non-fatal; run `hermes desktop` to retry)")
+        print("  ⚠ Desktop build failed (run `hermes desktop` to retry)")
         tail = "\n".join((build_result.stdout or "").strip().splitlines()[-15:])
         if tail:
             print(tail)
         from hermes_constants import display_hermes_home as _dhh
 
         print(f"  Full build log: {_dhh()}/logs/update.log")
-    else:
-        print("  ✓ Desktop app up to date")
+        return False
+    print("  ✓ Desktop app up to date")
+    return True
 
 
 def _cmd_update_impl(args, gateway_mode: bool):
@@ -4829,7 +4821,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
     if sys.platform == "win32" and git_dir.exists():
         subprocess.run(
             [
-                *_git_cmd_for_repo(_m().PROJECT_ROOT),
+                "git",
+                "-c",
+                "windows.appendAtomically=false",
                 "config",
                 "windows.appendAtomically",
                 "false",
@@ -4840,7 +4834,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
 
     # Build git command once — reused for fork detection and the update itself.
-    git_cmd = _git_cmd_for_repo(_m().PROJECT_ROOT)
+    git_cmd = ["git"]
+    if sys.platform == "win32":
+        git_cmd = ["git", "-c", "windows.appendAtomically=false"]
 
     # Discard npm lockfile churn before any stash/branch logic. npm rewrites
     # tracked package-lock.json files non-deterministically at install/build
@@ -4867,12 +4863,14 @@ def _cmd_update_impl(args, gateway_mode: bool):
     if use_zip_update:
         # ZIP-based update for Windows when git is broken
         try:
-            _update_via_zip(
+            desktop_build_ok = _update_via_zip(
                 args,
                 had_desktop_app_before_update=had_desktop_app_before_update,
             )
         finally:
             _m()._resume_windows_gateways_after_update(_windows_gateway_resume)
+        if gateway_mode:
+            _write_gateway_update_exit_code(desktop_build_ok)
         return
 
     # Fetch and pull
@@ -5071,15 +5069,14 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # EXCEPTION: a parked feature branch we verified clean + fully
             # merged stays on the target — re-parking the checkout on the
             # stale branch is the 2026-08-17 incident all over again.
-            _finalize_update_stash(
-                git_cmd,
-                _m().PROJECT_ROOT,
-                auto_stash_ref,
-                keep_stash=keep_stash,
-                discard_local_changes=discard_local_changes,
-                prompt_user=prompt_for_restore,
-                input_fn=gw_input_fn,
-            )
+            if auto_stash_ref is not None:
+                _m()._restore_stashed_changes(
+                    git_cmd,
+                    _m().PROJECT_ROOT,
+                    auto_stash_ref,
+                    prompt_user=prompt_for_restore,
+                    input_fn=gw_input_fn,
+                )
             if parked_branch_switched:
                 print(
                     f"  ✓ Checkout was parked on '{current_branch}' (fully "
@@ -5294,12 +5291,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     )
                     print("  Restore manually with: git stash apply")
                 else:
-                    _finalize_update_stash(
+                    _m()._restore_stashed_changes(
                         git_cmd,
                         _m().PROJECT_ROOT,
                         auto_stash_ref,
-                        keep_stash=keep_stash,
-                        discard_local_changes=discard_local_changes,
                         prompt_user=prompt_for_restore,
                         input_fn=gw_input_fn,
                     )
@@ -5514,7 +5509,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         node_failures = _update_node_dependencies()
         _m()._build_web_ui(_m().PROJECT_ROOT / "web")
 
-        _rebuild_desktop_after_update(
+        desktop_build_ok = _rebuild_desktop_after_update(
             desktop_dir,
             had_desktop_app_before_update=had_desktop_app_before_update,
         )
@@ -6005,13 +6000,11 @@ def _cmd_update_impl(args, gateway_mode: bool):
         #
         # Writing the marker here — after git pull + pip install succeed but
         # before we attempt the restart — ensures the new gateway sees it
-        # regardless of how we die.
+        # regardless of how we die. Gated on desktop_build_ok (#88251): a
+        # Desktop rebuild failure must not be reported as "0" — the gateway's
+        # /update watcher (gateway/run.py) polls this file.
         if gateway_mode:
-            _exit_code_path = get_hermes_home() / ".update_exit_code"
-            try:
-                _exit_code_path.write_text("0", encoding="utf-8")
-            except OSError:
-                pass
+            _write_gateway_update_exit_code(desktop_build_ok)
 
         gateway_fleet_restart_incomplete = False
         # Snapshot of gateways running before we touch anything. Stays empty
@@ -6836,10 +6829,12 @@ def _cmd_update_impl(args, gateway_mode: bool):
             print(f"⚠ Git update failed: {e}")
             print("→ Falling back to ZIP download...")
             print()
-            _update_via_zip(
+            desktop_build_ok = _update_via_zip(
                 args,
                 had_desktop_app_before_update=had_desktop_app_before_update,
             )
+            if gateway_mode:
+                _write_gateway_update_exit_code(desktop_build_ok)
         else:
             print(f"✗ Update failed: {e}")
             sys.exit(1)
