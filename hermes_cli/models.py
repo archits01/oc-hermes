@@ -144,6 +144,8 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
 ]
 
 _openrouter_catalog_cache: list[tuple[str, str]] | None = None
+_openrouter_catalog_cached_at: float = 0.0
+_OPENROUTER_CATALOG_CACHE_TTL_SECONDS = 300.0
 
 
 # Fallback Vercel AI Gateway snapshot used when the live catalog is unavailable.
@@ -719,6 +721,224 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
 # source of truth.
 _PROVIDER_MODELS["ai-gateway"] = [mid for mid, _ in VERCEL_AI_GATEWAY_MODELS]
 
+
+# ---------------------------------------------------------------------------
+# OpenCode Free verified catalog
+# ---------------------------------------------------------------------------
+#
+# The keyless OpenCode relay has historically changed its free promotions more
+# quickly than third-party catalogues report them.  In particular, a model can
+# remain marked free in a catalogue after the anonymous relay starts rejecting
+# it.  Keep the hand-verified list above as an offline fallback, but let the
+# daily verifier publish a *freshly probed* profile-local list.  Do not merge
+# the two lists: a current verified catalog is authoritative and removes a
+# promotion that has ended.
+OPENCODE_FREE_CATALOG_VERSION = 1
+OPENCODE_FREE_CATALOG_MAX_AGE_SECONDS = 48 * 60 * 60
+OPENCODE_FREE_CATALOG_MAX_MODELS = 64
+_OPENCODE_FREE_STATIC_MODELS: tuple[str, ...] = tuple(
+    _PROVIDER_MODELS["opencode-free"]
+)
+_OPENCODE_FREE_MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$")
+
+
+def opencode_free_catalog_path() -> Path:
+    """Return this profile's verified keyless-OpenCode catalog path."""
+    from hermes_constants import get_hermes_home
+
+    return get_hermes_home() / "opencode_free_model_catalog.json"
+
+
+def _valid_opencode_free_model_id(value: Any) -> bool:
+    return isinstance(value, str) and bool(_OPENCODE_FREE_MODEL_ID_RE.fullmatch(value))
+
+
+def _read_opencode_free_catalog(*, now: Optional[float] = None) -> Optional[list[str]]:
+    """Read a structurally valid, bounded-age verified free catalog.
+
+    The cache is deliberately profile-scoped.  A named profile can have a
+    different OpenCode availability window, and reading a machine-global
+    cache would make its picker advertise another profile's unverified model.
+    ``None`` means callers must use the static offline fallback.
+    """
+    try:
+        with opencode_free_catalog_path().open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict) or payload.get("version") != OPENCODE_FREE_CATALOG_VERSION:
+            return None
+        verified_at = payload.get("verified_at")
+        if (
+            not isinstance(verified_at, (int, float))
+            or isinstance(verified_at, bool)
+            or verified_at <= 0
+        ):
+            return None
+        current_time = time.time() if now is None else now
+        if current_time < verified_at or current_time - verified_at > OPENCODE_FREE_CATALOG_MAX_AGE_SECONDS:
+            return None
+        raw_models = payload.get("models")
+        if (
+            not isinstance(raw_models, list)
+            or not raw_models
+            or len(raw_models) > OPENCODE_FREE_CATALOG_MAX_MODELS
+        ):
+            return None
+        models: list[str] = []
+        seen: set[str] = set()
+        for item in raw_models:
+            model_id = item.get("id") if isinstance(item, dict) else None
+            item_verified_at = item.get("verified_at") if isinstance(item, dict) else None
+            if (
+                not _valid_opencode_free_model_id(model_id)
+                or not isinstance(item_verified_at, (int, float))
+                or isinstance(item_verified_at, bool)
+                or item_verified_at <= 0
+                or item_verified_at > current_time
+                or current_time - item_verified_at > OPENCODE_FREE_CATALOG_MAX_AGE_SECONDS
+            ):
+                return None
+            key = model_id.lower()
+            if key not in seen:
+                models.append(model_id)
+                seen.add(key)
+        return models or None
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def get_verified_opencode_free_model_ids(*, now: Optional[float] = None) -> list[str]:
+    """Return current anonymous OpenCode models, else the static safe fallback."""
+    verified = _read_opencode_free_catalog(now=now)
+    return verified if verified is not None else list(_OPENCODE_FREE_STATIC_MODELS)
+
+
+def has_fresh_verified_opencode_free_catalog(*, now: Optional[float] = None) -> bool:
+    """Whether this profile has a current probe-backed OpenCode Free cache.
+
+    Managed pickers use this stricter predicate: their explicit allowlist
+    means every advertised free choice must have current provider evidence.
+    Upstream/unmanaged Hermes keeps calling
+    :func:`get_verified_opencode_free_model_ids`, which deliberately retains
+    the static offline fallback.
+    """
+    return _read_opencode_free_catalog(now=now) is not None
+
+
+def get_fresh_opencode_free_catalog_snapshot(
+    *, now: Optional[float] = None,
+) -> Optional[tuple[list[str], float]]:
+    """Return current verified IDs with their original shared timestamp.
+
+    The refresh job uses this only to retain a smaller all-transient subset
+    without extending its proof window.  Callers rendering a picker should use
+    the simpler model-ID reader instead.
+    """
+    models = _read_opencode_free_catalog(now=now)
+    if models is None:
+        return None
+    try:
+        with opencode_free_catalog_path().open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+        verified_at = payload.get("verified_at") if isinstance(payload, dict) else None
+        if (
+            not isinstance(verified_at, (int, float))
+            or isinstance(verified_at, bool)
+            or verified_at <= 0
+        ):
+            return None
+        return models, float(verified_at)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def get_stored_opencode_free_model_ids() -> list[str]:
+    """Return structurally valid cached IDs without extending their TTL.
+
+    This is for the refresh job's transient-error retention only.  Runtime and
+    picker callers must use :func:`get_verified_opencode_free_model_ids`.
+    """
+    try:
+        with opencode_free_catalog_path().open(encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict) or payload.get("version") != OPENCODE_FREE_CATALOG_VERSION:
+            return []
+        raw_models = payload.get("models")
+        if (
+            not isinstance(raw_models, list)
+            or len(raw_models) > OPENCODE_FREE_CATALOG_MAX_MODELS
+        ):
+            return []
+        result: list[str] = []
+        seen: set[str] = set()
+        for item in raw_models:
+            model_id = item.get("id") if isinstance(item, dict) else None
+            if not _valid_opencode_free_model_id(model_id):
+                return []
+            key = model_id.lower()
+            if key not in seen:
+                result.append(model_id)
+                seen.add(key)
+        return result
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return []
+
+
+def write_verified_opencode_free_catalog(
+    models: list[str],
+    *,
+    verified_at: Optional[float] = None,
+    source: str = "https://opencode.ai/zen/v1",
+) -> None:
+    """Atomically publish a fully verified keyless OpenCode catalog.
+
+    The caller must only pass successful anonymous inference probes.  Refuse
+    empty/corrupt input rather than accidentally replacing the fallback with
+    an unusable picker row.
+    """
+    timestamp = time.time() if verified_at is None else verified_at
+    if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or timestamp <= 0:
+        raise ValueError("verified_at must be a positive timestamp")
+    unique: list[str] = []
+    seen: set[str] = set()
+    for model_id in models:
+        if not _valid_opencode_free_model_id(model_id):
+            raise ValueError("invalid OpenCode free model id")
+        key = model_id.lower()
+        if key not in seen:
+            unique.append(model_id)
+            seen.add(key)
+        if len(unique) > OPENCODE_FREE_CATALOG_MAX_MODELS:
+            raise ValueError("too many OpenCode free models")
+    if not unique:
+        raise ValueError("refusing to write an empty verified OpenCode free catalog")
+    atomic_json_write(
+        opencode_free_catalog_path(),
+        {
+            "version": OPENCODE_FREE_CATALOG_VERSION,
+            "provider": "opencode-free",
+            "verified_at": timestamp,
+            "source": source,
+            "models": [
+                {"id": model_id, "verified_at": timestamp}
+                for model_id in unique
+            ],
+        },
+        indent=2,
+    )
+
+
+def clear_verified_opencode_free_catalog() -> None:
+    """Remove an obsolete verified catalog after a definitive rejection.
+
+    This intentionally does not alter the static fallback.  Managed pickers
+    check :func:`has_fresh_verified_opencode_free_catalog` and disappear,
+    while unmanaged upstream behavior remains available offline.
+    """
+    try:
+        opencode_free_catalog_path().unlink(missing_ok=True)
+    except OSError:
+        return
+
 # ---------------------------------------------------------------------------
 # Nous Portal free-model helper
 # ---------------------------------------------------------------------------
@@ -730,10 +950,10 @@ _PROVIDER_MODELS["ai-gateway"] = [mid for mid, _ in VERCEL_AI_GATEWAY_MODELS]
 def _is_model_free(model_id: str, pricing: dict[str, dict[str, str]]) -> bool:
     """Return True if *model_id* has zero-cost prompt AND completion pricing."""
     p = pricing.get(model_id)
-    if not p:
+    if not isinstance(p, dict) or "prompt" not in p or "completion" not in p:
         return False
     try:
-        return float(p.get("prompt", "1")) == 0 and float(p.get("completion", "1")) == 0
+        return float(p["prompt"]) == 0 and float(p["completion"]) == 0
     except (TypeError, ValueError):
         return False
 
@@ -1555,7 +1775,11 @@ def get_default_model_for_provider(provider: str) -> str:
     catalog-labeled default instead; a missing model must never auto-escalate
     to the flagship.
     """
-    models = _PROVIDER_MODELS.get(provider, [])
+    models = (
+        get_verified_opencode_free_model_ids()
+        if provider == "opencode-free"
+        else _PROVIDER_MODELS.get(provider, [])
+    )
     if provider in _SILENT_DEFAULT_PROVIDERS:
         preferred = get_preferred_silent_default_model(provider)
         # Trust the preferred default even when the provider has no static
@@ -1568,10 +1792,14 @@ def get_default_model_for_provider(provider: str) -> str:
 
 def _openrouter_model_is_free(pricing: Any) -> bool:
     """Return True when both prompt and completion pricing are zero."""
-    if not isinstance(pricing, dict):
+    if (
+        not isinstance(pricing, dict)
+        or "prompt" not in pricing
+        or "completion" not in pricing
+    ):
         return False
     try:
-        return float(pricing.get("prompt", "0")) == 0 and float(pricing.get("completion", "0")) == 0
+        return float(pricing["prompt"]) == 0 and float(pricing["completion"]) == 0
     except (TypeError, ValueError):
         return False
 
@@ -1599,6 +1827,42 @@ def _openrouter_model_supports_tools(item: Any) -> bool:
         # Field absent / malformed / None — be permissive.
         return True
     return "tools" in params
+
+
+def _openrouter_catalog_explicitly_supports_tools(item: Any) -> bool:
+    """Strict live-catalog proof used only by managed free-only policy.
+
+    The regular OpenRouter picker intentionally tolerates missing capability
+    metadata for backward compatibility with old mirrors.  A managed free-only
+    selection has a stronger contract: an unpriced/unknown capability must not
+    be marketed as a runnable free agent model.
+    """
+    if not isinstance(item, dict):
+        return False
+    params = item.get("supported_parameters")
+    return isinstance(params, list) and "tools" in {
+        str(param).strip().lower() for param in params
+    }
+
+
+def _openrouter_uncurated_free_tool_model(item: Any) -> bool:
+    """Strict admission for live models absent from the curated manifest."""
+    if not isinstance(item, dict):
+        return False
+    pricing = item.get("pricing")
+    if (
+        not isinstance(pricing, dict)
+        or "prompt" not in pricing
+        or "completion" not in pricing
+    ):
+        return False
+    try:
+        if float(pricing["prompt"]) != 0 or float(pricing["completion"]) != 0:
+            return False
+    except (TypeError, ValueError):
+        return False
+    params = item.get("supported_parameters")
+    return isinstance(params, list) and "tools" in params
 
 
 def parse_openrouter_reasoning_capabilities(item: Any) -> Optional[dict[str, Any]]:
@@ -2019,10 +2283,28 @@ def fetch_openrouter_models(
     force_refresh: bool = False,
 ) -> list[tuple[str, str]]:
     """Return the curated OpenRouter picker list, refreshed from the live catalog when possible."""
-    global _openrouter_catalog_cache
+    global _openrouter_catalog_cache, _openrouter_catalog_cached_at
 
-    if _openrouter_catalog_cache is not None and not force_refresh:
+    cache_is_fresh = (
+        _openrouter_catalog_cache is not None
+        and not force_refresh
+        and time.monotonic() - _openrouter_catalog_cached_at
+        < _OPENROUTER_CATALOG_CACHE_TTL_SECONDS
+    )
+    if cache_is_fresh:
         return list(_openrouter_catalog_cache)
+    discard_cached_success = _openrouter_catalog_cache is not None and (
+        force_refresh
+        or time.monotonic() - _openrouter_catalog_cached_at
+        >= _OPENROUTER_CATALOG_CACHE_TTL_SECONDS
+    )
+    if discard_cached_success:
+        # Once the successful-result TTL expires, it is no longer availability
+        # evidence. An explicit force refresh has the same contract: a failed
+        # refresh must use the static snapshot, not silently resurrect an old
+        # promotion for the life of the gateway process.
+        _openrouter_catalog_cache = None
+        _openrouter_catalog_cached_at = 0.0
 
     # Prefer the remotely-hosted catalog manifest; fall back to the in-repo
     # snapshot when the manifest is unreachable. Both are curated lists that
@@ -2087,6 +2369,18 @@ def fetch_openrouter_models(
             desc = "free" if _openrouter_model_is_free(live_item.get("pricing")) else ""
         curated.append((preferred_id, desc))
 
+    # Promotions change faster than the curated manifest. Add every live,
+    # tool-capable zero-price route even when it is not yet curated; the picker
+    # can then apply model_catalog.free_only_providers without waiting for a
+    # Hermes release. Paid uncurated rows remain excluded.
+    curated_ids = {model_id for model_id, _description in curated}
+    for model_id, live_item in live_by_id.items():
+        if model_id in curated_ids:
+            continue
+        if not _openrouter_uncurated_free_tool_model(live_item):
+            continue
+        curated.append((model_id, "free"))
+
     if not curated:
         return list(_openrouter_catalog_cache or fallback)
 
@@ -2094,6 +2388,7 @@ def fetch_openrouter_models(
     if not first_desc:
         curated[0] = (first_id, "recommended")
     _openrouter_catalog_cache = curated
+    _openrouter_catalog_cached_at = time.monotonic()
     return list(curated)
 
 
@@ -2224,7 +2519,9 @@ _pricing_cache: dict[str, dict[str, dict[str, str]]] = {}
 # backend. Every caller falls back to a curated list meanwhile, so the cost of
 # the stale entry is silent and invisible.
 _FAILED_CATALOG_TTL_SECONDS = 120.0
+_SUCCESSFUL_CATALOG_TTL_SECONDS = 300.0
 _pricing_cache_retry_after: dict[str, float] = {}
+_pricing_cache_expires_at: dict[str, float] = {}
 
 
 def _cached_catalog(cache_key: str) -> Optional[dict[str, dict[str, Any]]]:
@@ -2232,10 +2529,19 @@ def _cached_catalog(cache_key: str) -> Optional[dict[str, dict[str, Any]]]:
     cached = _pricing_cache.get(cache_key)
     if cached is None:
         return None
-    retry_after = _pricing_cache_retry_after.get(cache_key)
-    if retry_after is not None and time.monotonic() >= retry_after:
+    now = time.monotonic()
+    expiry = _pricing_cache_expires_at.get(cache_key)
+    if expiry is None:
+        # Compatibility for a cache hydrated by older code/tests: bind it on
+        # first use rather than granting it an unbounded lifetime.
+        expiry = _pricing_cache_retry_after.get(
+            cache_key, now + _SUCCESSFUL_CATALOG_TTL_SECONDS
+        )
+        _pricing_cache_expires_at[cache_key] = expiry
+    if now >= expiry:
         _pricing_cache.pop(cache_key, None)
         _pricing_cache_retry_after.pop(cache_key, None)
+        _pricing_cache_expires_at.pop(cache_key, None)
         return None
     return cached
 
@@ -2245,12 +2551,13 @@ def _cache_catalog(
 ) -> dict[str, dict[str, Any]]:
     """Cache a catalog result, giving an empty one an expiry."""
     _pricing_cache[cache_key] = result
+    ttl = _SUCCESSFUL_CATALOG_TTL_SECONDS if result else _FAILED_CATALOG_TTL_SECONDS
+    expiry = time.monotonic() + ttl
+    _pricing_cache_expires_at[cache_key] = expiry
     if result:
         _pricing_cache_retry_after.pop(cache_key, None)
     else:
-        _pricing_cache_retry_after[cache_key] = (
-            time.monotonic() + _FAILED_CATALOG_TTL_SECONDS
-        )
+        _pricing_cache_retry_after[cache_key] = expiry
     return result
 
 
@@ -2440,6 +2747,11 @@ def fetch_models_with_pricing(
                 entry["input_cache_read"] = str(pricing["input_cache_read"])
             if pricing.get("input_cache_write"):
                 entry["input_cache_write"] = str(pricing["input_cache_write"])
+            if (
+                cache_key == "https://openrouter.ai/api"
+                and _openrouter_catalog_explicitly_supports_tools(item)
+            ):
+                entry["tool_capable"] = True
             # Sale chrome is Nous Portal-only. Never copy pricing.original for
             # OpenRouter / other OpenAI-compatible catalogs.
             if include_sale_original:
@@ -2697,14 +3009,54 @@ def _fetch_novita_pricing(
             continue
         inp = item.get("input_token_price_per_m")
         out = item.get("output_token_price_per_m")
-        if inp is None and out is None:
+        # A missing price dimension is unknown, not free.  Coercing the
+        # absent side to zero can put a paid output model in a free-only
+        # picker.  Require and validate both source fields before exposing it.
+        if inp is None or out is None:
             continue
-        result[str(mid)] = {
-            "prompt": str(float(inp or 0) / 10_000 / 1_000_000),
-            "completion": str(float(out or 0) / 10_000 / 1_000_000),
-        }
+        try:
+            entry = {
+                "prompt": str(float(inp) / 10_000 / 1_000_000),
+                "completion": str(float(out) / 10_000 / 1_000_000),
+            }
+            # The normal pricing API remains price-shaped.  For managed
+            # ``free_only_providers: [novita]`` we additionally preserve a
+            # positive, structured tool-capability signal from the *same live
+            # /models row*.  Missing metadata deliberately stays unknown.
+            if _novita_catalog_item_supports_tools(item):
+                entry["tool_capable"] = True
+            result[str(mid)] = entry
+        except (TypeError, ValueError):
+            continue
 
     return _cache_catalog(cache_key, result)
+
+
+def _novita_catalog_item_supports_tools(item: Any) -> bool:
+    """Return True only for explicit structured Novita tool-call capability.
+
+    Novita's public model-list schema is intentionally extensible and not all
+    rows carry capability metadata.  A model title/description or a generic
+    ``object: model`` label proves neither chat nor tool calling, so it is not
+    used here.  Support the structured capability forms returned by compatible
+    catalog versions; unknown or image-only rows fail closed.
+    """
+    if not isinstance(item, dict):
+        return False
+    params = item.get("supported_parameters")
+    if isinstance(params, list) and "tools" in {
+        str(param).strip().lower() for param in params
+    }:
+        return True
+    capabilities = item.get("capabilities")
+    if isinstance(capabilities, dict):
+        for key in ("tools", "tool_calling", "function_calling", "function_call"):
+            if capabilities.get(key) is True:
+                return True
+    return any(
+        item.get(key) is True
+        for key in ("supports_tools", "supports_tool_calling", "supports_function_calling")
+    )
 
 
 # All provider IDs and aliases that are valid for the provider:model syntax.
@@ -3308,7 +3660,11 @@ _PROVIDER_RETIRED_ALIASES: dict[str, tuple[str, ...]] = {
 
 def _provider_catalog_names(provider: str) -> tuple[str, ...]:
     """Active picker models plus retired aliases recognized for detection."""
-    active = tuple(_PROVIDER_MODELS.get(provider, []))
+    active = (
+        tuple(get_verified_opencode_free_model_ids())
+        if provider == "opencode-free"
+        else tuple(_PROVIDER_MODELS.get(provider, []))
+    )
     retired = _PROVIDER_RETIRED_ALIASES.get(provider, ())
     return active + retired
 
@@ -4071,12 +4427,12 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
         except Exception:
             pass
 
-    # OpenCode Free: curated keyless list only. models.dev's cost.input==0
-    # filter lags reality (deepseek-v4-flash-free stayed "free" there after
-    # its promo ended and the relay began 401ing keyless requests), so the
-    # curated list — synced against anonymous live probes — is authoritative.
+    # OpenCode Free: use the profile-local catalog only after the daily job
+    # has proved every row with an anonymous inference request.  The static
+    # list remains the offline fallback; models.dev's free-price labels lag
+    # the actual relay and must never be trusted as proof of availability.
     if normalized == "opencode-free":
-        return list(_PROVIDER_MODELS.get(normalized, []))
+        return get_verified_opencode_free_model_ids()
 
     # ── Profile-based generic live fetch (all simple api-key providers) ──
     # Handles any provider registered in providers/ with auth_type="api_key".
@@ -4420,6 +4776,11 @@ def cached_provider_model_ids(
     normalized = requested if requested == "ollama" else (normalize_provider(provider) or (provider or ""))
     if not normalized:
         return []
+    # This provider's independent verification timestamp is the trust bound.
+    # Do not let the generic one-hour picker cache extend an OpenCode Free
+    # promotion after its 48-hour proof window expires.
+    if normalized == "opencode-free":
+        return get_verified_opencode_free_model_ids()
     if normalized == "ollama":
         ttl_seconds = min(ttl_seconds, _OLLAMA_LOCAL_MODELS_CACHE_TTL)
 

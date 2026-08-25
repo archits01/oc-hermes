@@ -40,6 +40,20 @@ def _cfg(model=None, providers=None, custom_providers=None) -> dict:
     }
 
 
+def test_load_picker_context_reads_catalog_provider_policies():
+    cfg = _cfg(model={"provider": "xai-oauth", "default": "grok"})
+    cfg["model_catalog"] = {
+        "excluded_providers": ["xai"],
+        "included_providers": ["xai-oauth", "opencode-free"],
+        "free_only_providers": ["openrouter"],
+    }
+    with patch("hermes_cli.config.load_config", return_value=cfg):
+        ctx = load_picker_context()
+    assert ctx.excluded_providers == ["xai"]
+    assert ctx.included_providers == ["xai-oauth", "opencode-free"]
+    assert ctx.free_only_providers == ["openrouter"]
+
+
 
 
 
@@ -121,6 +135,112 @@ def test_cli_model_picker_forwards_force_refresh_to_probe_flags():
         )
     assert mock_list.call_args.kwargs["probe_custom_providers"] is True
     assert mock_list.call_args.kwargs["probe_current_custom_provider"] is False
+
+
+def test_included_provider_policy_applies_after_current_row_recovery(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    from hermes_cli.models import write_verified_opencode_free_catalog
+
+    write_verified_opencode_free_catalog(["verified-free"])
+    ctx = ConfigContext(
+        current_provider="xai",
+        current_model="grok",
+        current_base_url="",
+        user_providers={},
+        custom_providers=[],
+        included_providers=["opencode-free"],
+    )
+    rows = [{
+        "slug": "opencode-free", "name": "OpenCode Free",
+        "models": ["verified-free"], "total_models": 1,
+        "is_current": False, "is_user_defined": False, "source": "built-in",
+    }]
+    with _list_auth_returning(rows):
+        payload = build_models_payload(ctx, explicit_only=True)
+    assert [row["slug"] for row in payload["providers"]] == ["opencode-free"]
+    assert payload["model"] == "verified-free"
+    assert payload["provider"] == "opencode-free"
+
+
+def test_explicit_managed_opencode_payload_replaces_unverified_current_model(monkeypatch, tmp_path):
+    """Payload selection must not reintroduce a current model outside cache proof."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    from hermes_cli.models import write_verified_opencode_free_catalog
+
+    write_verified_opencode_free_catalog(["verified-free"])
+    ctx = ConfigContext(
+        current_provider="opencode-free",
+        current_model="current-but-unverified",
+        current_base_url="",
+        user_providers={},
+        custom_providers=[],
+        included_providers=["opencode-free"],
+    )
+    rows = [{
+        "slug": "opencode-free", "name": "OpenCode Free",
+        "models": ["current-but-unverified", "verified-free"], "total_models": 2,
+        "is_current": True, "is_user_defined": False, "source": "hermes",
+    }]
+    with _list_auth_returning(rows):
+        payload = build_models_payload(ctx, explicit_only=True)
+
+    assert payload["providers"][0]["models"] == ["verified-free"]
+    assert payload["model"] == "verified-free"
+    assert payload["provider"] == "opencode-free"
+
+
+def test_free_only_payload_replaces_paid_current_model(monkeypatch):
+    """Top-level selection follows the final free-only OpenRouter row."""
+    monkeypatch.setattr("hermes_cli.inventory._moa_provider_row", lambda *_args: None)
+    ctx = ConfigContext(
+        current_provider="openrouter",
+        current_model="lab/paid",
+        current_base_url="",
+        user_providers={},
+        custom_providers=[],
+        free_only_providers=["openrouter"],
+    )
+    rows = [{
+        "slug": "openrouter", "name": "OpenRouter",
+        "models": ["lab/free", "lab/paid"], "total_models": 2,
+        "is_current": True, "is_user_defined": False, "source": "built-in",
+    }]
+    monkeypatch.setattr(
+        "hermes_cli.models.get_pricing_for_provider",
+        lambda *_args, **_kwargs: {
+            "lab/free": {"prompt": "0", "completion": "0", "tool_capable": True},
+            "lab/paid": {"prompt": "0", "completion": "0.000001"},
+        },
+    )
+    with _list_auth_returning(rows):
+        payload = build_models_payload(ctx, pricing=True)
+
+    assert payload["providers"][0]["models"] == ["lab/free"]
+    assert payload["model"] == "lab/free"
+    assert payload["provider"] == "openrouter"
+
+
+def test_managed_free_current_recovery_cannot_readd_unproven_openrouter_row(monkeypatch):
+    """The configured-current fallback is re-filtered after it is appended."""
+    monkeypatch.setattr("hermes_cli.inventory._moa_provider_row", lambda *_args: None)
+    ctx = ConfigContext(
+        current_provider="openrouter",
+        current_model="lab/zero-price-but-unknown-tools",
+        current_base_url="",
+        user_providers={},
+        custom_providers=[],
+        free_only_providers=["openrouter"],
+    )
+    monkeypatch.setattr(
+        "hermes_cli.models.get_pricing_for_provider",
+        lambda *_args, **_kwargs: {
+            "lab/zero-price-but-unknown-tools": {"prompt": "0", "completion": "0"},
+        },
+    )
+    with _list_auth_returning([]):
+        payload = build_models_payload(ctx, explicit_only=True)
+
+    assert not any(row["slug"] == "openrouter" for row in payload["providers"])
 
 
 def test_list_authenticated_providers_force_fresh_is_keyword_only():
@@ -655,7 +775,3 @@ def _apply_featured_with_dates(rows, dates: dict[str, str]):
 
     with patch("agent.models_dev.get_model_info", side_effect=_fake_get_model_info):
         inventory._apply_featured(rows)
-
-
-
-

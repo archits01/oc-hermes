@@ -2866,6 +2866,13 @@ DEFAULT_CONFIG = {
         #     openrouter:
         #       url: https://example.com/my-curation.json
         "providers": {},
+        # Optional provider allowlist for picker surfaces. Empty preserves the
+        # normal explicit-provider behavior.
+        "included_providers": [],
+        # Optional provider rows that should expose live zero-price models
+        # only. Unknown/missing pricing hides the constrained row fail-closed.
+        # Dedicated verified keyless catalogs (opencode-free) do not need this.
+        "free_only_providers": [],
     },
 
     # Per-model metadata overrides — manually declare context_window,

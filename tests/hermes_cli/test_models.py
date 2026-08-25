@@ -38,8 +38,100 @@ class TestOpenRouterModels:
             assert isinstance(mid, str) and len(mid) > 0
             assert isinstance(desc, str)
 
+    def test_missing_price_dimension_is_not_free_for_badges_or_classification(self):
+        from hermes_cli.models import _is_model_free, _openrouter_model_is_free
+
+        incomplete = {"prompt": "0"}
+        assert _openrouter_model_is_free(incomplete) is False
+        assert _is_model_free("lab/incomplete", {"lab/incomplete": incomplete}) is False
+
 
 class TestFetchOpenRouterModels:
+
+    def test_live_catalog_cache_expires_with_injectable_monotonic_time(self, monkeypatch):
+        now = [100.0]
+        calls = []
+
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self):
+                calls.append("fetch")
+                return json.dumps({"data": [
+                    {"id": "lab/fresh", "pricing": {"prompt": "0", "completion": "0"}, "supported_parameters": ["tools"]}
+                ]}).encode()
+
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", [("lab/cached", "free")])
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cached_at", now[0])
+        monkeypatch.setattr(_models_mod.time, "monotonic", lambda: now[0])
+        monkeypatch.setattr(_models_mod, "OPENROUTER_MODELS", [])
+        monkeypatch.setattr(_models_mod, "_urlopen_model_catalog_request", lambda *_args, **_kwargs: _Resp())
+        monkeypatch.setattr("hermes_cli.model_catalog.get_curated_openrouter_models", lambda: [])
+
+        assert fetch_openrouter_models() == [("lab/cached", "free")]
+        now[0] += _models_mod._OPENROUTER_CATALOG_CACHE_TTL_SECONDS + 1
+        assert fetch_openrouter_models() == [("lab/fresh", "free")]
+        assert calls == ["fetch"]
+
+    def test_expired_live_catalog_is_not_reused_when_refresh_fails(self, monkeypatch):
+        now = [1000.0]
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", [("promotion/ended", "free")])
+        monkeypatch.setattr(
+            _models_mod, "_openrouter_catalog_cached_at",
+            now[0] - _models_mod._OPENROUTER_CATALOG_CACHE_TTL_SECONDS - 1,
+        )
+        monkeypatch.setattr(_models_mod.time, "monotonic", lambda: now[0])
+        monkeypatch.setattr(_models_mod, "OPENROUTER_MODELS", [("static/safe", "")])
+        monkeypatch.setattr(
+            _models_mod, "_urlopen_model_catalog_request",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("offline")),
+        )
+        monkeypatch.setattr(
+            "hermes_cli.model_catalog.get_curated_openrouter_models", lambda: []
+        )
+
+        assert fetch_openrouter_models() == [("static/safe", "")]
+        assert _models_mod._openrouter_catalog_cache is None
+        assert _models_mod._openrouter_catalog_cached_at == 0.0
+
+    def test_forced_refresh_failure_never_reuses_previous_success(self, monkeypatch):
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", [("promotion/old", "free")])
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cached_at", 1000.0)
+        monkeypatch.setattr(_models_mod.time, "monotonic", lambda: 1001.0)
+        monkeypatch.setattr(_models_mod, "OPENROUTER_MODELS", [("static/safe", "")])
+        monkeypatch.setattr(
+            _models_mod, "_urlopen_model_catalog_request",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("offline")),
+        )
+        monkeypatch.setattr(
+            "hermes_cli.model_catalog.get_curated_openrouter_models", lambda: []
+        )
+
+        assert fetch_openrouter_models(force_refresh=True) == [("static/safe", "")]
+        assert _models_mod._openrouter_catalog_cache is None
+
+    def test_successful_pricing_cache_expires_with_injectable_monotonic_time(self, monkeypatch):
+        now = [100.0]
+        calls = []
+
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self):
+                calls.append("fetch")
+                return b'{"data":[{"id":"lab/free","pricing":{"prompt":"0","completion":"0"},"supported_parameters":["tools"]}]}'
+
+        monkeypatch.setattr(_models_mod, "_pricing_cache", {})
+        monkeypatch.setattr(_models_mod, "_pricing_cache_retry_after", {})
+        monkeypatch.setattr(_models_mod, "_pricing_cache_expires_at", {})
+        monkeypatch.setattr(_models_mod.time, "monotonic", lambda: now[0])
+        monkeypatch.setattr(_models_mod, "_urlopen_model_catalog_request", lambda *_args, **_kwargs: _Resp())
+
+        first = _models_mod.fetch_models_with_pricing(base_url="https://openrouter.ai/api")
+        assert _models_mod.fetch_models_with_pricing(base_url="https://openrouter.ai/api") == first
+        now[0] += _models_mod._SUCCESSFUL_CATALOG_TTL_SECONDS + 1
+        assert _models_mod.fetch_models_with_pricing(base_url="https://openrouter.ai/api") == first
+        assert calls == ["fetch", "fetch"]
 
 
     def test_falls_back_to_static_snapshot_on_fetch_failure(self, monkeypatch):
@@ -103,6 +195,56 @@ class TestFetchOpenRouterModels:
         assert "qwen/qwen3.7-max" in ids
         # Image-only model advertised supported_parameters WITHOUT tools → must be dropped.
         assert "google/gemini-3-pro-image-preview" not in ids
+
+    def test_adds_live_uncurated_free_tool_models_but_not_paid_or_toolless(self, monkeypatch):
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self):
+                return json.dumps({"data": [
+                    {"id": "lab/curated", "pricing": {"prompt": "1", "completion": "2"}, "supported_parameters": ["tools"]},
+                    {"id": "lab/new-free", "pricing": {"prompt": "0", "completion": "0"}, "supported_parameters": ["tools", "tool_choice"]},
+                    {"id": "lab/new-paid", "pricing": {"prompt": "0.1", "completion": "0"}, "supported_parameters": ["tools"]},
+                    {"id": "lab/free-no-tools", "pricing": {"prompt": "0", "completion": "0"}, "supported_parameters": ["temperature"]},
+                    {"id": "lab/unknown-price", "pricing": {"prompt": "0"}, "supported_parameters": ["tools"]},
+                    {"id": "lab/unknown-tools", "pricing": {"prompt": "0", "completion": "0"}},
+                ]}).encode()
+
+        monkeypatch.setattr(_models_mod, "OPENROUTER_MODELS", [("lab/curated", "")])
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", None)
+        with (
+            patch("hermes_cli.model_catalog.get_curated_openrouter_models", return_value=[]),
+            patch("hermes_cli.models._urlopen_model_catalog_request", return_value=_Resp()),
+        ):
+            models = fetch_openrouter_models(force_refresh=True)
+
+        assert ("lab/new-free", "free") in models
+        assert not any(model == "lab/new-paid" for model, _ in models)
+        assert not any(model == "lab/free-no-tools" for model, _ in models)
+        assert not any(model == "lab/unknown-price" for model, _ in models)
+        assert not any(model == "lab/unknown-tools" for model, _ in models)
+
+    def test_live_pricing_retains_only_explicit_openrouter_tool_proof(self, monkeypatch):
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self):
+                return json.dumps({"data": [
+                    {"id": "missing", "pricing": {"prompt": "0", "completion": "0"}},
+                    {"id": "malformed", "pricing": {"prompt": "0", "completion": "0"}, "supported_parameters": "tools"},
+                    {"id": "tools", "pricing": {"prompt": "0", "completion": "0"}, "supported_parameters": ["tools"]},
+                ]}).encode()
+
+        monkeypatch.setattr(_models_mod, "_cached_catalog", lambda *_args, **_kwargs: None)
+        monkeypatch.setattr(_models_mod, "_cache_catalog", lambda _key, value: value)
+        monkeypatch.setattr(_models_mod, "_urlopen_model_catalog_request", lambda *_args, **_kwargs: _Resp())
+
+        pricing = _models_mod.fetch_models_with_pricing(
+            base_url="https://openrouter.ai/api", force_refresh=True
+        )
+        assert "tool_capable" not in pricing["missing"]
+        assert "tool_capable" not in pricing["malformed"]
+        assert pricing["tools"]["tool_capable"] is True
 
 
 
