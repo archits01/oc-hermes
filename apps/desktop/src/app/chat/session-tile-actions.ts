@@ -38,6 +38,7 @@ import {
   applyBranchVisibility,
   applyReloadOptimistic,
   applyRewindOptimistic,
+  durableRowIdsForRebind,
   finalizeInterruptedMessages,
   planEdit,
   planReload,
@@ -418,7 +419,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       truncateMessageId?: string,
       truncateRowId?: number,
       sourceText?: string,
+<<<<<<< HEAD
       targetIsFirstUserTurn?: boolean
+=======
+      rebindRowIds?: readonly number[]
+>>>>>>> upstream/main
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -433,7 +438,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
         },
         truncateRowId,
         sourceText,
+<<<<<<< HEAD
         targetIsFirstUserTurn
+=======
+        rebindRowIds
+>>>>>>> upstream/main
       ),
     [bindRecoveredRuntime, requestGateway]
   )
@@ -489,7 +498,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(state.messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
@@ -529,7 +542,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
@@ -578,7 +595,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {

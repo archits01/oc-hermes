@@ -58,6 +58,7 @@ import {
   applyBranchVisibility,
   applyReloadOptimistic,
   applyRewindOptimistic,
+  durableRowIdsForRebind,
   finalizeInterruptedMessages,
   planEdit,
   planReload,
@@ -855,7 +856,11 @@ export function usePromptActions({
       interruptFirst: boolean,
       truncateRowId?: number,
       sourceText?: string,
+<<<<<<< HEAD
       targetIsFirstUserTurn?: boolean
+=======
+      rebindRowIds?: readonly number[]
+>>>>>>> upstream/main
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -873,7 +878,11 @@ export function usePromptActions({
         },
         truncateRowId,
         sourceText,
+<<<<<<< HEAD
         targetIsFirstUserTurn
+=======
+        rebindRowIds
+>>>>>>> upstream/main
       ),
     [activeSessionIdRef, requestGateway, selectedStoredSessionIdRef]
   )
@@ -888,7 +897,12 @@ export function usePromptActions({
         return
       }
 
+<<<<<<< HEAD
       const plan = planReload($messages.get(), parentId, { transcriptPossiblyTruncated: transcriptBackfillAvailable(selectedStoredSessionIdRef.current) })
+=======
+      const messages = $messages.get()
+      const plan = planReload(messages, parentId)
+>>>>>>> upstream/main
 
       if (!plan) {
         return
@@ -906,7 +920,11 @@ export function usePromptActions({
           false,
           plan.truncateRowId,
           plan.sourceText,
+<<<<<<< HEAD
           plan.targetIsFirstUserTurn
+=======
+          durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
@@ -985,7 +1003,11 @@ export function usePromptActions({
           interruptFirst,
           plan.truncateRowId,
           plan.sourceText,
+<<<<<<< HEAD
           plan.targetIsFirstUserTurn
+=======
+          durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
@@ -1130,7 +1152,11 @@ export function usePromptActions({
           interruptFirst,
           plan.truncateRowId,
           plan.sourceText,
+<<<<<<< HEAD
           plan.targetIsFirstUserTurn
+=======
+          durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
         )
 
         applySurvivorRowIds(sessionId, survivorRowIds)
@@ -1164,7 +1190,11 @@ export function usePromptActions({
                 false,
                 retryPlan.truncateRowId,
                 retryPlan.sourceText,
+<<<<<<< HEAD
                 retryPlan.targetIsFirstUserTurn
+=======
+                durableRowIdsForRebind(refreshed)
+>>>>>>> upstream/main
               )
 
               applySurvivorRowIds(sessionId, survivorRowIds)
