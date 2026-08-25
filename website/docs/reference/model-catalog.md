@@ -105,6 +105,58 @@ model_catalog:
 
 The exclusion is matched case-insensitively against every key a provider can surface under — the Hermes id and models.dev id (built-in mapped providers), the overlay pid and resolved Hermes slug (overlay providers), and the canonical slug (canonical providers) — so a single entry like `copilot` hides the provider regardless of which section emits it. It is honored by every `/model` picker surface: the gateway interactive/text pickers, the TUI picker, and the interactive `hermes model` CLI picker. An empty list (or omitting the key) has no effect.
 
+`included_providers` is the complementary allowlist. When non-empty, picker
+payloads contain only matching provider slugs, names, or aliases. Use it for a
+managed installation that intentionally offers a small catalog; an empty list
+preserves normal explicit-provider discovery.
+
+```yaml
+model_catalog:
+  included_providers:
+    - opencomputer
+    - xai-oauth
+    - opencode-free
+    - openrouter
+```
+
+### Showing only free models from selected providers
+
+`free_only_providers` constrains named provider rows to models whose live
+pricing reports zero input and output cost. If pricing is unavailable, Hermes
+hides that constrained row rather than guessing. Other providers are unchanged;
+dedicated keyless catalogs such as `opencode-free` already contain only models
+verified for anonymous use.
+
+```yaml
+model_catalog:
+  free_only_providers:
+    - openrouter
+    - novita
+```
+
+This can be combined with `excluded_providers`: primary and custom providers
+stay fully selectable while aggregators with changing promotions show only
+their currently free models.
+
+For managed OpenComputer installations, zero-priced OpenRouter and Novita rows
+also require explicit tool capability in the same live catalog record; a label
+or `:free` suffix is not admission proof. Successful live pricing and the
+OpenRouter live catalog are refreshed within a bounded five-minute process TTL.
+
+### LMI daily OpenCode Free refresh
+
+On LMI-PI-01, install the exact, idempotent daily refresh job with:
+
+```bash
+bash /opt/opencomputer-v2/scripts/ops/install_lmi_free_model_catalog_refresh_cron.sh --install
+```
+
+Use `--check` for the canonical installed entry, `--dry-run` to inspect the
+non-mutating update, and `--render` to print it. The job runs under
+`HERMES_HOME=/opt/opencomputer-v2-data`, uses the deployed checkout's venv,
+locks its single refresh, logs below the data path, and preserves unrelated
+crontab entries.
+
 ## Updating the manifest
 
 Maintainers:
