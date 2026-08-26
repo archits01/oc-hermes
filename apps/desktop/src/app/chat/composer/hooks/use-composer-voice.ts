@@ -5,12 +5,14 @@ import { useI18n } from '@/i18n'
 import { chatMessageText, collectUnspokenTurnSpeech } from '@/lib/chat-messages'
 import { triggerHaptic } from '@/lib/haptics'
 import { clearWakeIndicator, syncWakeIndicatorWithVoice } from '@/lib/wake-indicator'
+import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $voiceConversationStartRequest, takeVoiceConversationStart } from '@/store/composer'
 import { resetBrowseState } from '@/store/composer-input-history'
 import { $gateway } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
+import { $connection } from '@/store/session'
 import { $autoSpeakReplies, $voiceStopPhrase, setAutoSpeakReplies } from '@/store/voice-prefs'
-import { resumeWakeAfterVoice } from '@/store/wake-word'
+import { resumeWakeAfterVoice, stopClientCapture } from '@/store/wake-word'
 
 import type { ComposerTarget } from '../focus'
 import { onComposerVoiceToggleRequest } from '../focus'
@@ -65,6 +67,8 @@ export function useComposerVoice({
   const lastSpokenIdRef = useRef<string | null>(null)
   const ownsWakeIndicatorRef = useRef(false)
   const voiceStartRequest = useStore($voiceConversationStartRequest)
+  const connection = useStore($connection)
+  const wakeWordAllowed = wakeWordAllowedForConnection(connection?.mode)
 
   const { dictate, voiceActivityState, voiceStatus } = useVoiceRecorder({
     focusInput,
@@ -206,15 +210,29 @@ export function useComposerVoice({
 
     wakePausedRef.current = false
     wakePauseBarrierRef.current = null
+
+    if (!wakeWordAllowed) {
+      stopClientCapture()
+
+      return
+    }
+
     // Reconcile, don't just resume: the wake word is a persistent setting, so
     // ending a voice chat must re-arm the listener whenever config says
     // enabled — including when the raw resume loses the mic-release race.
     void resumeWakeAfterVoice()
-  }, [])
+  }, [wakeWordAllowed])
 
   // The ref is a request token (did WE issue wake.pause?), not an atom mirror —
   // it guards resumeWakeIfPaused from resuming a detector another surface owns.
   const pauseWakeForVoice = useCallback(() => {
+    if (!wakeWordAllowed) {
+      wakePausedRef.current = false
+      wakePauseBarrierRef.current = null
+
+      return Promise.resolve()
+    }
+
     wakePausedRef.current = true
 
     const barrier = (async () => {
@@ -228,7 +246,7 @@ export function useComposerVoice({
     wakePauseBarrierRef.current = barrier
 
     return barrier
-  }, [])
+  }, [wakeWordAllowed])
 
   useEffect(() => {
     if (voiceConversationActive) {
