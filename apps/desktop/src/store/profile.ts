@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 import { atom, computed } from 'nanostores'
+=======
+import { LOCAL_CONNECTION_ID } from '@hermes/shared'
+import { atom, batch, computed } from 'nanostores'
+>>>>>>> upstream/main
 
 import { getProfiles, hermesApi, setApiRequestProfile, STARTUP_REQUEST_TIMEOUT_MS } from '@/hermes'
 import { invalidateProfileScopedQueries } from '@/lib/query-client'
@@ -11,14 +16,17 @@ import {
   storedStringArray,
   storedStringRecord
 } from '@/lib/storage'
+import { withTimeout } from '@/lib/with-timeout'
 import { invalidateCronModelImpactScopeState } from '@/store/cron-model-impact-scope'
 import {
   $gateway,
   activeGatewayConnectionId,
   ensureGatewayForAgent,
   ensureGatewayForProfile,
+  openGatewayForAgent,
   openGatewayForProfile
 } from '@/store/gateway'
+import { notifyError } from '@/store/notifications'
 import { notifyRemoteOverrideAuthFailure } from '@/store/profile-remote-override'
 import { setConnection } from '@/store/session'
 import { resetStarmapGraph } from '@/store/starmap'
@@ -286,6 +294,7 @@ export function prewarmProfileBackend(name: string): void {
 
 let gatewaySwitch: Promise<void> | null = null
 
+<<<<<<< HEAD
 // Keep the renderer's $connection (mode / baseUrl / profile) in lockstep with
 // the profile the live gateway is now on. $connection seeds from the PRIMARY
 // (window) backend at boot and otherwise only refreshes on a sleep/wake
@@ -299,6 +308,31 @@ let gatewaySwitch: Promise<void> | null = null
 // Best-effort: a failed descriptor fetch leaves the prior connection intact for
 // boot/reconnect to resync.
 async function syncConnectionToActiveProfile(profile: string): Promise<void> {
+=======
+// Descriptor lookups are IPC round-trips into Electron main. A wedged main
+// (the #93454 class: a ticket mint that never answers) must not latch the
+// gatewaySwitch mutex — and, through it, every later profile/source switch
+// and the switch barrier — so they are bounded and fail open like any other
+// lookup failure.
+const DESCRIPTOR_LOOKUP_TIMEOUT_MS = 20_000
+
+// The target profile's connection descriptor (mode / baseUrl / …), resolved
+// CONCURRENTLY with the socket work so the switch can publish the profile
+// pointer and $connection in one frame. Without this, $connection seeds from
+// the PRIMARY backend at boot and only refreshes on sleep/wake — activating a
+// *background* profile left it describing the primary, with the wrong `mode`
+// for everything that branches on local-vs-remote (#46651: path-based
+// `image.attach` against a remote gateway, /api/fs/* and /api/media on the
+// wrong machine).
+//
+// Best-effort BY DESIGN (fail open): a failed lookup resolves null, the prior
+// descriptor stays, and boot/reconnect resyncs it later. The earlier
+// atomic-publish series (#89483) failed the whole switch closed here instead,
+// and its decline path turned routine registry churn into dead profile
+// clicks (#89622) — reverted in #89785. Do not reintroduce fail-closed
+// switching at this seam.
+async function resolveConnectionForProfile(profile: string): Promise<HermesConnection | null> {
+>>>>>>> upstream/main
   const getConnection = window.hermesDesktop?.getConnection
 
   if (!getConnection) {
@@ -306,9 +340,21 @@ async function syncConnectionToActiveProfile(profile: string): Promise<void> {
   }
 
   try {
+<<<<<<< HEAD
     setConnection(await getConnection(profile))
   } catch {
     // Leave the prior connection in place; boot/reconnect resyncs it later.
+=======
+    return await withTimeout(
+      getConnection(profile),
+      DESCRIPTOR_LOOKUP_TIMEOUT_MS,
+      `Timed out resolving the connection descriptor for profile "${profile}"`
+    )
+  } catch (err) {
+    console.warn(`[profile] descriptor lookup for "${profile}" failed; keeping the previous connection`, err)
+
+    return null
+>>>>>>> upstream/main
   }
 }
 
@@ -357,6 +403,11 @@ export async function ensureGatewayProfile(profile: string | null | undefined): 
     await syncConnectionToActiveProfile(target)
   })()
 
+  // A failed switch must NOT fall back to the primary socket silently: that
+  // would route the user's messages to the wrong profile's backend and cause
+  // cross-profile session writes (#81094). The rejection propagates to
+  // await-callers (session actions, slash commands) which surface it in their
+  // own flows; fire-and-forget callers surface it via their own .catch below.
   try {
     await gatewaySwitch
   } finally {
@@ -376,10 +427,44 @@ async function syncConnectionToActiveAgent(connectionId: string, profile: string
   }
 
   try {
+<<<<<<< HEAD
     setConnection(await getConnectionFor({ connectionId, profile }))
   } catch {
     // Leave the prior connection in place; boot/reconnect resyncs it later.
+=======
+    return await withTimeout(
+      getConnectionFor({ connectionId, profile }),
+      DESCRIPTOR_LOOKUP_TIMEOUT_MS,
+      `Timed out resolving the connection descriptor for agent "${connectionId}:${profile}"`
+    )
+  } catch (err) {
+    console.warn(
+      `[profile] descriptor lookup for agent "${connectionId}:${profile}" failed; keeping the previous connection`,
+      err
+    )
+
+    return null
+>>>>>>> upstream/main
   }
+}
+
+// Phase one of the two-phase source switch (store/connections
+// selectConnection): dial the (connectionId, profile) socket WITHOUT activating
+// it. The active route, $activeGatewayProfile and $connection are untouched, so
+// the previous backend stays fully bound and painted while the target
+// spawns/connects — a dead target fails HERE and the current source loses
+// nothing. The follow-up ensureGatewayAgent then finds the socket open and
+// activates it synchronously, which lets the caller sever the previous
+// backend's session bindings and publish the new source in the same tick
+// (#93937). An already-open target is a no-op.
+export async function openGatewayAgent(connectionId: string, profile: string): Promise<void> {
+  const connection = connectionId.trim()
+
+  if (!connection) {
+    return
+  }
+
+  await openGatewayForAgent(connection, normalizeProfileKey(profile), { activationLease: true })
 }
 
 // Activate a connection-scoped agent's gateway — the (connectionId, profile)
@@ -396,7 +481,55 @@ async function syncConnectionToActiveAgent(connectionId: string, profile: string
 //    order and leave the EARLIER setActive() as the last write.
 // Only a null connectionId falls through to the legacy profile path. Explicit
 // `local` is a registry identity and must use the genuinely-local route.
-export async function ensureGatewayAgent(connectionId: null | string, profile: string): Promise<void> {
+//
+// `beforeActivate` is the commit hook of the two-phase source switch
+// (store/connections selectConnection). It runs INSIDE the serialized
+// section, synchronously right before the socket is activated — i.e. after
+// every earlier switch has published and before this one does — so the caller
+// can sever the previous backend's session bindings at exactly that point
+// (#93937). Returning false declines: nothing is activated or published, the
+// mutex is released. That is how a switch superseded while queued behind
+// another one steps aside without a destructive wipe. Not consulted on the
+// null-connectionId profile fallthrough.
+export interface EnsureGatewayAgentOptions {
+  beforeActivate?: () => boolean
+  /** Revokes this caller's right to activate or publish after async work. */
+  signal?: AbortSignal
+}
+
+function releaseWhenAborted(promise: Promise<void>, signal?: AbortSignal): Promise<void> {
+  if (!signal) {
+    return promise
+  }
+
+  if (signal.aborted) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }
+
+    const settle = (callback: () => void) => {
+      signal.removeEventListener('abort', onAbort)
+      callback()
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(
+      () => settle(resolve),
+      error => settle(() => reject(error))
+    )
+  })
+}
+
+export async function ensureGatewayAgent(
+  connectionId: null | string,
+  profile: string,
+  { beforeActivate, signal }: EnsureGatewayAgentOptions = {}
+): Promise<void> {
   const target = normalizeProfileKey(profile)
   const connection = (connectionId ?? '').trim() || null
 
@@ -404,14 +537,45 @@ export async function ensureGatewayAgent(connectionId: null | string, profile: s
     return ensureGatewayProfile(target)
   }
 
-  // Serialize against any in-flight profile/agent switch (shared mutex).
-  if (gatewaySwitch) {
+  // Serialize against any in-flight profile/agent switch (shared mutex). A
+  // loop, not a single await: several waiters wake from the same settled
+  // switch, and the first to re-acquire starts a new one the rest must also
+  // wait out — otherwise two overlapping activations run interleaved.
+  while (gatewaySwitch) {
     await gatewaySwitch.catch(() => undefined)
   }
 
+  if (signal?.aborted) {
+    return
+  }
+
   $gatewaySwapTarget.set(target)
+<<<<<<< HEAD
   gatewaySwitch = (async () => {
     const activated = await ensureGatewayForAgent(connection, target)
+=======
+
+  const activationWork = (async () => {
+    if (signal?.aborted) {
+      return
+    }
+
+    if (beforeActivate && !beforeActivate()) {
+      return
+    }
+
+    // Descriptor resolves concurrently with the dial, same as the profile
+    // path, so no await sits between the activation and the publication.
+    const activation = signal
+      ? ensureGatewayForAgent(connection, target, { signal })
+      : ensureGatewayForAgent(connection, target)
+
+    const [descriptor, activated] = await Promise.all([resolveConnectionForAgent(connection, target), activation])
+
+    if (signal?.aborted) {
+      return
+    }
+>>>>>>> upstream/main
 
     if (!activated) {
       return
@@ -422,6 +586,10 @@ export async function ensureGatewayAgent(connectionId: null | string, profile: s
     // paths (image.attach_bytes vs image.attach, /api/fs/*, /api/media) follow.
     await syncConnectionToActiveAgent(connection, target)
   })()
+
+  // Cancellation releases the mutex immediately; activationWork remains
+  // observed and is ownership-guarded at both gateway and publication seams.
+  gatewaySwitch = releaseWhenAborted(activationWork, signal)
 
   try {
     await gatewaySwitch
@@ -483,21 +651,28 @@ export function selectProfile(name: string): void {
   // A profile with a remote override can fail to activate because the remote
   // host rejected its saved token (rotated/revoked). That must surface as a
   // "re-enter token" affordance, never a silently dead profile (#91349).
-  void activateOnCurrentSource(target).catch(error => notifyRemoteOverrideAuthFailure(target, error))
+  // #81094: any other failed switch must be visible too — the profile pill
+  // stays on the previous profile and the user learns why the backend is
+  // unreachable.
+  void activateOnCurrentSource(target).catch((error: unknown) => {
+    if (!notifyRemoteOverrideAuthFailure(target, error)) {
+      notifyError(error, `Failed to switch to profile "${target}"`)
+    }
+  })
 }
 
 // Route a profile pick at the source the user is LOOKING at. $profiles is the
-// active gateway's list, so a pick made while a registry source is live names
-// one of THAT source's profiles. Sending it through the profile-only path
-// resolves the descriptor with a bare name (getConnection(profile)), which the
-// main process answers against the primary — so picking "researcher" on a
-// remote source opened a local backend of the same name and dropped the user
-// back home, making the pick look like it never took. A null connection id
-// means the primary is live, which is exactly the legacy path.
+// active gateway's list, so a pick made while a remote registry source is live
+// names one of THAT source's profiles and must keep its connection id. The
+// primary and explicit "local" source stay on the legacy profile-only path so
+// the main process can resolve a per-profile remote override before falling
+// back to a local backend.
 function activateOnCurrentSource(target: string): Promise<void> {
   const connectionId = activeGatewayConnectionId()
 
-  return connectionId ? ensureGatewayAgent(connectionId, target) : ensureGatewayProfile(target)
+  return connectionId && connectionId !== LOCAL_CONNECTION_ID
+    ? ensureGatewayAgent(connectionId, target)
+    : ensureGatewayProfile(target)
 }
 
 // Start a fresh session in `name` WITHOUT collapsing the "All profiles" browse
@@ -511,7 +686,12 @@ export function newSessionInProfile(name: string): void {
   $newChatProfile.set(target)
   $newChatRoute.set(null)
   requestFreshSession()
-  void activateOnCurrentSource(target).catch(error => notifyRemoteOverrideAuthFailure(target, error))
+  // #81094: surface the failed dial instead of failing silently.
+  void activateOnCurrentSource(target).catch((error: unknown) => {
+    if (!notifyRemoteOverrideAuthFailure(target, error)) {
+      notifyError(error, `Failed to open profile "${target}"`)
+    }
+  })
 }
 
 /** Start a draft owned by a specific registry agent. Foreground activation is
@@ -532,7 +712,10 @@ export function newSessionInAgent(route: AgentProfileRoute): void {
   $newChatProfile.set(captured.profile)
   $newChatRoute.set(captured)
   requestFreshSession()
-  void ensureGatewayAgent(captured.connectionId, captured.profile)
+  // #81094: surface the failed dial instead of failing silently.
+  void ensureGatewayAgent(captured.connectionId, captured.profile).catch((error: unknown) => {
+    notifyError(error, `Failed to open profile "${captured.profile}"`)
+  })
 }
 
 export function setShowAllProfiles(value: boolean): void {

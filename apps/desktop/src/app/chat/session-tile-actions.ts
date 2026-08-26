@@ -23,8 +23,8 @@ import { resetSessionBackground } from '@/store/composer-status'
 import { notifyError } from '@/store/notifications'
 import { clearPreviewArtifacts } from '@/store/preview-status'
 import { clearAllPrompts } from '@/store/prompts'
-import { $connection, $sessions, sessionMatchesStoredId } from '@/store/session'
-import { $sessionStates, patchSessionTile, sessionTileDelegate } from '@/store/session-states'
+import { $sessions, sessionMatchesStoredId } from '@/store/session'
+import { $sessionStates, isSessionRemote, patchSessionTile, sessionTileDelegate } from '@/store/session-states'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents } from '@/store/subagents'
 import { clearSessionTodos } from '@/store/todos'
@@ -38,6 +38,7 @@ import {
   applyBranchVisibility,
   applyReloadOptimistic,
   applyRewindOptimistic,
+  durableRowIdsForRebind,
   finalizeInterruptedMessages,
   planEdit,
   planReload,
@@ -179,7 +180,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       attachments: ComposerAttachment[],
       options: { updateComposerAttachments?: boolean } = {}
     ): Promise<{ attachments: ComposerAttachment[]; sessionId: string }> => {
-      const remote = $connection.get()?.mode === 'remote'
+      const remote = isSessionRemote(storedIdRef.current ?? sessionId)
       let liveSessionId = sessionId
       const synced: ComposerAttachment[] = []
 
@@ -418,7 +419,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       truncateMessageId?: string,
       truncateRowId?: number,
       sourceText?: string,
+<<<<<<< HEAD
       targetIsFirstUserTurn?: boolean
+=======
+      rebindRowIds?: readonly number[]
+>>>>>>> upstream/main
     ) =>
       runRewindSubmit(
         requestGateway,
@@ -433,7 +438,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
         },
         truncateRowId,
         sourceText,
+<<<<<<< HEAD
         targetIsFirstUserTurn
+=======
+        rebindRowIds
+>>>>>>> upstream/main
       ),
     [bindRecoveredRuntime, requestGateway]
   )
@@ -489,7 +498,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(state.messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
@@ -529,7 +542,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
@@ -578,7 +595,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {

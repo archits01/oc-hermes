@@ -49,6 +49,8 @@ import {
   openGatewayForProfile,
   requestGatewayForAgent,
   requestGatewayForProfile,
+  retainGatewayForAgent,
+  retainGatewayForRelay,
   retireLocalProfileGateways
 } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
@@ -615,6 +617,16 @@ export const host = {
     }
 
     const targetProfile = route?.targetProfile || name
+    // A name-only call is ambient, not local: Bot Mode's active SSH roster
+    // rows deliberately use the ambient gateway door and therefore carry no
+    // explicit owner route. Preserve the active registry connection so the
+    // profile teardown and DELETE both land on the VPS instead of retiring the
+    // unrelated local pool and leaving the warmed remote backend to recreate
+    // the deleted profile.
+    const ambientConnectionId = route ? null : String(activeGatewayConnectionId() || '').trim()
+
+    const ambientRemoteConnectionId =
+      ambientConnectionId && ambientConnectionId !== 'local' ? ambientConnectionId : null
 
     if (!name) {
       throw new Error('deleteProfile: profile name required')
@@ -635,11 +647,18 @@ export const host = {
     // A hover-warmed Bot Mode row owns a retained renderer socket. Retire it
     // before Electron stops the profile backend so the socket closure cannot
     // schedule a reconnect that resurrects the deleted profile.
-    if (!route || route.mode === 'local') {
+    if (route?.mode === 'local' || (!route && !ambientRemoteConnectionId)) {
       retireLocalProfileGateways(targetProfile)
     }
 
-    await deleteProfile(targetProfile, route ? { connectionId: route.connectionId, profile: route.profile } : undefined)
+    await deleteProfile(
+      targetProfile,
+      route
+        ? { connectionId: route.connectionId, profile: route.profile }
+        : ambientRemoteConnectionId
+          ? { connectionId: ambientRemoteConnectionId, profile: name }
+          : undefined
+    )
 
     // The profile rail paints from the shared $profiles cache; without a
     // refresh the deleted profile's badge survives and clicking it starts a
@@ -1131,6 +1150,39 @@ export const host = {
     method: string,
     params: Record<string, unknown> = {}
   ): Promise<T> => requestPluginProfile<T>(route, method, params),
+
+  /** Pin a route's pooled gateway socket open across repeated `requestProfile`
+   *  calls (#93594: the bot-relay drain loop was dialing and tearing down a
+   *  fresh WebSocket per registered connection per tick). Returns a once-only
+   *  release. Local routes are exempt (no-op release) so the idle reaper can
+   *  still reclaim spawned local backends. Feature-detect on older desktops
+   *  (`typeof host.retainProfileSocket === 'function'`). */
+  retainProfileSocket: (route: PluginProfileRoute | string): (() => void) => {
+    if (typeof route === 'string' || !route) {
+      // Bare-profile compatibility overload: local/legacy routing — exempt.
+      return () => undefined
+    }
+
+    return retainGatewayForRelay(route.connectionId, route.profile)
+  },
+
+  /** Hold a route's pooled socket open across a multi-RPC, session-scoped
+   *  sequence (#93602). Each requestProfile call is its own request lease, so
+   *  a non-retained secondary socket closes at refcount 0 between calls — and
+   *  the gateway reaps any runtime session that socket minted, failing the
+   *  next RPC with 4001. Acquire before the first session-scoped RPC, release
+   *  (idempotent) in a `finally`. Feature-detect: older hosts lack this. */
+  retainProfile: async (route: PluginProfileRoute | string): Promise<() => void> => {
+    if (typeof route !== 'string') {
+      if (!route.connectionId.trim() || !route.profile.trim()) {
+        throw new Error('Profile route must include connectionId and profile')
+      }
+
+      return retainGatewayForAgent(route.connectionId, route.profile)
+    }
+
+    return retainGatewayForAgent(null, route.trim() || 'default')
+  },
 
   /** Gateway JSON-RPC — sessions, config, skills, cron, kanban, everything
    *  the app itself uses. Lazy: resolves the LIVE socket per call. */

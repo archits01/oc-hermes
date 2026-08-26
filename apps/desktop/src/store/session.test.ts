@@ -15,6 +15,12 @@ vi.mock('@/hermes', () => ({
   setSessionUnreadRemote: (id: string, unread: boolean, profile?: null | string) => setUnreadRemote(id, unread, profile)
 }))
 
+<<<<<<< HEAD
+=======
+import { deferred } from '../test/deferred'
+import { makeSessionInfo } from '../test/session-info'
+
+>>>>>>> upstream/main
 import {
   $activeSessionId,
   $connection,
@@ -25,9 +31,12 @@ import {
   _resetLegacyDiscardForTests,
   applyConfiguredDefaultProjectDir,
   commitWorkspaceCwdForSelectedSession,
+  ensureDefaultWorkspaceCwd,
+  getConfiguredDefaultProjectDir,
   getRememberedRoute,
   getRememberedSessionId,
   getSessionOwnerHint,
+  knownSessionOwner,
   knownSessionProfile,
   mergeSessionPage,
   rememberedSessionProfile,
@@ -72,6 +81,28 @@ const session = (over: Partial<SessionInfo>): SessionInfo => ({
 })
 
 describe('session owner hints', () => {
+  it('preserves the registry owner recorded on a discovered session row', () => {
+    expect(
+      knownSessionOwner(
+        [session({ connection_id: 'test-amnezia', id: 'registry-session', profile: 'default' })],
+        'registry-session'
+      )
+    ).toEqual({ connectionId: 'test-amnezia', profile: 'default' })
+  })
+
+  it('preserves the exact registry owner for session-scoped RPC routing', () => {
+    const route = {
+      connectionId: 'test-amnezia',
+      mode: 'remote' as const,
+      profile: 'default',
+      targetProfile: 'default'
+    }
+
+    setSessionOwnerHint('remote-session', route)
+
+    expect(knownSessionOwner([session({ id: 'remote-session', profile: 'default' })], 'remote-session')).toEqual(route)
+  })
+
   it('keeps identical session ids separate across connection and profile owners', () => {
     const sourceA = { connectionId: 'source-a', mode: 'remote' as const, profile: 'worker', targetProfile: 'backend-a' }
     const sourceB = { connectionId: 'source-b', mode: 'remote' as const, profile: 'worker', targetProfile: 'backend-b' }
@@ -436,6 +467,57 @@ describe('workspaceCwdForNewSession', () => {
     window.localStorage.removeItem('hermes.desktop.workspace-cwd')
     window.localStorage.removeItem('hermes.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-a.default')
     window.localStorage.removeItem('hermes.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-b.default')
+    delete (window as { hermesDesktop?: unknown }).hermesDesktop
+  })
+
+  it('does not publish a delayed configured default after ownership is lost', async () => {
+    const settingsResult = deferred<{
+      defaultLabel: string
+      dir: string
+      resolvedCwd: string
+    }>()
+
+    const sanitizeWorkspaceCwd = vi.fn(async (cwd: string) => ({ cwd }))
+
+    ;(window as { hermesDesktop?: unknown }).hermesDesktop = {
+      sanitizeWorkspaceCwd,
+      settings: { getDefaultProjectDir: vi.fn(() => settingsResult.promise) }
+    }
+    applyConfiguredDefaultProjectDir('/newer/default')
+    let ownsSwitch = true
+
+    const seeding = ensureDefaultWorkspaceCwd(() => ownsSwitch)
+    ownsSwitch = false
+    settingsResult.resolve({ defaultLabel: '/stale', dir: '/stale/default', resolvedCwd: '/stale/default' })
+    await seeding
+
+    expect(getConfiguredDefaultProjectDir()).toBe('/newer/default')
+    expect($currentCwd.get()).toBe('')
+    expect(sanitizeWorkspaceCwd).not.toHaveBeenCalled()
+  })
+
+  it('does not publish a delayed sanitized cwd after ownership is lost', async () => {
+    const sanitized = deferred<{ cwd: string }>()
+
+    ;(window as { hermesDesktop?: unknown }).hermesDesktop = {
+      sanitizeWorkspaceCwd: vi.fn(() => sanitized.promise),
+      settings: {
+        getDefaultProjectDir: vi.fn(async () => ({
+          defaultLabel: '/configured',
+          dir: '/configured',
+          resolvedCwd: '/configured'
+        }))
+      }
+    }
+    let ownsSwitch = true
+
+    const seeding = ensureDefaultWorkspaceCwd(() => ownsSwitch)
+    await vi.waitFor(() => expect(getConfiguredDefaultProjectDir()).toBe('/configured'))
+    ownsSwitch = false
+    sanitized.resolve({ cwd: '/stale/sanitized' })
+    await seeding
+
+    expect($currentCwd.get()).toBe('')
   })
 
   it('prefers the configured default over the sticky remembered workspace', () => {
