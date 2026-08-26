@@ -29,6 +29,7 @@ export interface VoiceMenuProps {
   onDictate: () => void
   onStartConversation: () => void
   onToggleAutoSpeak: () => void
+  wakeWordAllowed: boolean
 }
 
 /**
@@ -53,7 +54,8 @@ export function VoiceMenu({
   voiceStatus,
   onDictate,
   onStartConversation,
-  onToggleAutoSpeak
+  onToggleAutoSpeak,
+  wakeWordAllowed
 }: VoiceMenuProps) {
   const { t } = useI18n()
   const c = t.composer
@@ -61,7 +63,7 @@ export function VoiceMenu({
 
   const phrase = wake.phrase || 'hey hermes'
   const dictating = state.voice.active || voiceStatus !== 'idle'
-  const wakeListening = wake.listening
+  const wakeListening = wakeWordAllowed && wake.listening
   // Anything live keeps the trigger lit, so a folded menu can never look idle
   // while the mic is open.
   const active = dictating || wakeListening || autoSpeak
@@ -78,7 +80,7 @@ export function VoiceMenu({
 
   return (
     <DropdownMenu>
-      <Tip label={wake.notice && !dictating ? `${triggerLabel} — ${wake.notice}` : triggerLabel}>
+      <Tip label={wakeWordAllowed && wake.notice && !dictating ? `${triggerLabel} — ${wake.notice}` : triggerLabel}>
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={triggerLabel}
@@ -143,19 +145,21 @@ export function VoiceMenu({
           {autoSpeak ? <Volume2 className={iconSize.sm} /> : <VolumeX className={iconSize.sm} />}
           {autoSpeak ? c.stopSpeakingReplies : c.speakReplies}
         </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={wakeListening}
-          className={dropdownMenuRow}
-          disabled={disabled || wake.pending}
-          onSelect={event => {
-            event.preventDefault()
-            triggerHaptic(wakeListening ? 'close' : 'open')
-            void toggleWakeWord()
-          }}
-        >
-          {wakeListening ? <Ear className={iconSize.sm} /> : <EarOff className={iconSize.sm} />}
-          {wakeLabel}
-        </DropdownMenuCheckboxItem>
+        {wakeWordAllowed ? (
+          <DropdownMenuCheckboxItem
+            checked={wakeListening}
+            className={dropdownMenuRow}
+            disabled={disabled || wake.pending}
+            onSelect={event => {
+              event.preventDefault()
+              triggerHaptic(wakeListening ? 'close' : 'open')
+              void toggleWakeWord()
+            }}
+          >
+            {wakeListening ? <Ear className={iconSize.sm} /> : <EarOff className={iconSize.sm} />}
+            {wakeLabel}
+          </DropdownMenuCheckboxItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )

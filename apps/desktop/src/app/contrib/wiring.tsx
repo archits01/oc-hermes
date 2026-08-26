@@ -40,6 +40,7 @@ import { isMessagingSource } from '@/lib/session-source'
 import { latestSessionTodos } from '@/lib/todos'
 import { activateWakeIndicator } from '@/lib/wake-indicator'
 import { playWakeSound } from '@/lib/wake-sound'
+import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $billingSettingsRequest } from '@/store/billing-block'
 import { $desktopBoot } from '@/store/boot'
 import { requestVoiceConversationStart } from '@/store/composer'
@@ -230,6 +231,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const profileScope = useStore($profileScope)
   const boot = useStore($desktopBoot)
+  const connection = useStore($connection)
 
   const routedSessionId = routeSessionId(location.pathname)
   const routedSessionIdRef = useRef(routedSessionId)
@@ -801,12 +803,14 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (gatewayState === 'open') {
+    if (gatewayState === 'open' && wakeWordAllowedForConnection(connection?.mode)) {
       // Status-then-arm, syncing $wakeWord so the composer toggle reflects the
       // same listener this auto-arm claims.
       void armWakeWord(requestGateway)
+    } else if (connection?.mode === 'remote') {
+      stopClientCapture()
     }
-  }, [gatewayState, requestGateway])
+  }, [connection?.mode, gatewayState, requestGateway])
 
   const activeIsMessaging =
     !!selectedStoredSessionId &&
@@ -1081,7 +1085,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // (preview's monitor/devtools cluster, …) arrive as registry contributions.
   const leftTitlebarTools = useTitlebarToolContributions('left')
   const rightTitlebarTools = useTitlebarToolContributions('right')
-  const connection = useStore($connection)
   const controlsPos = titlebarControlsPosition(connection?.windowButtonPosition, Boolean(connection?.isFullscreen))
   // Windows/WSLg reserve native min/max/close on the right (AppShell parity:
   // prefer the live WCO measurement, fall back to the static reservation).
