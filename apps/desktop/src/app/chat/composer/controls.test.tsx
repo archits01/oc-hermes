@@ -1,8 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ChatBarState } from '@/app/chat/composer/types'
 import { I18nProvider } from '@/i18n'
+import { $connection } from '@/store/session'
 import { applyWakeStartResult, applyWakeStatus, resetWakeWordState } from '@/store/wake-word'
 
 import { ComposerControls } from './controls'
@@ -57,6 +58,10 @@ async function expectShortcutTooltip(label: string, shortcut: string) {
 
 afterEach(() => {
   cleanup()
+})
+
+beforeEach(() => {
+  $connection.set({ mode: 'local' } as never)
 })
 
 // A tile can be narrower than the controls cost, and the row is inside an
@@ -172,5 +177,24 @@ describe('wake-word ear visibility', () => {
 
     const ear = screen.getByLabelText('Wake word: "hey hermes" — paused during voice chat')
     expect((ear as HTMLButtonElement).disabled).toBe(true)
+  })
+})
+
+describe('remote friend composer', () => {
+  it('removes the wake-word control from the prompt bar', () => {
+    $connection.set({ mode: 'remote' } as never)
+    applyWakeStatus({ available: true, enabled: true, listening: true, phrase: 'hey hermes' })
+    renderControls()
+
+    expect(screen.queryByLabelText(/Wake word:/)).toBeNull()
+  })
+
+  it('removes the wake-word control from the folded voice menu', () => {
+    $connection.set({ mode: 'remote' } as never)
+    applyWakeStatus({ available: true, enabled: true, listening: true, phrase: 'hey hermes' })
+    renderControls({ foldVoice: true })
+
+    fireEvent.click(screen.getByLabelText('Voice'))
+    expect(screen.queryByText(/Wake word:/)).toBeNull()
   })
 })

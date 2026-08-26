@@ -7,7 +7,9 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $hudMode } from '@/store/hud'
+import { $connection } from '@/store/session'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
@@ -79,9 +81,11 @@ export function ComposerControls({
   // Declared before the early return below: useStore is a hook and cannot run
   // conditionally. Used further down to fold the voice controls in HUD mode.
   const hudMode = useStore($hudMode)
+  const connection = useStore($connection)
+  const wakeWordAllowed = wakeWordAllowedForConnection(connection?.mode)
 
   if (conversation.active) {
-    return <ConversationPill {...conversation} disabled={disabled} />
+    return <ConversationPill {...conversation} disabled={disabled} wakeWordAllowed={wakeWordAllowed} />
   }
 
   const showVoicePrimary = !busy && !hasComposerPayload
@@ -106,21 +110,20 @@ export function ComposerControls({
       onToggleAutoSpeak={onToggleAutoSpeak}
       state={state}
       voiceStatus={voiceStatus}
+      wakeWordAllowed={wakeWordAllowed}
     />
   ) : (
     <>
       <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
-      <WakeWordButton disabled={disabled} />
+      {wakeWordAllowed ? <WakeWordButton disabled={disabled} /> : null}
     </>
   )
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
-      <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
-      <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
-      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
-      <WakeWordButton disabled={disabled} />
+      {minimal ? null : <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />}
+      {minimal ? null : voiceControls}
       {showQueueButton ? (
         <Tip label={<TipKeybindLabel actionId="composer.queue" text={c.queueMessage} />}>
           <Button
@@ -187,8 +190,9 @@ function ConversationPill({
   onEnd,
   onStopTurn,
   onToggleMute,
-  status
-}: ConversationProps & { disabled: boolean }) {
+  status,
+  wakeWordAllowed
+}: ConversationProps & { disabled: boolean; wakeWordAllowed: boolean }) {
   const { t } = useI18n()
   const c = t.composer
   const speaking = status === 'speaking'
@@ -207,9 +211,7 @@ function ConversationPill({
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
-      {/* Keep the ear visible during voice chat — shown paused, since the
-          conversation holds the mic (the one time wake must not listen). */}
-      <WakeWordButton disabled={disabled} pausedForVoice />
+      {wakeWordAllowed ? <WakeWordButton disabled={disabled} pausedForVoice /> : null}
       <Tip label={muted ? c.unmuteMic : c.muteMic}>
         <Button
           aria-label={muted ? c.unmuteMic : c.muteMic}
