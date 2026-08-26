@@ -1,0 +1,95 @@
+# Canonical source manifest for the LMI Unipile live overlays.
+#
+# The referenced live files are read-only review inputs.  This manifest does
+# not install, enable, deploy, or call a provider.  An operator must explicitly
+# review and copy the pinned inputs into a deployment-owned environment.
+manifest_version: 1
+name: lmi-unipile-live-overlay
+kind: platform-overlay
+status: review-only
+deployment:
+  enabled: false
+  provider_calls: prohibited
+  target: plugins/platforms/lmi_unipile_overlay
+  live_overlay_root: /opt/opencomputer-v2-data/plugins
+
+media_bridge_source:
+  repository: https://github.com/archits01/lmi-dashboard.git
+  commit: local-reviewed-20260825
+  path: vm/leadgen/unipile_media_followup.py
+
+channels:
+  - name: whatsapp
+    adapter_input: whatsapp_unipile/adapter.py
+    env_prefix: WHATSAPP_UNIPILE_
+  - name: instagram
+    adapter_input: instagram/adapter.py
+    env_prefix: INSTAGRAM_UNIPILE_
+  - name: linkedin
+    adapter_input: linkedin/adapter.py
+    env_prefix: LINKEDIN_UNIPILE_
+
+source_inputs:
+  - path: _direct_callback.py
+    sha256: 8484edc98438c28e3dae794fb804bac0b361edcced3b466828f4c9218e32af64
+  - path: _unipile_common.py
+    sha256: 65af0cb2c98e1c11f348034dbf7a4fef1fc312cd7aedd5fc4395504339d6eb28
+  - path: whatsapp_unipile/adapter.py
+    sha256: ad31b9aefdb923fec8c96967ee4e3877fe568bcba05868e21f884bbdfa4e1310
+  - path: instagram/adapter.py
+    sha256: a30156e75161ef241af9011063570a9adc45d455325109544ca9f184bec9eb82
+  - path: linkedin/adapter.py
+    sha256: c32bd4863bbee8f4d2511c21853f49ff0fc8ae13f5c752910409eaf00a5b75ef
+deployment_sources:
+  root: plugins/platforms/lmi_unipile_overlay/live_inputs
+  targets:
+    - source: _direct_callback.py
+      target: plugins/platforms/_direct_callback.py
+    - source: _unipile_common.py
+      target: plugins/platforms/_unipile_common.py
+    - source: whatsapp_unipile/adapter.py
+      target: plugins/platforms/whatsapp_unipile/adapter.py
+    - source: instagram/adapter.py
+      target: plugins/platforms/instagram/adapter.py
+    - source: linkedin/adapter.py
+      target: plugins/platforms/linkedin/adapter.py
+bundled_runtime:
+  - path: plugins/platforms/lmi_unipile_overlay/sales_policy.py
+    sha256: 69e98e63f2b6913dd98c19f32b130b02b0939a39374451fbbaa20dcc4ffff4ca
+  - path: plugins/platforms/lmi_unipile_overlay/booking.py
+    sha256: 08187adad29758e89c8e989a01053a3443eb6397ea02a97d831f6f7a067aaecb
+  - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_runtime.py
+    sha256: f49732b73c5bb6eaea27c06ed5b32af19237915c8b4ba4b13013e72bd106183b
+  - path: plugins/platforms/lmi_unipile_overlay/_lmi_media_bootstrap.py
+    sha256: ca25b8fad99aa1b2206270d4c12b4da243e4962f39199e4a8fb158c08449e352
+  - path: plugins/platforms/lmi_unipile_overlay/bridge.py
+    sha256: 465d7cd2c0b2d1ec8efe9c83858553e53f928b9d5277aa53c472c62e930cf921
+  - path: plugins/platforms/lmi_unipile_overlay/deployment.py
+    sha256: bbad720147c37fcdb8a675c314bd82d573a5302e4c8c3bb4b29f9e63ffcba7f5
+media_bridge:
+  path: unipile_media_followup.py
+  sha256: dbfe46b6d3141f27031ae40f006468cc60d3f72a9e8ddc9cb34405d4b5fd1ec9
+  required_templates:
+    offer: portfolio-media-v1
+    caption: portfolio-delivery-v1
+  required_inputs:
+    - exact inbound provider message id
+    - operator-approved media ids
+  forbidden_inputs:
+    - arbitrary file paths
+    - URLs
+    - model-generated captions
+
+adapter_bridge:
+  module: plugins.platforms.lmi_unipile_overlay.bridge
+  tools:
+    - whatsapp_offer_media
+    - whatsapp_send_approved_media
+    - instagram_offer_media
+    - instagram_send_approved_media
+    - linkedin_offer_media
+    - linkedin_send_approved_media
+  consent: exact-inbound-message-id-only
+  scope: adapter-bound-session-only
+  media_catalog: reviewed-bridge-approved_media
+  booking: exact-chat-owner-confirmed-handoff
