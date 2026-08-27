@@ -9385,7 +9385,11 @@ _WHATSAPP_UNIPILE_REQUIRED_ENV = (
 
 
 def _whatsapp_transport_conflict(
-    platform_id: str, enabled: bool | None, env: dict[str, str]
+    platform_id: str,
+    enabled: bool | None,
+    env: dict[str, str],
+    *,
+    runtime: dict[str, Any] | None = None,
 ) -> str | None:
     """Keep the native bridge and Unipile transport mutually exclusive.
 
@@ -9408,14 +9412,25 @@ def _whatsapp_transport_conflict(
         "yes",
         "on",
     }
+    runtime_platforms = runtime.get("platforms") if isinstance(runtime, dict) else {}
+    runtime_unipile_connected = bool(
+        isinstance(runtime_platforms, dict)
+        and isinstance(runtime_platforms.get("whatsapp_unipile"), dict)
+        and runtime_platforms["whatsapp_unipile"].get("state") == "connected"
+    )
+    runtime_native_connected = bool(
+        isinstance(runtime_platforms, dict)
+        and isinstance(runtime_platforms.get("whatsapp"), dict)
+        and runtime_platforms["whatsapp"].get("state") == "connected"
+    )
 
-    if platform_id == "whatsapp" and unipile_configured:
+    if platform_id == "whatsapp" and (unipile_configured or runtime_unipile_connected):
         return (
             "Native WhatsApp cannot be enabled while WhatsApp Unipile is "
             "configured. Use the 'WhatsApp Unipile' channel; disable or clear "
             "that transport first if you intentionally want the QR bridge."
         )
-    if platform_id == "whatsapp_unipile" and native_enabled:
+    if platform_id == "whatsapp_unipile" and (native_enabled or runtime_native_connected):
         return (
             "WhatsApp Unipile cannot be enabled while the native WhatsApp "
             "bridge is enabled. Disable the 'WhatsApp' channel first so only "
@@ -10616,7 +10631,7 @@ async def update_messaging_platform(
     allowed_env = set(entry["env_vars"])
 
     def _apply():
-        with _profile_scope(body.profile or profile):
+        with _profile_scope(body.profile or profile) as scoped_dir:
             # Evaluate the complete prospective environment before any write.
             # The Channels UI sends enabled=true even for a credential edit,
             # so this also prevents a save from accidentally activating a
@@ -10628,8 +10643,13 @@ async def update_messaging_platform(
                 trimmed = value.strip()
                 if trimmed:
                     prospective_env[key] = trimmed
+            runtime = (
+                read_runtime_status(path=scoped_dir / "gateway_state.json")
+                if scoped_dir is not None
+                else read_runtime_status()
+            )
             conflict = _whatsapp_transport_conflict(
-                platform_id, body.enabled, prospective_env
+                platform_id, body.enabled, prospective_env, runtime=runtime
             )
             if conflict:
                 raise HTTPException(status_code=409, detail=conflict)
