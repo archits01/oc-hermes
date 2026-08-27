@@ -8803,7 +8803,10 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "whatsapp": {
         "name": "WhatsApp",
-        "description": "Use Hermes through the bundled WhatsApp bridge with QR-based auth.",
+        "description": (
+            "Use Hermes through the bundled WhatsApp bridge with QR-based auth. "
+            "LMI uses the separate WhatsApp Unipile transport; do not enable both."
+        ),
         "docs_url": "https://github.com/tulir/whatsmeow",
         "env_vars": (
             "WHATSAPP_ENABLED",
@@ -9353,6 +9356,53 @@ def _catalog_lookup(platform_id: str) -> dict[str, Any] | None:
     for entry in _messaging_platform_catalog():
         if entry["id"] == platform_id:
             return entry
+    return None
+
+
+_WHATSAPP_UNIPILE_REQUIRED_ENV = (
+    "WHATSAPP_UNIPILE_DSN",
+    "WHATSAPP_UNIPILE_API_KEY",
+    "WHATSAPP_ACCOUNT_ID",
+)
+
+
+def _whatsapp_transport_conflict(
+    platform_id: str, enabled: bool | None, env: dict[str, str]
+) -> str | None:
+    """Keep the native bridge and Unipile transport mutually exclusive.
+
+    Both adapters are valid Hermes plugins, but they are different transports
+    for the same customer-facing WhatsApp channel.  Allowing both to be
+    enabled creates duplicate replies and makes account ownership ambiguous.
+    Check the prospective profile environment before writing it so a UI save
+    cannot leave a gateway in that split-brain state.
+    """
+    if enabled is not True:
+        return None
+
+    unipile_configured = all(
+        str(env.get(key, "") or "").strip()
+        for key in _WHATSAPP_UNIPILE_REQUIRED_ENV
+    )
+    native_enabled = str(env.get("WHATSAPP_ENABLED", "") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+    if platform_id == "whatsapp" and unipile_configured:
+        return (
+            "Native WhatsApp cannot be enabled while WhatsApp Unipile is "
+            "configured. Use the 'WhatsApp Unipile' channel; disable or clear "
+            "that transport first if you intentionally want the QR bridge."
+        )
+    if platform_id == "whatsapp_unipile" and native_enabled:
+        return (
+            "WhatsApp Unipile cannot be enabled while the native WhatsApp "
+            "bridge is enabled. Disable the 'WhatsApp' channel first so only "
+            "one WhatsApp transport can receive and send messages."
+        )
     return None
 
 
@@ -10527,6 +10577,23 @@ async def update_messaging_platform(
 
     def _apply():
         with _profile_scope(body.profile or profile):
+            # Evaluate the complete prospective environment before any write.
+            # The Channels UI sends enabled=true even for a credential edit,
+            # so this also prevents a save from accidentally activating a
+            # second WhatsApp transport.
+            prospective_env = dict(load_env())
+            for key in body.clear_env:
+                prospective_env.pop(key, None)
+            for key, value in body.env.items():
+                trimmed = value.strip()
+                if trimmed:
+                    prospective_env[key] = trimmed
+            conflict = _whatsapp_transport_conflict(
+                platform_id, body.enabled, prospective_env
+            )
+            if conflict:
+                raise HTTPException(status_code=409, detail=conflict)
+
             for key in body.clear_env:
                 if key not in allowed_env:
                     raise HTTPException(
