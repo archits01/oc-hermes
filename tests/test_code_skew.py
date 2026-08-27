@@ -87,6 +87,7 @@ class TestDashboardCodeSkewGuard:
         assert "abc1234567" in msg
         assert "def4567890" in msg
         assert "restart" in msg.lower()
+        assert "systemctl restart hermes-dashboard.service" in msg
 
 
 class TestModelOptionsSkewGuard:
