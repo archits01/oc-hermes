@@ -7276,7 +7276,9 @@ def _dashboard_code_skew_guard() -> Optional[str]:
         f"This dashboard is running code from {boot_rev} but the checkout on "
         f"disk is now {disk_rev}. The model picker would risk a stale-module "
         f"crash — restart the dashboard to load the new code "
-        f"(systemctl --user restart hermes-dashboard, or hermes dashboard --port <port>)"
+        f"(managed system service: systemctl restart hermes-dashboard.service; "
+        f"user service: systemctl --user restart hermes-dashboard.service; "
+        f"or hermes dashboard --port <port>)"
     )
 
 
