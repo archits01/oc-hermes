@@ -8127,6 +8127,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             model = runtime_model
 
         cfg = getattr(self, "config", None)
+        ch = None
         if cfg and source is not None:
             chat_id = str(source.chat_id) if source.chat_id else ""
             thread_id = (
@@ -8156,6 +8157,54 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     # did not specify an explicit model.
                     if ch_runtime_model and not ch.model:
                         model = ch_runtime_model
+
+        # LMI customer conversations have a deployment-owned interaction
+        # default that is intentionally separate from the desktop/profile
+        # picker.  Session and exact channel overrides still win above; when
+        # neither exists, bind the three LMI messaging adapters to the
+        # configured XAI OAuth route rather than silently inheriting the
+        # generic OpenComputer model.  Cron wrappers already use these same
+        # variables, but webhook turns resolve here inside the gateway.
+        _source_platform = ""
+        if source is not None:
+            _raw_platform = getattr(source, "platform", "")
+            _source_platform = str(
+                getattr(_raw_platform, "value", _raw_platform) or ""
+            ).strip().lower()
+        _lmi_model = os.environ.get("LMI_INTERACTION_MODEL", "grok-4.6").strip()
+        _lmi_provider = (
+            os.environ.get("LMI_INTERACTION_PROVIDER", "xai-oauth").strip()
+            or "xai-oauth"
+        )
+        if (
+            source is not None
+            and not override
+            and not (ch and (ch.model or ch.provider))
+            and _source_platform in {"instagram", "linkedin", "whatsapp", "whatsapp_unipile"}
+            and _lmi_model
+        ):
+            try:
+                runtime_kwargs = _resolve_runtime_agent_kwargs_for_provider(
+                    _lmi_provider
+                )
+                model = _lmi_model
+                logger.info(
+                    "LMI interaction route selected: platform=%s model=%s provider=%s",
+                    _source_platform,
+                    model,
+                    _lmi_provider,
+                )
+            except Exception as exc:
+                # A missing/expired OAuth credential must remain visible and
+                # must not be mislabeled as a successful LMI route. Keep the
+                # previously resolved route only as a degraded fallback so the
+                # gateway can report its normal provider error.
+                logger.warning(
+                    "LMI interaction route unavailable: platform=%s provider=%s (%s)",
+                    _source_platform,
+                    _lmi_provider,
+                    type(exc).__name__,
+                )
 
         if override and resolved_session_key:
             model, runtime_kwargs = self._apply_session_model_override(
