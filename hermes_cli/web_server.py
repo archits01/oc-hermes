@@ -8955,6 +8955,24 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
         ),
         "required_env": (),
     },
+    "whatsapp_unipile": {
+        "name": "WhatsApp (Unipile)",
+        "description": (
+            "LMI's customer WhatsApp channel through Unipile. This is separate "
+            "from the bundled QR-based WhatsApp bridge."
+        ),
+        "env_vars": (
+            "WHATSAPP_UNIPILE_DSN",
+            "WHATSAPP_UNIPILE_API_KEY",
+            "WHATSAPP_ACCOUNT_ID",
+            "WHATSAPP_ALLOWED_USERS",
+        ),
+        "required_env": (
+            "WHATSAPP_UNIPILE_DSN",
+            "WHATSAPP_UNIPILE_API_KEY",
+            "WHATSAPP_ACCOUNT_ID",
+        ),
+    },
     "homeassistant": {
         "name": "Home Assistant",
         "description": "Control your smart home from Hermes via Home Assistant.",
@@ -9603,6 +9621,11 @@ def _messaging_platform_payload(
         runtime_pid_probe=get_runtime_status_running_pid,
     )
     gateway_running = liveness.running
+    runtime_connected = bool(
+        gateway_running
+        and isinstance(runtime_platform, dict)
+        and runtime_platform.get("state") == "connected"
+    )
     env_vars = []
 
     for key in entry["env_vars"]:
@@ -9615,7 +9638,11 @@ def _messaging_platform_payload(
             {
                 "key": key,
                 "required": key in entry["required_env"],
-                "is_set": bool(value),
+                # A production deployment may keep connector credentials in a
+                # service-owned runtime.env rather than the dashboard's .env.
+                # A connected runtime is authoritative for display, but we do
+                # not copy or expose those secret values through this API.
+                "is_set": bool(value) or (runtime_connected and key in entry["required_env"]),
                 "redacted_value": redact_key(value) if value else None,
                 **_messaging_env_info(key),
             }
@@ -9639,6 +9666,8 @@ def _messaging_platform_payload(
             enabled = False
             home_channel = None
         configured = all(env_on_disk.get(key) for key in entry["required_env"])
+        if runtime_connected:
+            configured = True
     else:
         try:
             gateway_config, platform, platform_config = _gateway_platform_config(
@@ -9649,6 +9678,8 @@ def _messaging_platform_payload(
                 platform_config
                 and gateway_config._is_platform_connected(platform, platform_config)
             )
+            if runtime_connected:
+                configured = True
             home_channel = (
                 platform_config.home_channel.to_dict()
                 if platform_config and platform_config.home_channel
@@ -9660,7 +9691,16 @@ def _messaging_platform_payload(
                 env_on_disk.get(key) or os.getenv(key, "")
                 for key in entry["required_env"]
             )
+            if runtime_connected:
+                configured = True
             home_channel = None
+
+    # A live adapter cannot be connected while disabled.  This also covers
+    # deployments whose service-owned environment/config is intentionally
+    # outside the dashboard's .env surface.
+    if runtime_connected:
+        enabled = True
+        configured = True
 
     state = (
         runtime_platform.get("state") if isinstance(runtime_platform, dict) else None
