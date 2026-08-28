@@ -7,9 +7,13 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+<<<<<<< HEAD
 import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $hudMode } from '@/store/hud'
 import { $connection } from '@/store/session'
+=======
+import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
+>>>>>>> upstream/main
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
@@ -179,10 +183,57 @@ export function ComposerControls({
           </Button>
         </Tip>
       )}
+<<<<<<< HEAD
+=======
+      {/* The way out of HUD mode, riding the controls row rather than floating
+          above the bar. The old chip lived in a 26px transparent strip reserved
+          over the composer (--hud-chip-strip), which under glass is bare
+          untinted material with a hidden button in it — a band of chrome above
+          the surface, paid for in every state, for a control that is invisible
+          until hovered. Here it costs no reserved space and sits with the other
+          things you can press. */}
+      {hudMode ? <HudWindowButtons /> : null}
+>>>>>>> upstream/main
     </div>
   )
 }
 
+<<<<<<< HEAD
+=======
+function HudWindowButtons() {
+  const { t } = useI18n()
+
+  return (
+    <>
+      <Tip label={t.titlebar.resetHudLayout}>
+        <Button
+          aria-label={t.titlebar.resetHudLayout}
+          className={cn(GHOST_ICON_BTN, 'p-0')}
+          onClick={resetHudLayout}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Codicon name="discard" size="0.875rem" />
+        </Button>
+      </Tip>
+      <Tip label={t.titlebar.exitHud}>
+        <Button
+          aria-label={t.titlebar.exitHud}
+          className={cn(GHOST_ICON_BTN, 'p-0')}
+          onClick={closeHud}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Codicon name="screen-normal" size="0.875rem" />
+        </Button>
+      </Tip>
+    </>
+  )
+}
+
+>>>>>>> upstream/main
 function ConversationPill({
   disabled,
   level,
