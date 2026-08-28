@@ -9683,6 +9683,78 @@ class TelegramAdapter(BasePlatformAdapter):
         """
         return getattr(update, "effective_message", None) or getattr(update, "message", None)
 
+    async def _consume_lmi_owner_meeting_command(self, message: Message) -> bool:
+        """Consume an exact Vaibhav LINK/CONFIRM/DECLINE control message.
+
+        Owner commands are a control-plane input, not customer prompt text.
+        They must be handled before normal Telegram session routing, otherwise
+        the model can acknowledge a LINK command while the CRM never sends the
+        customer email or reminder.
+        """
+        text = str(getattr(message, "text", "") or "").strip()
+        if not re.fullmatch(
+            r"(?:LINK|CONFIRM|DECLINE)\s+LM-[0-9A-F]{10}(?:\s+\S+)?",
+            text,
+            re.I,
+        ):
+            return False
+        try:
+            import meeting_handoff
+
+            target_channel, target_account, target_chat = meeting_handoff._target_snapshot()
+            chat_id = str(getattr(getattr(message, "chat", None), "id", "") or "").strip()
+            if (
+                target_channel != "telegram"
+                or not target_account
+                or not target_chat
+                or chat_id != str(target_chat)
+            ):
+                return False
+
+            payload = {
+                "account_type": "telegram",
+                "account_id": str(target_account),
+                "chat_id": chat_id,
+                "is_sender": False,
+                "message_id": str(getattr(message, "message_id", "") or "").strip(),
+                "text": text,
+            }
+
+            def consume() -> dict[str, Any]:
+                import sqlite3
+
+                db_path = os.environ.get("LMI_CRM_DB", "/root/unipile_webhooks.db")
+                con = sqlite3.connect(db_path, timeout=30)
+                try:
+                    return meeting_handoff.handle_owner_inbound(con, payload)
+                finally:
+                    con.close()
+
+            result = await asyncio.to_thread(consume)
+            if result.get("status") == "owner_message_consumed":
+                detail = result.get("result") or {}
+                logger.info(
+                    "[%s] consumed LMI owner meeting command status=%s",
+                    self.name,
+                    str(detail.get("status") or "unknown"),
+                )
+            else:
+                logger.warning(
+                    "[%s] LMI owner command was not consumed: %s",
+                    self.name,
+                    str(result.get("status") or "unknown"),
+                )
+            # Never route a recognized owner control command to the model, even
+            # when the durable handler returned an error/review state.
+            return True
+        except Exception:
+            logger.error(
+                "[%s] LMI owner meeting command handler failed: %s",
+                self.name,
+                type(sys.exc_info()[1]).__name__,
+            )
+            return True
+
     async def _handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle incoming text messages.
 
@@ -9703,6 +9775,8 @@ class TelegramAdapter(BasePlatformAdapter):
                 getattr(getattr(msg, "from_user", None), "id", None),
                 getattr(getattr(msg, "chat", None), "id", None),
             )
+            return
+        if await self._consume_lmi_owner_meeting_command(msg):
             return
         if not self._should_process_message(msg):
             if self._should_observe_unmentioned_group_message(msg):
