@@ -20,7 +20,7 @@ import { useHudGameOverlay } from './game-overlay'
 import { useHudGlass } from './glass'
 import { useHudGoto, useReportHudSession } from './handoff'
 import { hudTranscriptHeight } from './layout'
-import { useHudResizeHandle } from './resize-handle'
+import { hudResizeDirections, useHudResizeHandle } from './resize-handle'
 import { useHudThreadFocus } from './thread-focus'
 
 /** How long the transcript lingers at its glanceable opacity — after a turn
@@ -375,15 +375,20 @@ export function HudShell() {
     }
   }, [])
 
-  useHudGlass(rootRef, recent || held, filled)
+  useHudGlass(rootRef, filled)
   useHudClickThrough(rootRef)
   useHudThreadFocus(rootRef)
 
-  // Corner resize handle. The window is created non-resizable so dragging can
+  // Edge/corner resize frame. The window is created non-resizable so dragging can
   // never be misread as a resize gesture (the Windows transparent-frameless
   // growth bug); the handle is the one sanctioned way to change size, driving
   // the same flip-resizable-for-the-call pattern the pet overlay uses.
   const { resizing: hudResizing, onPointerDown: onHudResizePointerDown } = useHudResizeHandle()
+  const hudWindowing = window.hermesDesktop?.hud?.windowing
+  const resizeDirections = hudResizeDirections(hudWindowing?.clientPlacement !== false)
+  // Linux X11 cannot ignore-mouse; a visible band that also ignores the
+  // pointer just eats the click. The stylesheet keys off this.
+  const hudInput = hudWindowing?.solid ? 'solid' : 'click-through'
 
   // Force the HOST layers transparent. index.html's pre-paint script writes an
   // opaque themed background onto <html> as an INLINE style (the anti-white-
@@ -405,6 +410,8 @@ export function HudShell() {
       className="relative flex h-screen w-screen flex-col overflow-hidden"
       data-hud-edge={edge}
       data-hud-game={gameUnder ? '' : undefined}
+      data-hud-held={held ? '' : undefined}
+      data-hud-input={hudInput}
       data-hud-recent={recent || held ? '' : undefined}
       data-hud-shell
       // Letting go of the composer re-arms the hold, so the transcript steps
@@ -428,6 +435,7 @@ export function HudShell() {
 
       <WiredPane part="chatRoutes" />
 
+<<<<<<< HEAD
       {/* The way back — without it the only exits are ⌘⇧H and ⌘W, both
           invisible. Placed and revealed entirely from styles.css. */}
       <Tip label={t.titlebar.exitHud}>
@@ -457,6 +465,22 @@ export function HudShell() {
         data-hud-resize=""
         onPointerDown={onHudResizePointerDown}
       />
+=======
+      {/* CanvasTTY-style resize frame. Windows/macOS/X11 get every edge and
+          corner; native Wayland gets the right/bottom handles it can honour
+          without forbidden global positioning. The handles are invisible
+          chrome with native cursors. `data-hud-grabbing` keeps click-through
+          from handing the pointer away while the window changes under it. */}
+      {resizeDirections.map(direction => (
+        <div
+          aria-hidden
+          data-hud-grabbing={hudResizing ? '' : undefined}
+          data-hud-resize={direction}
+          key={direction}
+          onPointerDown={event => onHudResizePointerDown(event, direction)}
+        />
+      ))}
+>>>>>>> upstream/main
     </div>
   )
 }
