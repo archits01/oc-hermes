@@ -52,9 +52,6 @@ export const ja = defineLocale({
     revealInSidebar: 'ファイルツリーで表示',
     copyPath: 'パスをコピー',
     copyRelativePath: '相対パスをコピー',
-    download: 'ダウンロード',
-    downloadSaved: '保存しました',
-    downloadFailed: 'ダウンロードに失敗しました',
     rename: '名前を変更…',
     delete: '削除',
     renameTitle: '名前を変更',
@@ -73,7 +70,7 @@ export const ja = defineLocale({
       loadingSessions: '最近のセッションを読み込み中',
       retryingRemoteBackend: 'リモート OpenComputer バックエンドに再接続中…',
       startingDesktopConnection: 'デスクトップ接続を開始中',
-      startingOpenComputerDesktop: 'OpenComputer Desktop を起動中…'
+      startingHermesDesktop: 'OpenComputer Desktop を起動中…'
     },
     errors: {
       backgroundExited: 'OpenComputer バックグラウンドプロセスが終了しました。',
@@ -139,7 +136,7 @@ export const ja = defineLocale({
     backendOutOfDateMessage:
       'OpenComputer バックエンドがこのデスクトップビルドより古く、正常に動作しない場合があります。更新して揃えてください。',
     installMethodUnsupportedTitle: 'サポート対象外のインストール方法',
-    updateOpenComputer: 'OpenComputer を更新',
+    updateHermes: 'OpenComputer を更新',
     updateReadyTitle: '更新の準備ができました',
     updateReadyMessage: count => `${count} 件の新しい変更が利用可能です。`,
     updateReadyMessageUnknown: '新しい更新が利用可能です。',
@@ -245,12 +242,10 @@ export const ja = defineLocale({
     swapSidebarSides: 'サイドバーの向きを切り替え',
     hideRightSidebar: '右サイドバーを非表示',
     showRightSidebar: '右サイドバーを表示',
-    unreadSessions: count => (count === 1 ? '未読セッション 1 件' : `未読セッション ${count} 件`),
     muteHaptics: '触覚フィードバックをオフ',
     unmuteHaptics: '触覚フィードバックをオン',
     openSettings: '設定を開く',
-    openStarmap: 'メモリグラフを開く',
-    resetHudLayout: 'HUD のサイズと位置をリセット'
+    openStarmap: 'メモリグラフを開く'
   },
 
   language: {
@@ -386,8 +381,8 @@ export const ja = defineLocale({
       terminalFontPreview: 'グリフのプレビュー',
       terminalFontReset: '既定値を使用',
       translucencyTitle: 'ウィンドウの透過',
-      translucencyDesc: 'テキストも含めウィンドウ全体を透過させてデスクトップを表示します。',
-      translucencyGlassDesc: 'マットガラス: デスクトップが滑らかなぼかしとして透け、テキストは鮮明なまま。',
+      translucencyDesc: 'ウィンドウ全体を透過させてデスクトップを表示します。macOS と Windows のみ。',
+      translucencyGlassDesc: 'マットガラス: デスクトップが滑らかなぼかしとして透け、テキストは鮮明なまま。macOS のみ。',
       translucencyModeClear: 'クリア',
       translucencyModeGlass: 'ガラス',
       translucencyTintTitle: '色味',
@@ -411,17 +406,8 @@ export const ja = defineLocale({
       reactionsTitle: 'メッセージリアクション',
       reactionsDesc:
         'iMessage風の絵文字タップバック — メッセージにリアクションでき、OpenComputerもあなたのメッセージにリアクションします。',
-      tipsTitle: 'アプリ内ヒント',
-      tipsDesc:
-        'アプリの一部を指す小さな吹き出し。待機中にときどき、また役に立つときは OpenComputer からも表示します。閉じたヒントは二度と表示されません。',
-      tipsReset: (count: number) => `閉じた${count}件のヒントを元に戻す`,
-      toursTitle: 'ガイドツアー',
-      toursDesc: '画面を暗くして各ステップを強調しながら、OpenComputer がアプリを案内します。',
       composerPopoutTitle: 'フローティング入力欄',
       composerPopoutDesc: '入力欄をドックからドラッグして外せるようにします。オフにすると画面下部に固定されます。',
-      vibeHeartsTitle: 'バイブハート',
-      vibeHeartsDesc:
-        'ありがとう・愛してる・good bot・ハート絵文字のときに浮かぶハート。上のメッセージリアクションとは別です。',
       embedsTitle: 'インライン埋め込み',
       embedsDesc:
         'リッチプレビューは第三者サイト（YouTube、X など）から読み込まれます。確認は許可するまでプレースホルダーを表示し、常には自動で読み込み、オフはリンクのままにします。',
@@ -841,10 +827,6 @@ export const ja = defineLocale({
       plainTextStoredTitle: 'トークンは平文で保存されています',
       plainTextStoredDesc:
         'セキュアストレージが利用できないため、保存済みのトークンはこのマシンのアプリの接続設定ファイルに暗号化されずに保存されています。暗号化するには GNOME Keyring または KWallet をインストールまたは有効化してください。',
-      keychainEncryptionTitle: 'OS キーチェーンで保存済みのシークレットを暗号化',
-      keychainEncryptionDesc:
-        'デフォルトはオフです。オンにすると、ゲートウェイのトークンとサインイン資格情報がシステムのキーチェーン（Keychain Access、GNOME Keyring、Windows DPAPI）で暗号化されます。システムから許可やパスワードを求められる場合があります。オフの場合は、現在のユーザーのみが読める通常ファイルとして保存されます。',
-      keychainEncryptionFailed: 'シークレット暗号化の設定を変更できませんでした',
       testRemote: 'リモートをテスト',
       saveForRestart: '次回起動時のために保存',
       saveAndReconnect: '保存して再接続',
@@ -888,9 +870,9 @@ export const ja = defineLocale({
       sshPortDesc: '空欄 = 22 または ~/.ssh/config のポート。',
       sshKeyTitle: '鍵ファイル',
       sshKeyDesc: '秘密鍵のパス。空欄 = ssh-agent または ~/.ssh/config。',
-      sshOpenComputerPathTitle: 'OpenComputer パス（任意）',
-      sshOpenComputerPathDesc: 'リモートの hermes バイナリへのフルパス。空欄 = 自動検出。',
-      sshOpenComputerPathPlaceholder: '自動検出',
+      sshHermesPathTitle: 'OpenComputer パス（任意）',
+      sshHermesPathDesc: 'リモートの hermes バイナリへのフルパス。空欄 = 自動検出。',
+      sshHermesPathPlaceholder: '自動検出',
       sshTestConnection: 'SSH をテスト',
       sshConnect: '接続',
       sshButtonsHint: '「保存」は次回起動時に適用され、「接続」は今すぐ再接続します。',
@@ -1006,6 +988,7 @@ export const ja = defineLocale({
       providerDefault: '(プロバイダーのデフォルト)',
       tasks: {
         vision: { label: 'ビジョン', hint: '画像分析' },
+        web_extract: { label: 'ウェブ抽出', hint: 'ページの要約' },
         compression: { label: '圧縮', hint: 'コンテキストの圧縮' },
         skills_hub: { label: 'スキルハブ', hint: 'スキル検索' },
         approval: { label: '承認', hint: 'スマート自動承認' },
@@ -1096,14 +1079,14 @@ export const ja = defineLocale({
       activeBackend: '使用中',
       activeBackendHint: 'これが現在アクティブなバックエンドです',
       useBackend: 'このバックエンドを使う',
-      nousIncluded: 'Nous サブスクリプションに含まれています。有効にするには Portal にサインインしてください。',
-      nousAuthNeededTitle: 'Portal にサインイン',
+      nousIncluded: 'Nous サブスクリプションに含まれています。有効にするには Nous Portal にサインインしてください。',
+      nousAuthNeededTitle: 'Nous Portal にサインイン',
       nousAuthNeededMessage: provider =>
-        `${provider} は保存されましたが、Portal にサインインするまで有効になりません。`,
+        `${provider} は保存されましたが、Nous Portal にサインインするまで有効になりません。`,
       nousAuthSignIn: 'サインイン',
-      nousAuthDoneTitle: 'Portal に接続しました',
+      nousAuthDoneTitle: 'Nous Portal に接続しました',
       nousAuthDoneMessage: 'サブスクリプションのバックエンドが有効になりました。',
-      nousAuthFailed: 'Portal のサインインが完了しませんでした',
+      nousAuthFailed: 'Nous Portal のサインインが完了しませんでした',
       noApiKeyRequired: 'API キーは不要です。',
       postSetupHint: step =>
         `このバックエンドは一度だけインストールが必要です (${step})。このマシン上で実行され、数分かかる場合があります。`,
@@ -1140,16 +1123,6 @@ export const ja = defineLocale({
         selectedMessage: backend => `ターミナルコマンドは ${backend} で実行されます。新しいセッションに適用されます。`,
         failedSelect: backend => `${backend} の選択に失敗しました`,
         needsSetupHint: 'このバックエンドは今すぐ選択できますが、セットアップが完了するまでコマンドは失敗します。'
-      },
-      browserRealProfile: {
-        label: '実際のブラウザプロファイルを使用',
-        description:
-          '既定ブラウザのログイン情報と Cookie を管理されたスナップショットにコピーし、エージェントはそれを使ってブラウジングします。実際のプロファイルが直接開かれることはありません。新しいセッションに適用されます。',
-        enabledTitle: '実プロファイルブラウジング：オン',
-        enabledMessage: '新しいセッションは既定ブラウザプロファイルのスナップショットでブラウジングします。',
-        disabledTitle: '実プロファイルブラウジング：オフ',
-        disabledMessage: 'プロファイルのスナップショットは削除され、新しいセッションはクリーンなブラウザを使用します。',
-        failedSave: '実プロファイル設定を保存できませんでした'
       }
     }
   },
@@ -1364,7 +1337,7 @@ export const ja = defineLocale({
     restartGateway: 'ゲートウェイを再起動',
     openBrowser: 'ブラウザを開く',
     gatewayRestartFailed: 'ゲートウェイの再起動に失敗しました。',
-    updateOpenComputer: 'OpenComputer を更新',
+    updateHermes: 'OpenComputer を更新',
     reloadWindow: 'ウィンドウを再読み込み',
     actionRunning: '実行中',
     actionDone: '完了',
@@ -1601,7 +1574,6 @@ export const ja = defineLocale({
     defaultBadge: 'デフォルト',
     rename: '名前を変更',
     renameMenu: '名前を変更…',
-    exportMenu: 'エクスポート…',
     editSoul: 'SOUL.md を編集…',
     copySetup: 'セットアップをコピー',
     copying: 'コピー中...',
@@ -1663,11 +1635,7 @@ export const ja = defineLocale({
       message: count => `モデル設定を確認するまで、${count} 件のスケジュール済みジョブがスキップされます。`,
       detailMore: (names, remaining) => `${names}、ほか ${remaining} 件`,
       review: 'スケジュール済みジョブを確認',
-      saveFailed: 'OpenComputer はモデルの変更を保存しませんでした。',
-      confirmTitle: 'モデル選択の警告',
-      confirmDetail: 'このトレードオフを受け入れる場合のみ確認してください。',
-      confirmAction: '確認',
-      declined: 'モデル変更をキャンセルしました — データ学習ティアの警告を拒否しました。'
+      saveFailed: 'OpenComputer はモデルの変更を保存しませんでした。'
     },
     search: 'Cron ジョブを検索...',
     loading: 'Cron ジョブを読み込み中...',
@@ -1906,7 +1874,7 @@ export const ja = defineLocale({
       removeFolder: '削除',
       create: '作成',
       menu: 'アクション',
-      menuRename: '名前を変更…',
+      menuRename: '名前を変更',
       menuAppearance: '外観',
       noColor: '色なし',
       menuAddFolder: 'フォルダを追加',
@@ -1969,7 +1937,7 @@ export const ja = defineLocale({
       copyId: 'ID をコピー',
       export: 'エクスポート',
       branchFrom: '分岐',
-      rename: '名前を変更…',
+      rename: '名前を変更',
       archive: 'アーカイブ',
       newWindow: '新しいウィンドウ',
       openInTerminal: 'ターミナルで開く',
@@ -2202,7 +2170,6 @@ export const ja = defineLocale({
       openPr: 'PR を開く',
       ghMissing: 'PR を開くには GitHub CLI (gh) をインストールしてサインインしてください',
       agentShip: 'OpenComputer にコミットと PR を任せる',
-      agentShipUnavailable: 'この変更を持つチャットが画面にありません。',
       agentShipPrompt:
         '現在の変更を確認し、分かりやすい Conventional Commits 形式でコミットし、ブランチをプッシュして、プルリクエストを作成してください。',
       newBranch: '新しいブランチ',
@@ -2350,7 +2317,7 @@ export const ja = defineLocale({
     applyRemote: '適用して再接続',
     backToSetup: '戻る',
     failedTitle: 'インストールに失敗しました',
-    settingUpTitle: 'OpenComputer を設定中',
+    settingUpTitle: 'OpenComputer Agent を設定中',
     finishingTitle: '仕上げ中',
     failedDesc:
       'インストール手順のいずれかが失敗しました。Windows では、別の OpenComputer CLI またはデスクトップインスタンスが実行中の場合に発生することがあります。実行中の OpenComputer インスタンスをすべて停止してから再試行してください。詳細は以下またはデスクトップログで確認できます。',
@@ -2373,7 +2340,7 @@ export const ja = defineLocale({
   },
 
   onboarding: {
-    headerTitle: 'OpenComputer のセットアップをしましょう',
+    headerTitle: 'OpenComputer Agent のセットアップをしましょう',
     headerDesc: 'チャットを始めるにはモデルプロバイダーを接続してください。ほとんどのオプションはワンクリックです。',
     preparingInstall: 'OpenComputer はインストールを完了中です。初回実行では通常 1 分以内に完了します。',
     starting: 'OpenComputer を起動中…',
@@ -2645,9 +2612,6 @@ export const ja = defineLocale({
     hide: '非表示',
     openPreview: 'プレビューを開く',
     openInBrowser: 'ブラウザで開く',
-    openInExternal: '外部で開く',
-    popIn: 'ポップイン',
-    popOut: 'ポップアウト',
     linkHint: '⌘/Ctrl+クリックでプレビューペイン',
     sourceLineTitle: 'クリックして選択 · Shift クリックで拡張 · コンポーザーにドラッグ',
     source: 'ソース',
@@ -2754,7 +2718,6 @@ export const ja = defineLocale({
     closeToRight: '右側を閉じる',
     closeAll: 'すべて閉じる',
     newSessionTab: '新しいセッションタブ',
-    newTab: '新しいタブ',
     pluginDisabled: pluginId => `プラグイン「${pluginId}」を無効化しました`,
     pluginDisabledBody: '設定 → プラグイン で再有効化するとペインが戻ります。',
     missingPane: paneId => `ペインが見つかりません: ${paneId}`,
@@ -3047,10 +3010,6 @@ export const ja = defineLocale({
     editFailed: '編集に失敗しました',
     editTurnUnavailable: 'このターンはサーバー履歴にありません（圧縮で削除された可能性があります）。',
     resumeFailed: '再開に失敗しました',
-    readOnlyTranscriptTitle: '読み取り専用で開きました',
-    readOnlyTranscriptBody:
-      'この古いチャットを所有するバックエンドがまだ接続されていないため、読み取り専用のトランスクリプトとして開きました。履歴は無事です。バックエンドが所有を認識するまで送信は無効です。',
-    readOnlyTranscriptSendBlocked: 'このチャットは読み取り専用トランスクリプトとして開いています。送信は無効です。',
     resumeStrandedTitle: 'このセッションを読み込めませんでした',
     resumeStrandedBody:
       'このセッションへの接続に失敗し、自動再試行も停止しました。ゲートウェイが実行中か確認してから、もう一度お試しください。',
@@ -3070,7 +3029,6 @@ export const ja = defineLocale({
     cwdStagedMessage:
       'このアクティブなセッションへの cwd の変更を適用するにはデスクトップバックエンドを再起動してください。',
     modelSwitchFailed: 'モデルの切り替えに失敗しました',
-    hydrationSyncing: (profile: string) => `${profile} を同期中\u2026`,
     sessionExported: 'セッションをエクスポートしました',
     sessionExportFailed: 'セッションをエクスポートできませんでした',
     imageSaved: '画像を保存しました',
@@ -3096,52 +3054,6 @@ export const ja = defineLocale({
       systemNote: platform => `↻ ${platform} に引き継ぎました — いつでもここで再開できます。`,
       failed: error => `引き継ぎに失敗しました: ${error}`,
       timedOut: 'ゲートウェイの待機がタイムアウトしました。`hermes gateway` は起動していますか？'
-    }
-  },
-
-  tips: {
-    close: 'このヒントを今後表示しない',
-    items: {
-      'new-session': {
-        title: '新しく始める',
-        text: '新しいチャットは、専用のコンテキスト・ターミナル・作業ディレクトリを持ちます。'
-      },
-      skills: {
-        title: '一度教えれば覚えます',
-        text: 'スキルは手順書のフォルダで、必要な場面で OpenComputer が自分で読み込みます。'
-      },
-      messaging: {
-        title: 'デスクを離れても OpenComputer',
-        text: 'Telegram、Discord、Slack などに接続。同じエージェント、同じ記憶のままです。'
-      },
-      artifacts: {
-        title: 'OpenComputer が作ったものすべて',
-        text: '全セッションの画像・ファイル・リンクを一箇所にまとめています。'
-      },
-      cron: {
-        title: '自動で動く仕事',
-        text: 'プロンプトを毎時・毎晩、または cron 式で実行できます。'
-      },
-      'command-palette': {
-        title: 'すべてはこの一箇所から',
-        text: 'セッション、設定、スキル、コマンドはすべてパレットから呼び出せます。'
-      },
-      profiles: {
-        title: 'プロファイルは独立しています',
-        text: 'それぞれが独自のキー・メモリ・セッションを持つ、別の OpenComputer です。'
-      },
-      'composer-mentions': {
-        title: 'ファイルとコマンド',
-        text: '@ でファイルを会話に取り込み、/ でコマンドを実行できます。'
-      },
-      'model-switch': {
-        title: '会話の途中でモデルを変更',
-        text: 'モデル名はボタンです。作業の性質が変わったら切り替えてください。'
-      },
-      'right-pane': {
-        title: '作業用ペイン',
-        text: 'ファイル、ターミナル、レビュー、アプリ内ブラウザはサイドペインにまとまっています。'
-      }
     }
   },
 

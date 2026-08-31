@@ -52,9 +52,6 @@ export const zh: Translations = {
     revealInSidebar: '在文件树中显示',
     copyPath: '复制路径',
     copyRelativePath: '复制相对路径',
-    download: '下载',
-    downloadSaved: '已保存',
-    downloadFailed: '下载失败',
     rename: '重命名…',
     delete: '删除',
     renameTitle: '重命名',
@@ -73,7 +70,7 @@ export const zh: Translations = {
       loadingSessions: '正在加载最近会话',
       retryingRemoteBackend: '正在重新连接远程 OpenComputer 后端…',
       startingDesktopConnection: '正在启动桌面连接',
-      startingOpenComputerDesktop: '正在启动 OpenComputer 桌面版…'
+      startingHermesDesktop: '正在启动 OpenComputer 桌面版…'
     },
     errors: {
       backgroundExited: 'OpenComputer 后台进程已退出。',
@@ -134,7 +131,7 @@ export const zh: Translations = {
     backendOutOfDateTitle: '后端版本过旧',
     backendOutOfDateMessage: '你的 OpenComputer 后端早于当前桌面构建，可能无法正常工作。请更新以保持一致。',
     installMethodUnsupportedTitle: '不受支持的安装方式',
-    updateOpenComputer: '更新 OpenComputer',
+    updateHermes: '更新 OpenComputer',
     updateReadyTitle: '有可用更新',
     updateReadyMessage: count => `有 ${count} 项新更改可用。`,
     updateReadyMessageUnknown: '有新更新可用。',
@@ -237,14 +234,12 @@ export const zh: Translations = {
     swapSidebarSides: '交换侧边栏位置',
     hideRightSidebar: '隐藏右侧栏',
     showRightSidebar: '显示右侧栏',
-    unreadSessions: count => (count === 1 ? '1 个未读会话' : `${count} 个未读会话`),
     muteHaptics: '关闭触感反馈',
     unmuteHaptics: '开启触感反馈',
     openSettings: '打开设置',
     openStarmap: '打开记忆图谱',
     enterHud: 'HUD 模式',
     exitHud: '退出 HUD 模式',
-    resetHudLayout: '重置 HUD 大小和位置',
     layoutEditor: '布局编辑器',
     layoutEditorTitle: mod => `布局编辑器 — ${mod} 点击重置布局`
   },
@@ -307,7 +302,7 @@ export const zh: Translations = {
       'view.showFiles': '显示文件浏览器',
       'view.showBrowser': '打开浏览器',
       'view.showTerminal': '显示终端',
-      'view.selectionToComposer': '将选区发送到输入框',
+      'view.terminalSelection': '将终端选区发送到输入框',
       'view.terminalCopy': '复制终端选区',
       'view.terminalPaste': '粘贴到终端',
       'view.closeTab': '关闭标签',
@@ -550,8 +545,8 @@ export const zh: Translations = {
       terminalFontPreview: '字形预览',
       terminalFontReset: '使用默认字体',
       translucencyTitle: '窗口透明',
-      translucencyDesc: '让整个窗口（包括文字）透出桌面。',
-      translucencyGlassDesc: '磨砂玻璃：桌面以柔和模糊透出，文字保持清晰。',
+      translucencyDesc: '让整个窗口透出桌面。仅支持 macOS 和 Windows。',
+      translucencyGlassDesc: '磨砂玻璃：桌面以柔和模糊透出，文字保持清晰。仅支持 macOS。',
       translucencyModeClear: '透明',
       translucencyModeGlass: '玻璃',
       translucencyTintTitle: '色调',
@@ -574,15 +569,8 @@ export const zh: Translations = {
       introSplashDesc: '空白对话中显示的字标和提示语。',
       reactionsTitle: '消息回应',
       reactionsDesc: 'iMessage 风格的表情回应 — 你可以给消息添加回应，OpenComputer 也能回应你的消息。',
-      tipsTitle: '应用内提示',
-      tipsDesc: '指向应用某处的小气泡：空闲时偶尔出现，需要时 OpenComputer 也会给你一条。关掉一条就不再出现。',
-      tipsReset: (count: number) => `恢复 ${count} 条已关闭的提示`,
-      toursTitle: '引导导览',
-      toursDesc: '让 OpenComputer 带你熟悉应用：调暗界面并逐步高亮每个位置。',
       composerPopoutTitle: '悬浮输入框',
       composerPopoutDesc: '允许将输入框拖出底部停靠区。关闭后，输入框会锁定在底部。',
-      vibeHeartsTitle: '心情爱心',
-      vibeHeartsDesc: '当你说谢谢、爱你、good bot 或发送爱心时飘出的爱心。与上方的消息回应是两回事。',
       embedsTitle: '内嵌预览',
       embedsDesc:
         '富预览会从第三方网站（YouTube、X 等）加载。询问会在你允许前显示占位符；总是会自动加载；关闭则保留纯链接。',
@@ -1018,24 +1006,6 @@ export const zh: Translations = {
       cancel: '取消',
       empty: '尚未注册任何连接。'
     },
-    managedUpdates: {
-      title: '托管更新',
-      intro:
-        '以事务方式更新由桌面端托管的 SSH 安装：先排空会话，再更新远端检出，最后恢复每个 profile，并生成关联回执。',
-      sshConnection: '桌面端托管的 SSH 安装',
-      update: '更新',
-      updating: '更新中…',
-      progress: '正在排空会话、更新远端安装并恢复 profile…',
-      updated: '已更新',
-      partial: '已更新 — 恢复失败',
-      refused: '已拒绝',
-      failed: '更新失败',
-      alreadyRunning: '更新已在进行中',
-      receipt: (id: string, outcome: string) => `回执 ${id} · ${outcome}`,
-      receiptVersions: (pre: string, post: string) => `${pre} → ${post}`,
-      scopesRestored: (profiles: string) => `已恢复的 profile：${profiles}`,
-      scopeNotRestored: (profile: string, error: string) => `Profile“${profile}”未恢复：${error}`
-    },
     gateway: {
       loading: '正在加载网关设置...',
       unavailableTitle: '网关设置不可用',
@@ -1108,10 +1078,6 @@ export const zh: Translations = {
       plainTextStoredTitle: 'Token 以明文存储',
       plainTextStoredDesc:
         '安全存储不可用，因此已保存的 token 以未加密方式存储在此设备上应用的连接设置文件中。请安装或启用 GNOME Keyring 或 KWallet 以对其加密。',
-      keychainEncryptionTitle: '使用系统钥匙串加密已保存的机密',
-      keychainEncryptionDesc:
-        '默认关闭。开启后，网关 token 和登录凭据将使用系统钥匙串（Keychain Access、GNOME Keyring 或 Windows DPAPI）加密——系统可能会请求授权或密码。关闭时，它们以仅当前用户可读的普通文件形式存储。',
-      keychainEncryptionFailed: '无法更改机密加密设置',
       testRemote: '测试远程',
       saveForRestart: '保存到下次重启',
       saveAndReconnect: '保存并重连',
@@ -1155,9 +1121,9 @@ export const zh: Translations = {
       sshPortDesc: '留空 = 22 或 ~/.ssh/config 中的端口。',
       sshKeyTitle: '密钥文件',
       sshKeyDesc: '私钥路径。留空 = ssh-agent 或 ~/.ssh/config。',
-      sshOpenComputerPathTitle: 'OpenComputer 路径（可选）',
-      sshOpenComputerPathDesc: '远程 hermes 可执行文件的完整路径。留空 = 自动检测。',
-      sshOpenComputerPathPlaceholder: '自动检测',
+      sshHermesPathTitle: 'OpenComputer 路径（可选）',
+      sshHermesPathDesc: '远程 hermes 可执行文件的完整路径。留空 = 自动检测。',
+      sshHermesPathPlaceholder: '自动检测',
       sshTestConnection: '测试 SSH',
       sshConnect: '连接',
       sshButtonsHint: '“保存”将在下次启动时生效，“连接”则立即重新连接。',
@@ -1296,6 +1262,7 @@ export const zh: Translations = {
       notInCatalog: '不在该提供方的模型列表中 — 调用可能回退到备用模型。',
       tasks: {
         vision: { label: '视觉', hint: '图片分析' },
+        web_extract: { label: '网页提取', hint: '页面总结' },
         compression: { label: '压缩', hint: '上下文压缩' },
         skills_hub: { label: '技能中心', hint: '技能搜索' },
         approval: { label: '审批', hint: '智能自动批准' },
@@ -1387,13 +1354,13 @@ export const zh: Translations = {
       activeBackend: '当前后端',
       activeBackendHint: '这是你当前使用的后端',
       useBackend: '使用此后端',
-      nousIncluded: '包含在 Nous 订阅中；登录 Portal 即可激活。',
-      nousAuthNeededTitle: '登录 Portal',
-      nousAuthNeededMessage: provider => `已保存 ${provider}，但在登录 Portal 之前不会激活。`,
+      nousIncluded: '包含在 Nous 订阅中；登录 Nous Portal 即可激活。',
+      nousAuthNeededTitle: '登录 Nous Portal',
+      nousAuthNeededMessage: provider => `已保存 ${provider}，但在登录 Nous Portal 之前不会激活。`,
       nousAuthSignIn: '登录',
-      nousAuthDoneTitle: '已连接 Portal',
+      nousAuthDoneTitle: '已连接 Nous Portal',
       nousAuthDoneMessage: '订阅后端现已激活。',
-      nousAuthFailed: 'Portal 登录未完成',
+      nousAuthFailed: 'Nous Portal 登录未完成',
       noApiKeyRequired: '不需要 API 密钥。',
       postSetupHint: step => `此后端需要一次性安装 (${step})。将在此机器上执行，可能需要几分钟。`,
       postSetupInstalledHint: '已安装。仅在出现问题时才需要重新运行安装。',
@@ -1438,16 +1405,6 @@ export const zh: Translations = {
         selectedMessage: backend => `终端命令现在通过 ${backend} 运行。将应用于新会话。`,
         failedSelect: backend => `选择 ${backend} 失败`,
         needsSetupHint: '现在即可选择此后端——但在完成设置前命令将会失败。'
-      },
-      browserRealProfile: {
-        label: '使用我的真实浏览器配置文件',
-        description:
-          '将默认浏览器的登录信息和 Cookie 复制到托管快照中，代理使用该快照进行浏览。绝不会直接打开你的真实配置文件。将应用于新会话。',
-        enabledTitle: '真实配置文件浏览：已开启',
-        enabledMessage: '新会话将使用默认浏览器配置文件的快照进行浏览。',
-        disabledTitle: '真实配置文件浏览：已关闭',
-        disabledMessage: '配置文件快照将被删除；新会话使用干净的浏览器。',
-        failedSave: '无法保存真实配置文件设置'
       }
     }
   },
@@ -1732,7 +1689,7 @@ export const zh: Translations = {
     restartGateway: '重启网关',
     openBrowser: '打开浏览器',
     gatewayRestartFailed: '网关重启失败。',
-    updateOpenComputer: '更新 OpenComputer',
+    updateHermes: '更新 OpenComputer',
     reloadWindow: '重新载入窗口',
     actionRunning: '运行中',
     actionDone: '完成',
@@ -2043,14 +2000,6 @@ export const zh: Translations = {
     switchConnectionFailed: name => `无法连接到 ${name}`,
     manageProfiles: '管理配置档案…',
     connectGateway: '管理网关…',
-    fleet: {
-      allOnGateway: '此网关上的全部配置档案',
-      gateway: gateway => `${gateway} 上的配置档案`,
-      gatewayUnreachable: gateway => `${gateway} · 无法连接`,
-      onGateway: (name, gateway) => `${name} · ${gateway}`,
-      switchTo: (name, gateway) => `切换到 ${gateway} 上的 ${name}`,
-      deleteOn: gateway => `（位于 ${gateway}）`
-    },
     remoteOverride: {
       menuItem: '连接到远程主机…',
       badge: (host: string) => `运行于 ${host}`,
@@ -2096,7 +2045,6 @@ export const zh: Translations = {
     defaultBadge: '默认',
     rename: '重命名',
     renameMenu: '重命名…',
-    exportMenu: '导出…',
     editSoul: '编辑 SOUL.md…',
     copySetup: '复制安装命令',
     copying: '复制中…',
@@ -2160,11 +2108,7 @@ export const zh: Translations = {
       message: count => `在您检查模型设置之前，${count} 个定时任务将被跳过。`,
       detailMore: (names, remaining) => `${names}，以及另外 ${remaining} 个`,
       review: '检查定时任务',
-      saveFailed: 'OpenComputer 未保存该模型更改。',
-      confirmTitle: '模型选择警告',
-      confirmDetail: '仅在你接受此权衡时确认。',
-      confirmAction: '确认',
-      declined: '已取消模型更改 — 你拒绝了数据训练层级警告。'
+      saveFailed: 'OpenComputer 未保存该模型更改。'
     },
     search: '搜索定时任务…',
     loading: '正在加载定时任务…',
@@ -2401,7 +2345,7 @@ export const zh: Translations = {
       removeFolder: '移除',
       create: '创建',
       menu: '操作',
-      menuRename: '重命名…',
+      menuRename: '重命名',
       menuAppearance: '外观',
       noColor: '无颜色',
       menuAddFolder: '添加文件夹',
@@ -2468,7 +2412,7 @@ export const zh: Translations = {
       copyId: '复制 ID',
       export: '导出',
       branchFrom: '分支',
-      rename: '重命名…',
+      rename: '重命名',
       archive: '归档',
       newWindow: '新窗口',
       openInTerminal: '在终端中打开',
@@ -2744,7 +2688,6 @@ export const zh: Translations = {
       openPr: '打开 PR',
       ghMissing: '安装 GitHub CLI (gh) 并登录后可打开 PR',
       agentShip: '让 OpenComputer 提交并开 PR',
-      agentShipUnavailable: '拥有这些更改的会话当前不在屏幕上。',
       agentShipPrompt: '检查当前更改，使用清晰的约定式提交信息提交，推送分支，并开启一个拉取请求。',
       newBranch: '新建分支',
       branchOffFrom: base => `从 ${base} 新建分支`,
@@ -2880,7 +2823,7 @@ export const zh: Translations = {
     applyRemote: '应用并重新连接',
     backToSetup: '返回',
     failedTitle: '安装失败',
-    settingUpTitle: '正在设置 OpenComputer',
+    settingUpTitle: '正在设置 OpenComputer Agent',
     finishingTitle: '正在收尾',
     failedDesc:
       '某个安装步骤失败。在 Windows 上，如果另一个 OpenComputer CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 OpenComputer 实例后重试。可查看下面的详情或 desktop 日志中的完整记录。',
@@ -2902,7 +2845,7 @@ export const zh: Translations = {
   },
 
   onboarding: {
-    headerTitle: '开始设置 OpenComputer',
+    headerTitle: '开始设置 OpenComputer Agent',
     headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
     preparingInstall: 'OpenComputer 正在完成安装。首次运行通常不到一分钟。',
     starting: '正在启动 OpenComputer…',
@@ -3180,9 +3123,6 @@ export const zh: Translations = {
     hide: '隐藏',
     openPreview: '打开预览',
     openInBrowser: '在浏览器中打开',
-    openInExternal: '在外部打开',
-    popIn: '弹回',
-    popOut: '弹出',
     linkHint: '⌘/Ctrl+点击在预览面板打开',
     sourceLineTitle: '点击选择 · shift 点击扩展 · 拖到输入框',
     source: '源码',
@@ -3288,7 +3228,6 @@ export const zh: Translations = {
     closeToRight: '关闭右侧',
     closeAll: '全部关闭',
     newSessionTab: '新建会话标签',
-    newTab: '新建标签页',
     pluginDisabled: pluginId => `插件“${pluginId}”已禁用`,
     pluginDisabledBody: '在 设置 → 插件 中重新启用即可恢复面板。',
     missingPane: paneId => `缺少面板：${paneId}`,
@@ -3569,10 +3508,6 @@ export const zh: Translations = {
     editFailed: '编辑失败',
     editTurnUnavailable: '此回合已不在服务器历史中（可能已被压缩移除）。',
     resumeFailed: '恢复失败',
-    readOnlyTranscriptTitle: '已以只读方式打开',
-    readOnlyTranscriptBody:
-      '尚无已连接的后端认领这个较早的会话，因此它以只读记录方式打开。历史记录完好；在有后端认领之前无法发送消息。',
-    readOnlyTranscriptSendBlocked: '该会话目前以只读记录方式打开——发送已禁用。',
     resumeStrandedTitle: '无法加载此会话',
     resumeStrandedBody: '与此会话的连接失败，自动重试已停止。请确认网关正在运行，然后重试。',
     resumeRetry: '重试',
@@ -3590,7 +3525,6 @@ export const zh: Translations = {
     cwdStagedTitle: '工作目录已暂存',
     cwdStagedMessage: '重启桌面后端后，工作目录更改才会应用到当前活跃会话。',
     modelSwitchFailed: '模型切换失败',
-    hydrationSyncing: (profile: string) => `正在同步 ${profile}\u2026`,
     sessionExported: '会话已导出',
     sessionExportFailed: '无法导出会话',
     imageSaved: '图片已保存',
@@ -3616,52 +3550,6 @@ export const zh: Translations = {
       systemNote: platform => `↻ 已移交到 ${platform} — 随时可在此处恢复。`,
       failed: error => `移交失败：${error}`,
       timedOut: '等待网关超时。`hermes gateway` 是否正在运行？'
-    }
-  },
-
-  tips: {
-    close: '不再显示这条提示',
-    items: {
-      'new-session': {
-        title: '从头开始',
-        text: '新对话拥有独立的上下文、终端和工作目录。'
-      },
-      skills: {
-        title: '教一次就够',
-        text: '技能是一组说明文件，OpenComputer 会在需要时自行加载。'
-      },
-      messaging: {
-        title: '离开电脑也能用',
-        text: '接入 Telegram、Discord、Slack 等 — 同一个智能体，同一份记忆。'
-      },
-      artifacts: {
-        title: 'OpenComputer 做过的一切',
-        text: '所有会话里的图片、文件和链接，都汇总在这里。'
-      },
-      cron: {
-        title: '会自己运行的任务',
-        text: '让一条提示按小时、按夜间，或按 cron 表达式定时执行。'
-      },
-      'command-palette': {
-        title: '一个输入框搞定一切',
-        text: '会话、设置、技能和命令都能从命令面板找到。'
-      },
-      profiles: {
-        title: '配置文件彼此独立',
-        text: '每个都是独立的 OpenComputer — 自己的密钥、记忆和会话。'
-      },
-      'composer-mentions': {
-        title: '附件与命令',
-        text: '输入 @ 把文件带入对话，输入 / 运行命令。'
-      },
-      'model-switch': {
-        title: '对话中随时换模型',
-        text: '模型名称就是按钮。工作性质变了就换一个。'
-      },
-      'right-pane': {
-        title: '工作面板',
-        text: '文件、终端、审阅和内置浏览器都在侧边面板里。'
-      }
     }
   },
 

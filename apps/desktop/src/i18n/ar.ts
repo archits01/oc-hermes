@@ -68,9 +68,6 @@ export const ar = defineLocale({
     revealInSidebar: 'إظهار في شجرة الملفات',
     copyPath: 'نسخ المسار',
     copyRelativePath: 'نسخ المسار النسبي',
-    download: 'تنزيل',
-    downloadSaved: 'تم الحفظ',
-    downloadFailed: 'فشل التنزيل',
     rename: 'إعادة تسمية...',
     delete: 'حذف',
     renameTitle: 'إعادة تسمية',
@@ -88,7 +85,7 @@ export const ar = defineLocale({
       loadingSessions: 'جار تحميل الجلسات الأخيرة',
       retryingRemoteBackend: 'جارٍ إعادة الاتصال بخادم OpenComputer البعيد…',
       startingDesktopConnection: 'جار بدء اتصال سطح المكتب',
-      startingOpenComputerDesktop: 'جار تشغيل OpenComputer Desktop...'
+      startingHermesDesktop: 'جار تشغيل OpenComputer Desktop...'
     },
     errors: {
       backgroundExited: 'خرجت عملية OpenComputer الخلفية.',
@@ -144,7 +141,7 @@ export const ar = defineLocale({
     copyDetailFailed: 'تعذر نسخ تفاصيل الإشعار',
     backendOutOfDateTitle: 'الخلفية قديمة',
     backendOutOfDateMessage: 'خلفية OpenComputer أقدم من إصدار سطح المكتب الحالي وقد لا تعمل كما يجب. حدثهما ليتوافقا.',
-    updateOpenComputer: 'تحديث OpenComputer',
+    updateHermes: 'تحديث OpenComputer',
     updateReadyTitle: 'التحديث جاهز',
     updateReadyMessage: count => `${count} تغيير جديد متاح.`,
     updateReadyMessageUnknown: 'يتوفر تحديث جديد.',
@@ -211,14 +208,12 @@ export const ar = defineLocale({
     swapSidebarSides: 'تبديل جانبي الأشرطة',
     hideRightSidebar: 'إخفاء الشريط الأيمن',
     showRightSidebar: 'إظهار الشريط الأيمن',
-    unreadSessions: count => (count === 1 ? 'جلسة واحدة غير مقروءة' : `${count} جلسات غير مقروءة`),
     muteHaptics: 'كتم الاهتزازات',
     unmuteHaptics: 'تفعيل الاهتزازات',
     openSettings: 'فتح الإعدادات',
     openStarmap: 'فتح خريطة الذاكرة',
     enterHud: 'وضع HUD',
     exitHud: 'إنهاء وضع HUD',
-    resetHudLayout: 'إعادة تعيين حجم HUD وموضعه',
     layoutEditor: 'محرر التخطيط',
     layoutEditorTitle: modifier => `محرر التخطيط — انقر مع ${modifier} لإعادة ضبط التخطيط`
   },
@@ -279,7 +274,7 @@ export const ar = defineLocale({
       'view.showTerminal': 'إظهار الطرفية',
       'view.closeTab': 'إغلاق علامة التبويب',
       'view.reopenTab': 'إعادة فتح علامة التبويب المغلقة',
-      'view.selectionToComposer': 'إرسال التحديد إلى المحرّر',
+      'view.terminalSelection': 'إرسال تحديد الطرفية إلى المحرّر',
       'view.terminalCopy': 'نسخ تحديد الطرفية',
       'view.terminalPaste': 'لصق في الطرفية',
       'view.closePreviewTab': 'إغلاق علامة تبويب المعاينة',
@@ -445,8 +440,8 @@ export const ar = defineLocale({
       reasoningCollapsedTitle: 'طي التفكير افتراضيًا',
       reasoningCollapsedDesc: 'أبقِ التفكير المتدفق متاحًا دون توسيعه حتى تفتحه.',
       translucencyTitle: 'شفافية النافذة',
-      translucencyDesc: 'إظهار سطح المكتب من خلال النافذة بالكامل، بما في ذلك النص.',
-      translucencyGlassDesc: 'زجاج غير لامع: يظهر سطح المكتب كضبابية ناعمة بينما يبقى النص واضحًا.',
+      translucencyDesc: 'إظهار سطح المكتب من خلال النافذة بالكامل. متاح على macOS وWindows فقط.',
+      translucencyGlassDesc: 'زجاج غير لامع: يظهر سطح المكتب كضبابية ناعمة بينما يبقى النص واضحًا. متاح على macOS فقط.',
       translucencyModeClear: 'شفاف',
       translucencyModeGlass: 'زجاج',
       translucencyTintTitle: 'التلوين',
@@ -469,16 +464,8 @@ export const ar = defineLocale({
       introSplashDesc: 'الشعار النصي والعبارة التمهيدية في محادثة فارغة.',
       reactionsTitle: 'تفاعلات الرسائل',
       reactionsDesc: 'تفاعلات إيموجي بأسلوب iMessage — تفاعل مع الرسائل، ويمكن لـ OpenComputer التفاعل مع رسائلك.',
-      tipsTitle: 'نصائح داخل التطبيق',
-      tipsDesc:
-        'فقاعة صغيرة تشير إلى جزء من التطبيق، تظهر أحيانًا أثناء الخمول ومن OpenComputer عند الحاجة. إغلاق نصيحة يزيلها نهائيًا.',
-      tipsReset: count => `استعادة ${count} نصيحة مغلقة`,
-      toursTitle: 'جولات إرشادية',
-      toursDesc: 'دع OpenComputer يرشدك في التطبيق، مع تعتيم الشاشة وإبراز كل خطوة.',
       composerPopoutTitle: 'محرر عائم',
       composerPopoutDesc: 'السماح بسحب محرر الرسائل خارج موضعه. عطّل هذا الخيار لإبقائه مثبتًا في الأسفل.',
-      vibeHeartsTitle: 'قلوب المزاج',
-      vibeHeartsDesc: 'قلوب عائمة عند قول شكراً أو أحبك أو good bot أو إرسال قلب. منفصلة عن تفاعلات الرسائل أعلاه.',
       embedsTitle: 'التضمينات المضمّنة',
       embedsDesc:
         'تُحمّل المعاينات الغنية من مواقع طرف ثالث (YouTube، X، …). "اسأل" يعرض عنصرا نائبا حتى تسمح لكل واحد؛ "دائما" يحمّلها تلقائيا؛ "إيقاف" يبقي الروابط عادية.',
@@ -772,10 +759,6 @@ export const ar = defineLocale({
       existingToken: value => `رمز موجود ${value}`,
       savedToken: 'محفوظ',
       pasteSessionToken: 'ألصق رمز الجلسة',
-      keychainEncryptionTitle: 'تشفير الأسرار المحفوظة باستخدام سلسلة مفاتيح النظام',
-      keychainEncryptionDesc:
-        'معطّل افتراضياً. عند التفعيل، تُشفَّر رموز البوابة وبيانات تسجيل الدخول باستخدام سلسلة مفاتيح النظام (Keychain Access أو GNOME Keyring أو Windows DPAPI) — وقد يطلب النظام إذناً أو كلمة مرور. عند التعطيل، تُخزَّن كملفات عادية لا يقرؤها سوى حساب المستخدم الحالي.',
-      keychainEncryptionFailed: 'تعذّر تغيير إعداد تشفير الأسرار',
       testRemote: 'اختبار البعيد',
       saveForRestart: 'حفظ للتشغيل القادم',
       saveAndReconnect: 'حفظ وإعادة الاتصال',
@@ -875,6 +858,10 @@ export const ar = defineLocale({
         vision: {
           label: 'الرؤية',
           hint: 'تحليل الصور'
+        },
+        web_extract: {
+          label: 'استخراج الويب',
+          hint: 'تلخيص الصفحات'
         },
         compression: {
           label: 'الضغط',
@@ -979,7 +966,7 @@ export const ar = defineLocale({
       noProviderOptions: 'لا تحتوي مجموعة الأدوات هذه على خيارات مزوّد — فعّلها لتعمل مع إعدادك الحالي.',
       noProviders: 'لا يوجد مزوّدون متاحون لمجموعة الأدوات هذه الآن.',
       ready: 'جاهز',
-      nousIncluded: 'مُضمّن مع اشتراك Nous — سجّل الدخول إلى Portal للتفعيل.',
+      nousIncluded: 'مُضمّن مع اشتراك Nous — سجّل الدخول إلى Nous Portal للتفعيل.',
       noApiKeyRequired: 'لا يلزم مفتاح API.',
       postSetupHint: step =>
         `تحتاج هذه الخلفية إلى تثبيت لمرة واحدة (${step}). يعمل على هذا الجهاز — قد يستغرق بضع دقائق.`,
@@ -1185,7 +1172,7 @@ export const ar = defineLocale({
     restartGateway: 'إعادة تشغيل البوابة',
     openBrowser: 'فتح المتصفح',
     gatewayRestartFailed: 'فشل إعادة تشغيل البوابة.',
-    updateOpenComputer: 'تحديث OpenComputer',
+    updateHermes: 'تحديث OpenComputer',
     reloadWindow: 'إعادة تحميل النافذة',
     actionRunning: 'الإجراء قيد التشغيل',
     actionDone: 'اكتمل الإجراء',
@@ -1395,7 +1382,6 @@ export const ar = defineLocale({
     newProfile: 'ملف شخصي جديد',
     importProfile: 'استيراد ملف شخصي…',
     exportProfile: 'تصدير ملف شخصي…',
-    exportMenu: 'تصدير…',
     imported: 'تم استيراد الملف الشخصي',
     exported: 'تم تصدير الملف الشخصي',
     failedImport: 'فشل استيراد الملف الشخصي',
@@ -1509,11 +1495,7 @@ export const ar = defineLocale({
       message: count => `سيتم تخطي ${count} من المهام المجدولة حتى تراجع إعدادات النموذج الخاصة بها.`,
       detailMore: (names, remaining) => `${names} و${remaining} أخرى`,
       review: 'مراجعة المهام المجدولة',
-      saveFailed: 'لم يحفظ OpenComputer تغيير النموذج هذا.',
-      confirmTitle: 'تحذير اختيار النموذج',
-      confirmDetail: 'أكّد فقط إذا كنت تقبل هذه المقايضة.',
-      confirmAction: 'تأكيد',
-      declined: 'أُلغي تغيير النموذج — رفضت تحذير طبقة تدريب البيانات.'
+      saveFailed: 'لم يحفظ OpenComputer تغيير النموذج هذا.'
     },
     search: 'بحث',
     loading: 'جار التحميل...',
@@ -1727,7 +1709,7 @@ export const ar = defineLocale({
       removeFolder: 'إزالة',
       create: 'إنشاء',
       menu: 'إجراءات',
-      menuRename: 'إعادة تسمية…',
+      menuRename: 'إعادة تسمية',
       menuAppearance: 'المظهر',
       noColor: 'بلا لون',
       menuAddFolder: 'إضافة مجلد',
@@ -1785,7 +1767,7 @@ export const ar = defineLocale({
       copyId: 'نسخ المعرف',
       export: 'تصدير',
       branchFrom: 'فرع',
-      rename: 'إعادة تسمية…',
+      rename: 'إعادة تسمية',
       archive: 'أرشفة',
       newWindow: 'فتح في نافذة جديدة',
       openInTerminal: 'فتح في الطرفية',
@@ -1980,7 +1962,6 @@ export const ar = defineLocale({
       openPr: 'فتح PR',
       ghMissing: 'ثبّت GitHub CLI (gh) وسجّل الدخول لفتح طلبات السحب',
       agentShip: 'اطلب من OpenComputer فتح PR',
-      agentShipUnavailable: 'المحادثة التي تملك هذه التغييرات ليست على الشاشة.',
       agentShipPrompt: 'راجع التغييرات الحالية، وأودعها برسالة إيداع تقليدية واضحة، وادفع الفرع، وافتح طلب سحب.',
       newBranch: 'فرع جديد',
       branchOffFrom: base => `فرع جديد من ${base}`,
@@ -2085,7 +2066,7 @@ export const ar = defineLocale({
     installTo: 'سيتم التثبيت في',
     retryAfterRun: 'لقد شغّلته -- إعادة المحاولة',
     failedTitle: 'فشل التثبيت',
-    settingUpTitle: 'جار إعداد OpenComputer',
+    settingUpTitle: 'جار إعداد وكيل OpenComputer',
     finishingTitle: 'جار الإنهاء',
     failedDesc:
       'فشلت إحدى خطوات التثبيت. على Windows، قد يحدث هذا إذا كان هناك نسخة أخرى من OpenComputer CLI أو تطبيق سطح المكتب قيد التشغيل. أوقف أي نسخ OpenComputer قيد التشغيل، ثم أعد المحاولة. تحقق من التفاصيل أدناه أو من سجل سطح المكتب للحصول على النص الكامل.',
@@ -2107,7 +2088,7 @@ export const ar = defineLocale({
     reloadRetry: 'إعادة التحميل وإعادة المحاولة'
   },
   onboarding: {
-    headerTitle: 'لنُعِدّ لك OpenComputer',
+    headerTitle: 'لنُعِدّ لك OpenComputer Agent',
     headerDesc: 'اربط مزوّد نماذج لبدء المحادثة. معظم الخيارات تتطلب نقرة واحدة.',
     preparingInstall: 'يُكمل OpenComputer التثبيت. عادة ما يستغرق ذلك أقل من دقيقة في أول تشغيل.',
     starting: 'جار بدء OpenComputer...',
@@ -2338,9 +2319,6 @@ export const ar = defineLocale({
     hide: 'إخفاء',
     openPreview: 'فتح المعاينة',
     openInBrowser: 'فتح في المتصفح',
-    openInExternal: 'فتح في الخارج',
-    popIn: 'إدخال',
-    popOut: 'إخراج',
     linkHint: '⌘/Ctrl-نقر لجزء المعاينة',
     sourceLineTitle: 'انقر للتحديد · shift-نقر للتوسيع · اسحب إلى المُنشئ',
     source: 'المصدر',
@@ -2786,10 +2764,6 @@ export const ar = defineLocale({
     editFailed: 'فشل التحرير',
     editTurnUnavailable: 'هذه الجولة لم تعد في سجل الخادم (ربما أزيلت بالضغط).',
     resumeFailed: 'فشل الاستئناف',
-    readOnlyTranscriptTitle: 'فُتحت للقراءة فقط',
-    readOnlyTranscriptBody:
-      'لا يوجد بعد خادم متصل يملك هذه المحادثة القديمة، لذا فُتحت كنصّ محفوظ للقراءة فقط. السجل سليم؛ الإرسال معطّل حتى يتبنّاها خادم.',
-    readOnlyTranscriptSendBlocked: 'هذه المحادثة مفتوحة كنصّ محفوظ للقراءة فقط — الإرسال معطّل.',
     resumeStrandedTitle: 'تعذّر تحميل هذه الجلسة',
     resumeStrandedBody:
       'فشل الاتصال بهذه الجلسة وتوقفت إعادة المحاولة التلقائية. تأكد من تشغيل البوابة، ثم حاول مجددا.',
@@ -2808,7 +2782,6 @@ export const ar = defineLocale({
     cwdStagedTitle: 'تم تجهيز مجلد العمل',
     cwdStagedMessage: 'سيطبق مجلد العمل على الرسالة التالية.',
     modelSwitchFailed: 'فشل تبديل النموذج',
-    hydrationSyncing: (profile: string) => `جارٍ مزامنة ${profile}\u2026`,
     sessionExported: 'تم تصدير الجلسة',
     sessionExportFailed: 'فشل تصدير الجلسة',
     imageSaved: 'تم حفظ الصورة',
@@ -2842,51 +2815,6 @@ export const ar = defineLocale({
     boundaryDesc: 'يمكنك إعادة تحميل النافذة أو فتح السجلات لمعرفة التفاصيل.',
     reloadWindow: 'إعادة تحميل النافذة',
     openLogs: 'فتح السجلات'
-  },
-  tips: {
-    close: 'لا تعرض هذه النصيحة مرة أخرى',
-    items: {
-      'new-session': {
-        title: 'ابدأ من جديد',
-        text: 'كل محادثة جديدة لها سياقها وطرفيتها ومجلد عملها الخاص.'
-      },
-      skills: {
-        title: 'علّمه مرة واحدة',
-        text: 'المهارات مجلدات من التعليمات يحمّلها OpenComputer عندما يقتضي العمل ذلك.'
-      },
-      messaging: {
-        title: 'OpenComputer بعيدًا عن مكتبك',
-        text: 'اربطه بـ Telegram وDiscord وSlack وغيرها — الوكيل نفسه والذاكرة نفسها.'
-      },
-      artifacts: {
-        title: 'كل ما صنعه OpenComputer',
-        text: 'الصور والملفات والروابط من كل الجلسات، مفهرسة في مكان واحد.'
-      },
-      cron: {
-        title: 'عمل يجري من تلقاء نفسه',
-        text: 'جدوِل موجّهًا كل ساعة أو كل ليلة أو وفق تعبير cron.'
-      },
-      'command-palette': {
-        title: 'صندوق واحد لكل شيء',
-        text: 'الجلسات والإعدادات والمهارات والأوامر كلها تستجيب للوحة الأوامر.'
-      },
-      profiles: {
-        title: 'الملفات الشخصية منفصلة',
-        text: 'كل واحد منها OpenComputer مستقل — مفاتيحه وذاكرته وجلساته الخاصة.'
-      },
-      'composer-mentions': {
-        title: 'المرفقات والأوامر',
-        text: 'اكتب @ لإحضار ملف إلى المحادثة، و / لتشغيل أمر.'
-      },
-      'model-switch': {
-        title: 'بدّل النموذج أثناء المحادثة',
-        text: 'اسم النموذج زر. غيّره كلما تغيّرت طبيعة العمل.'
-      },
-      'right-pane': {
-        title: 'لوحة العمل',
-        text: 'الملفات والطرفية والمراجعة والمتصفح المدمج تتشارك اللوحة الجانبية.'
-      }
-    }
   },
   ui: {
     search: {
