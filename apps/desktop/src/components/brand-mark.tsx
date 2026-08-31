@@ -2,9 +2,8 @@ import { cn } from '@/lib/utils'
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 
-// Brand badge: OpenComputer flower mark on a white tile, identical in light/dark.
-// Never use the nous-girl / Hermes girl here. Flower only.
-// Fills the tile (softly rounded); size via className (default size-14).
+// Brand badge: OpenComputer flower on a white tile, identical in light/dark.
+// Never the nous-girl / Hermes mark. Size via className (default size-14).
 export function BrandMark({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
