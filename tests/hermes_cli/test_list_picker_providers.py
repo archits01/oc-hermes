@@ -133,6 +133,46 @@ def test_current_custom_endpoint_passthrough_marks_current_row(monkeypatch):
     assert row["models"] == ["glm-5.1", "qwen3"]
 
 
+def test_picker_policy_runs_after_moa_injection(monkeypatch):
+    """An allowlist must constrain virtual rows added by the picker wrapper."""
+    xai = _make_provider("xai-oauth", models=["grok-4.6"])
+    moa = _make_provider("moa", models=["balanced"], source="virtual")
+    monkeypatch.setattr(model_switch, "list_authenticated_providers", lambda **_kwargs: [xai])
+    monkeypatch.setattr(model_switch, "_prepend_moa_picker_provider", lambda rows, **_kwargs: [moa, *rows])
+
+    rows = model_switch.list_picker_providers(
+        include_moa=True,
+        included_providers=["xai-oauth"],
+    )
+
+    assert [row["slug"] for row in rows] == ["xai-oauth"]
+
+
+def test_free_only_openrouter_policy_runs_after_live_expansion(monkeypatch):
+    """Live OpenRouter replacements must be priced before reaching the picker."""
+    base = _make_provider("openrouter", models=["old/free"])
+    monkeypatch.setattr(model_switch, "list_authenticated_providers", lambda **_kwargs: [base])
+    monkeypatch.setattr(
+        "hermes_cli.models.fetch_openrouter_models",
+        lambda: [("lab/free", ""), ("lab/paid", "")],
+    )
+    monkeypatch.setattr(
+        "hermes_cli.models.get_pricing_for_provider",
+        lambda *_args, **_kwargs: {
+            "lab/free": {"prompt": "0", "completion": "0", "tool_capable": True},
+            "lab/paid": {"prompt": "0", "completion": "0.000001"},
+        },
+    )
+
+    rows = model_switch.list_picker_providers(
+        included_providers=["openrouter"],
+        free_only_providers=["openrouter"],
+    )
+
+    assert rows[0]["models"] == ["lab/free"]
+    assert rows[0]["total_models"] == 1
+
+
 
 # ---------------------------------------------------------------------------
 # list_authenticated_providers: alias/canonical de-dup for Kimi (#49439)

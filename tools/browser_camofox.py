@@ -568,12 +568,11 @@ def camofox_navigate(url: str, task_id: Optional[str] = None) -> str:
             )
             snapshot_text = snap_data.get("snapshot", "")
             from tools.browser_tool import (
-                get_browser_snapshot_threshold,
+                SNAPSHOT_SUMMARIZE_THRESHOLD,
                 _truncate_snapshot,
             )
-            threshold = get_browser_snapshot_threshold()
-            if len(snapshot_text) > threshold:
-                snapshot_text = _truncate_snapshot(snapshot_text, max_chars=threshold)
+            if len(snapshot_text) > SNAPSHOT_SUMMARIZE_THRESHOLD:
+                snapshot_text = _truncate_snapshot(snapshot_text)
             result["snapshot"] = snapshot_text
             result["element_count"] = snap_data.get("refsCount", 0)
         except Exception:
@@ -629,11 +628,7 @@ def _camofox_private_page_block(session: Dict[str, Any], task_id: Optional[str],
 
 def camofox_snapshot(full: bool = False, task_id: Optional[str] = None,
                      user_task: Optional[str] = None) -> str:
-    """Get accessibility tree snapshot from Camofox.
-
-    ``user_task`` is deprecated and ignored — oversized snapshots always
-    truncate-and-store (no LLM summarization), same as the main browser tool.
-    """
+    """Get accessibility tree snapshot from Camofox."""
     try:
         session = _get_session(task_id)
         if not session["tab_id"]:
@@ -651,17 +646,18 @@ def camofox_snapshot(full: bool = False, task_id: Optional[str] = None,
         snapshot = data.get("snapshot", "")
         refs_count = data.get("refsCount", 0)
 
-        # Same truncate-and-store handling as the main browser tool: cut at
-        # line boundaries, store the full tree to cache/web, append a
-        # read_file pointer.
+        # Apply same summarization logic as the main browser tool
         from tools.browser_tool import (
-            get_browser_snapshot_threshold,
+            SNAPSHOT_SUMMARIZE_THRESHOLD,
+            _extract_relevant_content,
             _truncate_snapshot,
         )
 
-        threshold = get_browser_snapshot_threshold()
-        if len(snapshot) > threshold:
-            snapshot = _truncate_snapshot(snapshot, max_chars=threshold)
+        if len(snapshot) > SNAPSHOT_SUMMARIZE_THRESHOLD:
+            if user_task:
+                snapshot = _extract_relevant_content(snapshot, user_task)
+            else:
+                snapshot = _truncate_snapshot(snapshot)
 
         return json.dumps({
             "success": True,
@@ -970,5 +966,6 @@ def camofox_console(clear: bool = False, task_id: Optional[str] = None) -> str:
         "note": "Console log capture is not available with the Camofox backend. "
                 "Use browser_snapshot or browser_vision to inspect page state.",
     })
+
 
 

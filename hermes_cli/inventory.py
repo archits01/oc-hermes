@@ -53,6 +53,8 @@ class ConfigContext:
     user_providers: dict
     custom_providers: list
     excluded_providers: list = None
+    free_only_providers: list = None
+    included_providers: list = None
 
     def with_overrides(
         self,
@@ -83,34 +85,35 @@ def load_picker_context() -> ConfigContext:
     Replaces the inline 17-LOC config-slice that ``web_server.py`` and
     ``tui_gateway/server.py`` (×2 sites) used to do.
     """
-    from hermes_cli.config import (
-        coerce_provider_id,
-        get_compatible_custom_providers,
-        load_config,
-        stringify_provider_map,
-    )
+    from hermes_cli.config import get_compatible_custom_providers, load_config
 
     cfg = load_config()
     model_cfg = cfg.get("model", {})
     if isinstance(model_cfg, dict):
-        # PyYAML parses unquoted scalars as int (`provider: 2070`). Keep these
-        # as strings so picker/options paths never call `.strip()` on an int.
-        current_model = str(model_cfg.get("default", model_cfg.get("name", "")) or "")
-        current_provider = coerce_provider_id(model_cfg.get("provider", ""))
-        current_base_url = str(model_cfg.get("base_url", "") or "")
+        current_model = model_cfg.get("default", model_cfg.get("name", "")) or ""
+        current_provider = model_cfg.get("provider", "") or ""
+        current_base_url = model_cfg.get("base_url", "") or ""
     else:
         # config.model can be a bare string in older configs.
         current_model = str(model_cfg) if model_cfg else ""
         current_provider = ""
         current_base_url = ""
-    excluded = cfg.get("model_catalog", {}).get("excluded_providers") or []
+    raw = cfg.get("providers")
+    catalog_cfg = cfg.get("model_catalog", {})
+    if not isinstance(catalog_cfg, dict):
+        catalog_cfg = {}
+    excluded = catalog_cfg.get("excluded_providers") or []
+    free_only = catalog_cfg.get("free_only_providers") or []
+    included = catalog_cfg.get("included_providers") or []
     return ConfigContext(
         current_provider=current_provider,
         current_model=current_model,
         current_base_url=current_base_url,
-        user_providers=stringify_provider_map(cfg.get("providers")),
+        user_providers=raw if isinstance(raw, dict) else {},
         custom_providers=get_compatible_custom_providers(cfg),
         excluded_providers=excluded if isinstance(excluded, list) else [],
+        free_only_providers=free_only if isinstance(free_only, list) else [],
+        included_providers=included if isinstance(included, list) else [],
     )
 
 
@@ -204,6 +207,8 @@ def build_models_payload(
         probe_current_custom_provider=probe_current_custom_provider,
         for_picker=for_picker,
         excluded_providers=ctx.excluded_providers or [],
+        included_providers=ctx.included_providers or [],
+        free_only_providers=ctx.free_only_providers or [],
     )
 
     moa_row = _moa_provider_row(ctx.current_provider)
@@ -268,23 +273,233 @@ def build_models_payload(
 
     if include_unconfigured:
         rows = list(rows) + [r for r in _append_unconfigured_rows(rows, ctx) if str(r.get("slug", "")).lower() != "moa"]
+    _apply_custom_aliases(rows)
+    rows = _filter_included_provider_rows(rows, ctx.included_providers or [])
+    rows = _managed_opencode_free_policy(rows, ctx.included_providers or [])
+    if ctx.free_only_providers:
+        # Current-provider recovery can append a saved OpenRouter/Novita model
+        # after discovery already applied this policy. Re-run the shared raw
+        # catalog gate here even for non-pricing payloads: formatted prices are
+        # presentation data and cannot retain the tool-capability evidence.
+        try:
+            from hermes_cli.model_switch import _apply_catalog_provider_policy
+
+            rows = _apply_catalog_provider_policy(
+                rows,
+                included_providers=[],
+                free_only_providers=ctx.free_only_providers,
+            )
+        except Exception:
+            constrained = {
+                str(slug or "").strip().lower()
+                for slug in ctx.free_only_providers
+                if str(slug or "").strip()
+            }
+            rows = [
+                row for row in rows
+                if str(row.get("slug") or "").strip().lower() not in constrained
+            ]
     if picker_hints:
         _apply_picker_hints(rows)
     if canonical_order:
         rows = _reorder_canonical(rows)
     if pricing:
         _apply_pricing(rows, force_fresh_nous_tier=force_fresh_nous_tier)
+        rows = _filter_free_only_provider_rows(
+            rows, ctx.free_only_providers or []
+        )
     if capabilities:
         _apply_capabilities(rows)
     if featured:
         _apply_featured(rows)
     _apply_custom_aliases(rows)
 
+    selected_model, selected_provider = _reconcile_final_selection(
+        ctx.current_model, ctx.current_provider, rows
+    )
     return {
         "providers": rows,
-        "model": ctx.current_model,
-        "provider": ctx.current_provider,
+        "model": selected_model,
+        "provider": selected_provider,
     }
+
+
+def _filter_free_only_provider_rows(
+    rows: list[dict], provider_slugs: list[str],
+) -> list[dict]:
+    """Keep only live zero-price models for explicitly constrained providers.
+
+    Providers outside ``provider_slugs`` are unchanged. A constrained provider
+    with missing pricing is hidden rather than guessed free. Dedicated keyless
+    providers such as ``opencode-free`` use their own verified catalog and
+    should not be listed here.
+    """
+    constrained = {
+        str(slug or "").strip().lower()
+        for slug in provider_slugs
+        if str(slug or "").strip()
+    }
+    if not constrained:
+        return rows
+
+    kept: list[dict] = []
+    for original in rows:
+        slug = str(original.get("slug") or "").strip().lower()
+        if slug not in constrained:
+            kept.append(original)
+            continue
+        pricing = original.get("pricing")
+        if not isinstance(pricing, dict):
+            continue
+        raw_pricing: dict = {}
+        if slug in {"openrouter", "novita"}:
+            # Formatted picker pricing intentionally drops provider-specific
+            # metadata. Recover it here at the final boundary so a current-row
+            # recovery cannot re-admit a $0/$0 row whose live structured tool
+            # proof was missing or malformed.
+            try:
+                from hermes_cli.models import get_pricing_for_provider
+
+                raw_pricing = get_pricing_for_provider(slug) or {}
+            except Exception:
+                raw_pricing = {}
+
+        free_models = []
+        for model in original.get("models") or []:
+            displayed = pricing.get(model)
+            if not isinstance(displayed, dict) or displayed.get("free") is not True:
+                continue
+            if slug in {"openrouter", "novita"}:
+                live = raw_pricing.get(model)
+                if not isinstance(live, dict) or live.get("tool_capable") is not True:
+                    continue
+                try:
+                    if float(live.get("prompt")) != 0 or float(live.get("completion")) != 0:
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            free_models.append(model)
+        if not free_models:
+            continue
+        row = dict(original)
+        row["models"] = free_models
+        row["total_models"] = len(free_models)
+        row["pricing"] = {model: pricing[model] for model in free_models}
+        unavailable = row.get("unavailable_models")
+        if isinstance(unavailable, list):
+            row["unavailable_models"] = [
+                model for model in unavailable if model in free_models
+            ]
+        kept.append(row)
+    return kept
+
+
+def _filter_included_provider_rows(
+    rows: list[dict], provider_slugs: list[str],
+) -> list[dict]:
+    """Apply an optional picker provider allowlist, including row aliases."""
+    included = {
+        str(slug or "").strip().lower()
+        for slug in provider_slugs
+        if str(slug or "").strip()
+    }
+    if not included:
+        return rows
+    kept = []
+    for row in rows:
+        identities = {
+            str(row.get("slug") or "").strip().lower(),
+            str(row.get("name") or "").strip().lower(),
+        }
+        identities.update(
+            str(alias or "").strip().lower()
+            for alias in (row.get("aliases") or [])
+        )
+        if identities & included:
+            kept.append(row)
+    return kept
+
+
+def _managed_opencode_free_policy(rows: list[dict], included_providers: list[str]) -> list[dict]:
+    """Fail closed for managed OpenCode Free rows after recovery appends.
+
+    ``list_authenticated_providers`` applies this policy during normal
+    discovery, but inventory may append a current/unconfigured row afterwards.
+    Re-apply the exact fresh-ID intersection at this final payload boundary.
+    """
+    included = {
+        str(value or "").strip().lower()
+        for value in included_providers
+        if str(value or "").strip()
+    }
+    if not included:
+        return rows
+    try:
+        from hermes_cli.models import (
+            get_verified_opencode_free_model_ids,
+            has_fresh_verified_opencode_free_catalog,
+        )
+
+        if not has_fresh_verified_opencode_free_catalog():
+            return [
+                row for row in rows
+                if str(row.get("slug") or "").strip().lower() != "opencode-free"
+            ]
+        allowed = {model.lower() for model in get_verified_opencode_free_model_ids()}
+    except Exception:
+        return [
+            row for row in rows
+            if str(row.get("slug") or "").strip().lower() != "opencode-free"
+        ]
+
+    kept: list[dict] = []
+    for original in rows:
+        if str(original.get("slug") or "").strip().lower() != "opencode-free":
+            kept.append(original)
+            continue
+        models = [
+            model for model in (original.get("models") or [])
+            if str(model).lower() in allowed
+        ]
+        if not models:
+            continue
+        row = dict(original)
+        row["models"] = models
+        row["total_models"] = len(models)
+        kept.append(row)
+    return kept
+
+
+def _reconcile_final_selection(
+    current_model: str,
+    current_provider: str,
+    rows: list[dict],
+) -> tuple[str, str]:
+    """Make top-level selection agree with the final rendered rows.
+
+    Filtering happens in several phases (allowlist, verified OpenCode IDs,
+    free-only pricing, capabilities).  Returning the pre-filter config model
+    after those phases advertises a choice the picker no longer offers.
+    Preserve it only when its final provider row still contains it; otherwise
+    use the first final selectable row/model in deterministic row order.
+    """
+    wanted_provider = str(current_provider or "").strip().lower()
+    wanted_model = str(current_model or "").strip().lower()
+    for row in rows:
+        slug = str(row.get("slug") or "").strip().lower()
+        models = row.get("models")
+        if slug != wanted_provider or not isinstance(models, list):
+            continue
+        if any(str(model).lower() == wanted_model for model in models):
+            return current_model, current_provider
+
+    for row in rows:
+        models = row.get("models")
+        slug = str(row.get("slug") or "").strip()
+        if not slug or not isinstance(models, list) or not models:
+            continue
+        return str(models[0]), slug
+    return "", ""
 
 
 def build_model_options_payload(
@@ -933,7 +1148,7 @@ def _apply_pricing(
             out = _format_price_per_mtok(out_raw) if out_raw != "" else ""
             cache = _format_price_per_mtok(cache_raw) if cache_raw else None
             # A model is "free" when both input and output cost nothing.
-            is_free = inp == "free" and (out == "free" or out == "")
+            is_free = inp == "free" and out == "free"
             entry: dict = {
                 "input": inp,
                 "output": out,

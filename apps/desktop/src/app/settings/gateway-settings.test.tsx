@@ -4,12 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const getConnectionConfig = vi.fn()
 const saveConnectionConfig = vi.fn()
 
-// This test owns the machine-level GatewaySettings contract. The managed SSH
-// update section mounted below the registry has its own focused coverage
-// (store/managed-updates.test.ts); keep its store subscriptions out of this
-// single-purpose test.
-vi.mock('./managed-updates-section', () => ({ ManagedUpdatesSection: () => null }))
-
 const localConnection = {
   cloudOrg: '',
   envOverride: false,
@@ -42,7 +36,7 @@ describe('GatewaySettings', () => {
     render(<GatewaySettings />)
     expect(await screen.findByText('Local gateway')).toBeTruthy()
     expect(
-      screen.getByText('Start a private Hermes backend on localhost. This is the default and works offline.')
+      screen.getByText('Start a private OpenComputer backend on localhost. This is the default and works offline.')
     ).toBeTruthy()
 
     // The page manages the machine's gateway connections; it must load the

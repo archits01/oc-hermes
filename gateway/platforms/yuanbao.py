@@ -1261,27 +1261,6 @@ class ChatRoutingMiddleware(InboundMiddleware):
         await next_fn()
 
 
-def _yb_secret(name: str, default: Optional[str] = None) -> Optional[str]:
-    """Resolve a per-profile ``YUANBAO_*`` / gateway setting honoring the
-    active secret scope (#93522).
-
-    Under ``gateway.multiplex_profiles`` every secondary profile is
-    constructed inside ``_profile_runtime_scope`` (``gateway/run.py``) and
-    its ``.env`` lives in that scope — raw ``os.getenv`` misses it and
-    leaks the default profile's values instead. The primary/active profile
-    is constructed without a scope and legitimately owns ``os.environ``,
-    so fall back to it there (same canonical shape as QQ's
-    ``_resolve_qq_secret``).
-    """
-    from agent.secret_scope import UnscopedSecretError, get_secret
-
-    try:
-        val = get_secret(name, default)
-    except UnscopedSecretError:
-        val = os.getenv(name)
-    return val if val is not None else default
-
-
 class AccessPolicy:
     """Platform-level DM / Group access control policy.
 
@@ -1303,9 +1282,9 @@ class AccessPolicy:
         self._group_allow_from = group_allow_from
 
     def _open_dm_opted_in(self) -> bool:
-        if (_yb_secret("GATEWAY_ALLOW_ALL_USERS", "") or "").lower() in {"true", "1", "yes"}:
+        if os.getenv("GATEWAY_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}:
             return True
-        return (_yb_secret("YUANBAO_ALLOW_ALL_USERS", "") or "").lower() in {"true", "1", "yes"}
+        return os.getenv("YUANBAO_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}
 
     def is_dm_allowed(self, sender_id: str) -> bool:
         """Strict DM authorization — pairing does not imply access."""
@@ -1774,7 +1753,7 @@ class OwnerCommandMiddleware(InboundMiddleware):
     # Slash command allowlist that bot owner can execute in group without @Bot
     ALLOWLIST: frozenset = frozenset({
         "/new", "/reset", "/retry", "/undo", "/stop",
-        "/approve", "/deny", "/bg",
+        "/approve", "/deny", "/background", "/bg",
         "/btw", "/queue", "/q",
     })
 
@@ -3897,7 +3876,7 @@ class MediaSendHandler(ABC):
                 "[%s] %s.handle() failed: %s",
                 adapter.name, handler_name, exc, exc_info=True,
             )
-            return SendResult(success=False, error=str(exc) or type(exc).__name__)
+            return SendResult(success=False, error=str(exc))
 
 
 class ImageUrlHandler(MediaSendHandler):
@@ -4963,29 +4942,27 @@ class YuanbaoAdapter(BasePlatformAdapter):
 
         # Reply-to dedup: inbound_msg_id -> expire_ts
         # ------------------------------------------------------------------
-        # Access control policy (DM / Group) — scoped reads (#93522)
+        # Access control policy (DM / Group)
         # ------------------------------------------------------------------
         dm_policy: str = (
             _extra.get("dm_policy")
-            or _yb_secret("YUANBAO_DM_POLICY")
-            or "pairing"
+            or os.getenv("YUANBAO_DM_POLICY", "pairing")
         ).strip().lower()
 
         _dm_allow_from_raw: str = (
             _extra.get("dm_allow_from")
-            or _yb_secret("YUANBAO_DM_ALLOW_FROM", "")
+            or os.getenv("YUANBAO_DM_ALLOW_FROM", "")
         )
         dm_allow_from: list[str] = [x.strip() for x in _dm_allow_from_raw.split(",") if x.strip()]
 
         group_policy: str = (
             _extra.get("group_policy")
-            or _yb_secret("YUANBAO_GROUP_POLICY")
-            or "pairing"
+            or os.getenv("YUANBAO_GROUP_POLICY", "pairing")
         ).strip().lower()
 
         _group_allow_from_raw: str = (
             _extra.get("group_allow_from")
-            or _yb_secret("YUANBAO_GROUP_ALLOW_FROM", "")
+            or os.getenv("YUANBAO_GROUP_ALLOW_FROM", "")
         )
         group_allow_from: list[str] = [x.strip() for x in _group_allow_from_raw.split(",") if x.strip()]
 
@@ -5068,11 +5045,7 @@ class YuanbaoAdapter(BasePlatformAdapter):
 
         Delegates to ConnectionManager.open().
         """
-        ok = await self._connection.open()
-        if ok:
-            # Plugin-registered native handlers (ctx.register_platform_handler).
-            self._wire_plugin_handlers(None)
-        return ok
+        return await self._connection.open()
 
     async def disconnect(self) -> None:
         """Cancel background tasks and close the WebSocket connection."""

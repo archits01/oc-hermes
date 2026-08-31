@@ -121,7 +121,7 @@ export function createSandbox(prefix: string): Sandbox {
   )
 
   // Pin Chromium actual-size zoom (level 0) for the suite. Fresh installs
-  // ship DEFAULT_ZOOM_LEVEL at the Appearance 90% preset, but Playwright
+  // ship DEFAULT_ZOOM_LEVEL at the Appearance 110% preset, but Playwright
   // click hit-testing and the committed visual baselines were calibrated at
   // 100%. Without this file every sandbox would inherit the product default
   // and fail pointer interception + snapshot diffs.
@@ -509,16 +509,16 @@ providers:
  */
 function resolvePackagedBinaryPath(): string {
   if (process.platform === 'win32') {
-    return path.join(RELEASE_ROOT, 'win-unpacked', 'Hermes.exe')
+    return path.join(RELEASE_ROOT, 'win-unpacked', 'OpenComputer.exe')
   }
 
   if (process.platform === 'darwin') {
     const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
 
-    return path.join(RELEASE_ROOT, `mac-${arch}`, 'Hermes.app', 'Contents', 'MacOS', 'Hermes')
+    return path.join(RELEASE_ROOT, `mac-${arch}`, 'OpenComputer.app', 'Contents', 'MacOS', 'OpenComputer')
   }
 
-  return path.join(RELEASE_ROOT, 'linux-unpacked', 'hermes')
+  return path.join(RELEASE_ROOT, 'linux-unpacked', 'OpenComputer')
 }
 
 export const PACKAGED_BINARY_PATH = resolvePackagedBinaryPath()

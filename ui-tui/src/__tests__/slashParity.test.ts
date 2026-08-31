@@ -16,8 +16,7 @@ interface CommandRegistryLoad {
 const NATIVE_MUTATING_COMMANDS = new Set(['browser', 'busy', 'fast', 'reload-mcp', 'rollback', 'stop'])
 
 const MUTATING_COMMANDS = [
-  'bg',
-  'btw',
+  'background',
   'branch',
   'browser',
   'busy',

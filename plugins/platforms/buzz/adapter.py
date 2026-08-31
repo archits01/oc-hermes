@@ -758,8 +758,6 @@ class BuzzAdapter(BasePlatformAdapter):
             transport_used,
             "" if transport_used == "websocket" else f", poll interval {self.poll_interval:.1f}s",
         )
-        # Plugin-registered native handlers (ctx.register_platform_handler).
-        self._wire_plugin_handlers(None)
         return True
 
     async def disconnect(self) -> None:

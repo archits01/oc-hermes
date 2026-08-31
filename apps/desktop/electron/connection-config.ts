@@ -37,7 +37,7 @@
 const AT_COOKIE_VARIANTS = ['__Host-hermes_session_at', '__Secure-hermes_session_at', 'hermes_session_at']
 const RT_COOKIE_VARIANTS = ['__Host-hermes_session_rt', '__Secure-hermes_session_rt', 'hermes_session_rt']
 
-// The Nous portal (NAS) does NOT use Hermes gateway session cookies — it is a
+// The Portal (NAS) does NOT use Hermes gateway session cookies — it is a
 // Privy-authed Next.js app. NAS `auth()` (src/server/auth/session.ts) reads the
 // `privy-token` access-token cookie (with `privy-id-token` alongside), which is
 // also exactly what the `/api/agents` cookie-auth path validates. So portal
@@ -597,11 +597,7 @@ const LOCAL_PRIMARY_SCOPED_ROUTES = new Set([
   'GET /api/skills/hub/search',
   'GET /api/skills/hub/sources',
   'POST /api/skills/hub/uninstall',
-  'POST /api/skills/hub/update',
-  // Spawns a background action polled via /api/actions/{name}/status — must
-  // live on the SAME backend as that poll family (below), or the poll asks a
-  // backend that never registered the dynamic action name and 404s.
-  'POST /api/mcp/catalog/install'
+  'POST /api/skills/hub/update'
 ])
 
 function localPrimaryRequestScope(opts: ProfileRouteOptions): boolean | null {
@@ -622,16 +618,6 @@ function localPrimaryRequestScope(opts: ProfileRouteOptions): boolean | null {
   const method = String(opts.requestMethod || 'GET').toUpperCase()
 
   if (LOCAL_PRIMARY_SCOPED_ROUTES.has(`${method} ${pathname}`)) {
-    return true
-  }
-
-  // Action-status polls MUST land on the same backend as the endpoints that
-  // spawned them: `_spawn_hermes_action` registers the (often dynamic, e.g.
-  // `skills-install-<slug>-<hash>`) action name only in the spawning
-  // process's memory. Every action-spawning route above scopes to the
-  // primary, so the poll family follows — a pooled-backend poll 404s with
-  // "Unknown action" even though the install itself succeeded (#89xxx).
-  if (pathname.startsWith('/api/actions/')) {
     return true
   }
 
@@ -735,23 +721,14 @@ function pathWithGlobalRemoteProfile(path, profile, opts: ProfileRouteOptions = 
   return pathWithProfileScope(path, profile)
 }
 
-/** Extra profile-valued query keys, beyond `profile`, that name the same
- *  self-scope on a given path. The sidebar batches recents/cron/messaging
- *  behind `recents_profile` instead of `profile`, so an SSH alias rewrite
- *  that only looks at `?profile=` leaves those reads on the remote default. */
-const SELF_PROFILE_QUERY_KEYS_BY_PATH: Record<string, string[]> = {
-  '/api/profiles/sessions/sidebar': ['recents_profile']
-}
-
 /**
  * Translate an explicit self-profile query from a Desktop routing alias to the
  * backend's own profile namespace (a managed SSH `remoteProfile` can map local
- * `mara` to remote `default`). Only endpoint-declared profile-valued params
- * equal to the alias itself are rewritten; cross-profile selectors (`all`,
- * another concrete profile) and unfiltered paths pass through untouched. Used
- * by the v1 profile route above and by the registry SSH branch of the
- * `hermes:api` handler — both routes reach a backend whose namespace is the
- * remote profile, not the alias.
+ * `mara` to remote `default`). Only a `?profile=` equal to the alias itself is
+ * rewritten; cross-profile selectors (`all`, another concrete profile) and
+ * unfiltered paths pass through untouched. Used by the v1 profile route above
+ * and by the registry SSH branch of the `hermes:api` handler — both routes
+ * reach a backend whose namespace is the remote profile, not the alias.
  */
 function translateSelfProfileQuery(path, profile, backendProfile) {
   const scopedProfile = connectionScopeKey(profile)
@@ -775,21 +752,11 @@ function translateSelfProfileQuery(path, profile, backendProfile) {
     return path
   }
 
-  const profileQueryKeys = ['profile', ...(SELF_PROFILE_QUERY_KEYS_BY_PATH[parsed.pathname] || [])]
-  let changed = false
-
-  for (const key of profileQueryKeys) {
-    if (connectionScopeKey(parsed.searchParams.get(key)) !== scopedProfile) {
-      continue
-    }
-
-    parsed.searchParams.set(key, backend)
-    changed = true
-  }
-
-  if (!changed) {
+  if (connectionScopeKey(parsed.searchParams.get('profile')) !== scopedProfile) {
     return path
   }
+
+  parsed.searchParams.set('profile', backend)
 
   return `${parsed.pathname}${parsed.search}${parsed.hash}`
 }

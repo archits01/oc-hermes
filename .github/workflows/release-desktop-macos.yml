@@ -1,0 +1,169 @@
+name: Release signed OpenComputer macOS updater
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing source tag to build, for example v0.17.1
+        required: true
+        type: string
+      publish:
+        description: Publish after verified asset upload (otherwise keep the release draft)
+        required: true
+        default: false
+        type: boolean
+
+# This workflow is deliberately manual and environment-gated. It is the only
+# path here allowed to upload a release, and runs from an immutable tag rather
+# than a moving branch.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Sign, notarize, and stage macOS updater release
+    runs-on: macos-14
+    environment: desktop-release
+    env:
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+
+    steps:
+      - name: Check out immutable release tag
+        uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Require signing credentials and version-matched tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::${key} must be configured in the protected desktop-release environment"
+              exit 1
+            fi
+          done
+          version="$(node -p "require('./apps/desktop/package.json').version")"
+          if [[ "$RELEASE_TAG" != "v$version" ]]; then
+            echo "::error::tag $RELEASE_TAG does not match desktop version v$version"
+            exit 1
+          fi
+          tag_ref="refs/tags/$RELEASE_TAG"
+          git show-ref --verify --quiet "$tag_ref" || {
+            echo "::error::release tag $tag_ref does not exist"
+            exit 1
+          }
+          tag_commit="$(git rev-parse "$tag_ref^{}")"
+          head_commit="$(git rev-parse HEAD)"
+          [[ "$tag_commit" == "$head_commit" ]] || {
+            echo "::error::checked-out commit does not match the peeled release tag"
+            exit 1
+          }
+          git diff --exit-code
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify OpenComputer release configuration
+        run: node .github/scripts/assert-opencomputer-invariants.mjs
+
+      - name: Build signed and notarized updater artifacts
+        working-directory: apps/desktop
+        run: |
+          npm run build
+          npm run builder -- --mac --universal --publish never
+
+      - name: Verify signed updater feed and artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="apps/desktop/release"
+          test -s "$release_dir/latest-mac.yml"
+          shopt -s nullglob
+          zips=("$release_dir"/*.zip)
+          dmgs=("$release_dir"/*.dmg)
+          blocks=("$release_dir"/*.blockmap)
+          (( ${#zips[@]} > 0 )) || { echo "::error::missing macOS updater zip"; exit 1; }
+          (( ${#dmgs[@]} > 0 )) || { echo "::error::missing DMG"; exit 1; }
+          (( ${#blocks[@]} > 0 )) || { echo "::error::missing blockmap"; exit 1; }
+          app_path="$(find "$release_dir" -type d -name OpenComputer.app -print -quit)"
+          [[ -n "$app_path" ]] || { echo "::error::missing packaged OpenComputer.app"; exit 1; }
+          app_update="$app_path/Contents/Resources/app-update.yml"
+          test -f "$app_update" || { echo "::error::missing packaged app-update.yml"; exit 1; }
+          node - "$app_update" <<'NODE'
+          const fs = require('node:fs')
+          const file = process.argv[2]
+          const text = fs.readFileSync(file, 'utf8')
+
+          const valuesFor = key =>
+            [...text.matchAll(new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'gm'))].map(([, value]) =>
+              value.trim().replace(/^['"]|['"]$/g, '')
+            )
+
+          for (const [key, expected] of Object.entries({ provider: 'github', owner: 'archits01', repo: 'oc-hermes' })) {
+            const values = valuesFor(key)
+            if (values.length !== 1 || values[0] !== expected) {
+              throw new Error(`invalid app-update.yml ${key}: expected exactly ${expected}`)
+            }
+          }
+          NODE
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign -dvv "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application:'
+          xcrun stapler validate "$app_path"
+          for dmg in "${dmgs[@]}"; do
+            xcrun stapler validate "$dmg"
+          done
+
+      - name: Upload verified release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit="$(git rev-parse HEAD)"
+          remote_tag="$(git ls-remote --refs origin "refs/tags/$RELEASE_TAG" | awk 'NR == 1 { print $1 }')"
+          remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}" | awk 'NR == 1 { print $1 }')"
+          remote_commit="${remote_peeled:-$remote_tag}"
+          [[ -n "$remote_commit" && "$remote_commit" == "$expected_commit" ]] || {
+            echo "::error::remote release tag no longer resolves to this checked-out commit"
+            exit 1
+          }
+          release_dir="apps/desktop/release"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "::error::refusing to modify published release $RELEASE_TAG; cut a new version/tag instead"
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
+          fi
+          shopt -s nullglob
+          assets=("$release_dir"/*.dmg "$release_dir"/*.zip "$release_dir"/*.blockmap "$release_dir/latest-mac.yml")
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+
+      - name: Publish release only when explicitly requested
+        if: ${{ inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit="$(git rev-parse HEAD)"
+          remote_tag="$(git ls-remote --refs origin "refs/tags/$RELEASE_TAG" | awk 'NR == 1 { print $1 }')"
+          remote_peeled="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}" | awk 'NR == 1 { print $1 }')"
+          remote_commit="${remote_peeled:-$remote_tag}"
+          [[ -n "$remote_commit" && "$remote_commit" == "$expected_commit" ]] || {
+            echo "::error::remote release tag no longer resolves to this checked-out commit"
+            exit 1
+          }
+          gh release edit "$RELEASE_TAG" --draft=false --latest

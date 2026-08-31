@@ -43,17 +43,12 @@ _spawn_hermes_action = late("_spawn_hermes_action")
 _toolset_model_catalog = late("_toolset_model_catalog")
 load_config = late("load_config")
 save_config = late("save_config")
-run_in_threadpool = late("run_in_threadpool")
 
 # Live proxies for web_server-owned module state (mutations/monkeypatches
 # on web_server remain authoritative; resolved at operation time).
 _MODEL_CATALOG_TOOLSETS = LateState("_MODEL_CATALOG_TOOLSETS")
 _TERMINAL_BACKENDS = LateState("_TERMINAL_BACKENDS")
 _TERMINAL_BACKEND_NAMES = LateState("_TERMINAL_BACKEND_NAMES")
-# Dynamic variants: built-ins + plugin-registered backends, computed per
-# request so a plugin installed after server start still shows up.
-_terminal_backend_rows = late("_terminal_backend_rows")
-_terminal_backend_names = late("_terminal_backend_names")
 # Config read-modify-write serialization for off-loop handlers (defined in
 # web_server.py; LateState supports ``with``-blocks, so this is the live lock).
 _CONFIG_MUTATION_LOCK = LateState("_CONFIG_MUTATION_LOCK")
@@ -91,7 +86,7 @@ async def get_toolsets(profile: Optional[str] = None):
             features = get_nous_subscription_features(config)
         return config, toolset_rows, enabled_by_platform, features
 
-    config, toolset_rows, enabled_by_platform, features = await run_in_threadpool(_read)
+    config, toolset_rows, enabled_by_platform, features = await asyncio.to_thread(_read)
     result = []
     for name, label, desc in toolset_rows:
         try:
@@ -730,13 +725,12 @@ async def get_terminal_backends(profile: Optional[str] = None):
             terminal_cfg = config.get("terminal")
             if not isinstance(terminal_cfg, dict):
                 terminal_cfg = {}
-            rows = _terminal_backend_rows()
             active = str(terminal_cfg.get("backend") or "local").strip().lower()
-            if active not in {row["name"] for row in rows}:
+            if active not in _TERMINAL_BACKEND_NAMES:
                 active = "local"
 
             backends = []
-            for row in rows:
+            for row in _TERMINAL_BACKENDS:
                 status, detail = _probe_terminal_backend(row["name"], terminal_cfg)
                 backends.append({
                     "name": row["name"],
@@ -762,12 +756,11 @@ async def select_terminal_backend(
     allowed — the picker shows guidance instead of blocking, matching the CLI.
     """
     backend = (body.backend or "").strip().lower()
-    valid_names = _terminal_backend_names()
-    if backend not in valid_names:
+    if backend not in _TERMINAL_BACKEND_NAMES:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown terminal backend: {body.backend!r}. "
-            f"Use one of: {', '.join(sorted(valid_names))}",
+            f"Use one of: {', '.join(sorted(_TERMINAL_BACKEND_NAMES))}",
         )
 
     def _run():

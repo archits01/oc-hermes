@@ -60,21 +60,13 @@ import {
   SIDEBAR_MAX_WIDTH
 } from '@/store/layout'
 import { runExportProfileFlow, runImportProfileFlow } from '@/store/profile-share'
-import {
-  $reviewOpen,
-  $reviewScopeCwd,
-  $reviewScopeTarget,
-  closeReview,
-  openReview,
-  REVIEW_PANE_ID
-} from '@/store/review'
+import { $reviewOpen, closeReview, openReview, REVIEW_PANE_ID } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
 import { $statusbarVisible } from '@/store/statusbar-prefs'
-import { isBrowserWindow, isHudWindow } from '@/store/windows'
+import { isHudWindow } from '@/store/windows'
 
-import { BrowserPopoutShell } from '../chat/browser-popout-shell'
 import type { SessionDragPayload } from '../chat/composer/inline-refs'
 import { watchPreviewTiles } from '../chat/preview-tile'
 import { watchRouteTiles } from '../chat/route-tile'
@@ -177,6 +169,7 @@ registry.registerMany([
   {
     id: 'workspace',
     area: 'panes',
+    workspaceMode: 'sessions',
     // Live-retitled to the loaded session by syncWorkspaceTitle below.
     title: NEW_SESSION_TITLE,
     data: {
@@ -451,15 +444,10 @@ discoverBundledPlugins()
 watchContributedPanes()
 
 // Session + route (page) tiles: persisted splits register panes docked beside
-// main. A popped-out Browser and the HUD have no layout tree — registering
-// tiles there would still run, and preview-tile watching would try to dock
-// into a tree this window never renders (and, in the HUD, paint a webview
-// into the transparent overlay).
-if (!isBrowserWindow() && !isHudWindow()) {
-  watchSessionTiles()
-  watchRouteTiles()
-  watchPreviewTiles()
-}
+// main.
+watchSessionTiles()
+watchRouteTiles()
+watchPreviewTiles()
 
 // Composer pop-out state is keyed by layout zone, so drop entries for zones the
 // user has since closed or merged away — otherwise a long-lived install keeps a
@@ -488,6 +476,7 @@ const syncWorkspaceTitle = () => {
   registry.register({
     id: 'workspace',
     area: 'panes',
+    workspaceMode: 'sessions',
     // The placeholder, not the draft's live name — `tabTitle` below renders
     // that. Keeping it here would re-register the pane on every keystroke.
     title: stored ? storedSessionTitle(stored) : NEW_SESSION_TITLE,
@@ -605,7 +594,7 @@ bindPaneVisibility(
   'review',
   computed([$reviewOpen, $hasWorkspace], (open, workspace) => open && workspace),
   closeReview,
-  () => openReview($reviewScopeCwd.get(), $reviewScopeTarget.get())
+  openReview
 )
 // ⌃` / statusbar toggle — the terminal COLLAPSES to a rail (tab stays), not
 // hides; PTYs stay alive while collapsed (see PersistentTerminal).
@@ -820,16 +809,7 @@ export function ContribController() {
   if (isHudWindow()) {
     return (
       <ContribWiring>
-        <AppContextMenu />
         <HudShell />
-      </ContribWiring>
-    )
-  }
-
-  if (isBrowserWindow()) {
-    return (
-      <ContribWiring>
-        <BrowserPopoutShell />
       </ContribWiring>
     )
   }
@@ -895,10 +875,10 @@ export function ContribController() {
               className="pointer-events-auto absolute z-10 flex w-max items-center gap-2 [-webkit-app-region:no-drag]"
               style={{
                 right:
-                  // Five static cluster buttons: four systemTools plus the
-                  // always-present right-sidebar toggle (titlebar-controls.tsx).
-                  // Keep in sync with wiring.tsx's SYSTEM_TOOL_COUNT.
-                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + 5 * var(--titlebar-control-size, 24px) + 0.5rem))'
+                  // Four static cluster buttons (layout, HUD, haptics, settings).
+                  // The files/source-code right-sidebar toggle is not exposed here -
+                  // keep in sync with TITLEBAR_SYSTEM_TOOL_COUNT in titlebar.ts.
+                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + 4 * var(--titlebar-control-size, 24px) + 0.5rem))'
               }}
             />
           </div>

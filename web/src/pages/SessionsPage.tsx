@@ -152,7 +152,7 @@ function sourceLabel(source: string): string {
     case "tool":
       return "Tool";
     case "hermes_flow":
-      return "Hermes Flow";
+      return "OpenComputer Flow";
     case "vulcan_delegate":
       return "Vulcan delegate";
     case "webhook":
@@ -1471,7 +1471,7 @@ export default function SessionsPage() {
         const res = await fetch(api.exportSessionUrl(id), {
           credentials: "include",
           headers: {
-            "X-Hermes-Session-Token":
+            "X-OpenComputer-Session-Token":
               (window as unknown as { __HERMES_SESSION_TOKEN__?: string })
                 .__HERMES_SESSION_TOKEN__ ?? "",
           },
