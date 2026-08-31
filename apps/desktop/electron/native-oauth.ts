@@ -11,7 +11,7 @@
  * safeStorage keychain writes) and calls these helpers for the pure logic.
  *
  * Why the gateway brokers the flow (not a direct desktop→IDP client): the
- * upstream IDP (Nous Portal) issues a per-gateway-instance client_id and only
+ * upstream IDP (Portal) issues a per-gateway-instance client_id and only
  * accepts a redirect_uri on the gateway's own origin, so a desktop loopback
  * redirect can't be a direct Portal client. Instead the gateway exposes
  * /auth/native/{authorize,token,refresh}: it is the authorization server to
@@ -27,8 +27,6 @@
  */
 
 import { createHash, randomBytes } from 'node:crypto'
-
-import { type AdvertisedAuthProvider, oauthGuardMayHardFail } from './native-auth-decisions'
 
 // The gateway status field that lists supported auth flows. See
 // hermes_cli/web_server.py status handler.
@@ -80,30 +78,16 @@ export function statusSupportsNativeFlow(statusBody: any): boolean {
 }
 
 /**
- * Decide the login strategy for a gated gateway from its status body and
- * advertised provider capabilities.
- *
- * Returns 'native' when the gateway advertises native_pkce AND at least one
- * non-password provider is available; 'embedded' when all providers are
- * password-only, the gateway lacks native_pkce, or forceEmbedded is set.
- *
- * Provider metadata is discovered from /api/auth/providers (separate from
- * /api/status). When absent (older gateway), the decision falls through to
- * the auth_flows check — existing compatibility is preserved.
+ * Decide the login strategy for a gated gateway from its status body.
+ * Returns 'native' when the gateway can do RFC 8252 AND we're not forced to
+ * the legacy path; 'embedded' otherwise (older gateway ⇒ webview fallback).
  *
  * `forceEmbedded` lets a user/setting or an env override pin the legacy flow
  * (e.g. a corporate proxy that blocks loopback). Precedence written down here,
  * in one place, as a pure function — per the desktop "observable ladder" rule.
  */
-export function resolveLoginStrategy(
-  statusBody: any,
-  opts: { forceEmbedded?: boolean; providers?: AdvertisedAuthProvider[] } = {}
-): 'native' | 'embedded' {
+export function resolveLoginStrategy(statusBody: any, opts: { forceEmbedded?: boolean } = {}): 'native' | 'embedded' {
   if (opts.forceEmbedded) {
-    return 'embedded'
-  }
-
-  if (!oauthGuardMayHardFail(opts.providers)) {
     return 'embedded'
   }
 

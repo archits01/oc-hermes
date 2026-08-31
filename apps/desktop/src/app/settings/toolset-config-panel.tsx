@@ -22,7 +22,6 @@ import { useI18n } from '@/i18n'
 import { Check, Loader2, Save, Terminal } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { upsertDesktopActionTask } from '@/store/activity'
-import { confirm } from '@/store/confirm'
 import { notify, notifyError } from '@/store/notifications'
 import type {
   ActionStatusResponse,
@@ -142,7 +141,7 @@ function EnvVarField({ envVar, isSet, onSaved, onCleared, profile }: EnvVarField
   }
 
   async function handleClear() {
-    if (!(await confirm({ destructive: true, title: copy.removeConfirm(envVar.key) }))) {
+    if (!window.confirm(copy.removeConfirm(envVar.key))) {
       return
     }
 
@@ -527,7 +526,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange, profile }: Too
   // Default-provider selection and a user click race just after config arrives:
   // a stale initialization effect must never replace an explicit choice.
   const providerChoiceClaimedRef = useRef(false)
-  // Guard the Nous Portal sign-in poll loop against unmount/state updates.
+  // Guard the Portal sign-in poll loop against unmount/state updates.
   const mountedRef = useRef(true)
 
   // eslint-disable-next-line no-restricted-syntax -- mount flag guarding an async poll loop, not an atom mirror
@@ -570,7 +569,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange, profile }: Too
   // Default the expanded provider to the one actually active in config
   // (`is_active` / `cfg.active_provider`, mirroring the CLI picker), then the
   // first fully-configured provider, else the first provider. Without this the
-  // panel highlighted the first keyless provider (e.g. Nous Portal) even when
+  // panel highlighted the first keyless provider (e.g. Portal) even when
   // the user had already selected another (e.g. DuckDuckGo).
   // eslint-disable-next-line no-restricted-syntax -- one-shot provider-choice claim flag, not an atom mirror
   useEffect(() => {
@@ -618,7 +617,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange, profile }: Too
         // Managed Nous row selected without Portal entitlement: the config
         // keys are written but the backend won't activate until the user
         // signs in (the CLI runs this gate inline; the GUI surfaces it as a
-        // sign-in action). Reuses the existing Nous Portal device-code flow.
+        // sign-in action). Reuses the existing Portal device-code flow.
         notify({
           kind: 'warning',
           title: copy.nousAuthNeededTitle,
@@ -638,7 +637,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange, profile }: Too
     }
   }
 
-  // Drive the existing Nous Portal OAuth device-code flow (the same session
+  // Drive the existing Portal OAuth device-code flow (the same session
   // machinery onboarding uses: start → open verification URL → poll), then
   // refetch the toolset config so is_active / status flip once entitled.
   async function signInToNousPortal() {

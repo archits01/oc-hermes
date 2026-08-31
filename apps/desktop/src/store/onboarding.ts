@@ -192,7 +192,7 @@ function shouldPreserveConfiguredOnFallback(runtime: RuntimeReadinessResult, sta
 }
 
 function notifyReady(provider: string) {
-  notify({ kind: 'success', title: 'Hermes is ready', message: `${provider} connected.` })
+  notify({ kind: 'success', title: 'OpenComputer is ready', message: `${provider} connected.` })
 }
 
 // Human-friendly labels for tools auto-routed through the Nous Tool Gateway,
@@ -220,7 +220,7 @@ function notifyGatewayTools(tools: string[] | undefined) {
   notify({
     durationMs: 8000,
     kind: 'info',
-    message: `${list} now run through your Nous subscription — no separate API keys needed.`,
+    message: `${list} now run through your subscription — no separate API keys needed.`,
     title: 'Tool Gateway enabled'
   })
 }
@@ -318,20 +318,14 @@ async function completeWithModelConfirm(
     // config provider (e.g. anthropic from a prior failed setup) cannot make
     // setup.runtime_check validate the wrong backend after a fresh OAuth login.
     try {
-      const res = await setMainModelAssignment(
-        {
-          provider: defaults.providerSlug,
-          model: defaults.defaultModel
-        },
-        undefined,
-        // Headless automated flow: nothing is mounted to click a guard
-        // prompt, so fail with the message instead of hanging.
-        { skipConfirmPrompt: true }
-      )
+      const res = await setMainModelAssignment({
+        provider: defaults.providerSlug,
+        model: defaults.defaultModel
+      })
 
       notifyGatewayTools(res.gateway_tools)
     } catch (error) {
-      onFail(error instanceof Error ? error.message : 'Hermes could not save the selected model.')
+      onFail(error instanceof Error ? error.message : 'OpenComputer could not save the selected model.')
 
       return
     }
@@ -367,8 +361,8 @@ function providerResolutionFailure(reason: null | string) {
   const detail = reason?.trim()
 
   return detail
-    ? `Connected, but Hermes still cannot resolve a usable provider. ${detail}`
-    : 'Connected, but Hermes still cannot resolve a usable provider.'
+    ? `Connected, but OpenComputer still cannot resolve a usable provider. ${detail}`
+    : 'Connected, but OpenComputer still cannot resolve a usable provider.'
 }
 
 async function refreshProviders() {
@@ -769,7 +763,7 @@ export async function recheckExternalSignin(ctx: OnboardingContext) {
       provider,
       message:
         reason?.trim() ||
-        `Hermes still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
+        `OpenComputer still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
     })
   )
 }
@@ -884,7 +878,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     if (!runtime.ready) {
       const detail = (runtime.reason ?? '').trim()
 
-      return { ok: false, message: detail || `Saved, but Hermes still cannot reach ${url}.` }
+      return { ok: false, message: detail || `Saved, but OpenComputer still cannot reach ${url}.` }
     }
 
     notifyReady('Local / custom endpoint')

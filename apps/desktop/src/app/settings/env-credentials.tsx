@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { deleteEnvVar, getEnvVars, revealEnvVar, setEnvVar } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { type IconComponent } from '@/lib/icons'
-import { confirm } from '@/store/confirm'
 import { notify, notifyError } from '@/store/notifications'
 import type { EnvVarInfo } from '@/types/hermes'
 
@@ -145,7 +144,7 @@ export function useEnvCredentials(profile?: string): UseEnvCredentials {
   }
 
   async function handleClear(key: string) {
-    if (!(await confirm({ destructive: true, title: toolsets.removeConfirm(key) }))) {
+    if (!window.confirm(toolsets.removeConfirm(key))) {
       return
     }
 

@@ -620,13 +620,11 @@ class ModelSwitchResult:
     api_key: str = ""
     base_url: str = ""
     api_mode: str = ""
-    request_overrides: Optional[dict] = None
     error_message: str = ""
     warning_message: str = ""
     provider_label: str = ""
     resolved_via_alias: str = ""
     capabilities: Optional[ModelCapabilities] = None
-    runtime_capabilities: Optional[dict[str, bool]] = None
     model_info: Optional[ModelInfo] = None
     is_global: bool = False
 
@@ -1498,7 +1496,6 @@ def switch_model(
     from hermes_cli.runtime_provider import resolve_runtime_provider
 
     resolved_alias = ""
-    request_overrides: dict = {}
     new_model = raw_input.strip()
     target_provider = current_provider
     resolved_moa_preset = False
@@ -1850,7 +1847,6 @@ def switch_model(
     api_key = current_api_key
     base_url = current_base_url
     api_mode = ""
-    runtime_capabilities: dict[str, bool] = {}
     ollama_headers: dict[str, str] = {}
     validation_headers: dict[str, str] = {}
     suppress_ollama_headers = False
@@ -1895,7 +1891,6 @@ def switch_model(
                 api_key = runtime.get("api_key", "") or _ukey
                 base_url = runtime.get("base_url", "") or _user_pdef.base_url
                 api_mode = runtime.get("api_mode", "")
-                runtime_capabilities = runtime.get("capabilities") or {}
                 validation_headers = runtime.get("extra_headers") or validation_headers
             except Exception:
                 api_key = _ukey
@@ -1914,7 +1909,6 @@ def switch_model(
                 api_key = runtime.get("api_key", "")
                 base_url = runtime.get("base_url", "")
                 api_mode = runtime.get("api_mode", "")
-                runtime_capabilities = runtime.get("capabilities") or {}
                 validation_headers = runtime.get("extra_headers") or validation_headers
             except Exception as e:
                 return ModelSwitchResult(
@@ -1975,7 +1969,6 @@ def switch_model(
                 api_key = runtime.get("api_key", "")
                 base_url = runtime.get("base_url", "")
                 api_mode = runtime.get("api_mode", "")
-                runtime_capabilities = runtime.get("capabilities") or {}
                 validation_headers = runtime.get("extra_headers") or validation_headers
             except Exception:
                 pass
@@ -2178,13 +2171,6 @@ def switch_model(
 
     # --- Get capabilities (legacy) ---
     capabilities = get_model_capabilities(target_provider, new_model, allow_network=True)
-    from agent.native_compaction import resolve_native_compaction_capabilities
-    runtime_capabilities = resolve_native_compaction_capabilities(
-        model=new_model,
-        base_url=base_url,
-        provider=target_provider,
-        is_codex_backend=target_provider.strip().lower() == "openai-codex",
-    )
 
     # --- Get full model info from models.dev ---
     model_info = get_model_info(target_provider, new_model, allow_network=True)
@@ -2197,22 +2183,6 @@ def switch_model(
     if hermes_warn:
         warnings.append(hermes_warn)
 
-    # Carry the switched provider's request_overrides (e.g. a custom_providers
-    # ``extra_body`` such as chat_template_kwargs) so a ``/model`` switch to a
-    # custom provider applies it on the gateway, matching the default-provider
-    # path. resolve_runtime_provider surfaces these for named custom providers.
-    request_overrides = None
-    try:
-        from hermes_cli.runtime_provider import (
-            _get_named_custom_provider,
-            _custom_provider_request_overrides,
-        )
-        _cp_for_ro = _get_named_custom_provider(target_provider)
-        if _cp_for_ro:
-            request_overrides = _custom_provider_request_overrides(_cp_for_ro) or None
-    except Exception:
-        request_overrides = None
-
     # --- Build result ---
     return ModelSwitchResult(
         success=True,
@@ -2222,16 +2192,10 @@ def switch_model(
         api_key=api_key,
         base_url=base_url,
         api_mode=api_mode,
-        request_overrides=dict(request_overrides or {}),
         warning_message=" | ".join(warnings) if warnings else "",
         provider_label=provider_label,
         resolved_via_alias=resolved_alias,
         capabilities=capabilities,
-        runtime_capabilities={
-            key: value
-            for key, value in runtime_capabilities.items()
-            if isinstance(key, str) and isinstance(value, bool)
-        },
         model_info=model_info,
         is_global=is_global,
     )
@@ -2618,6 +2582,8 @@ def list_authenticated_providers(
     probe_current_custom_provider: bool = False,
     for_picker: bool = False,
     excluded_providers: list | None = None,
+    included_providers: list | None = None,
+    free_only_providers: list | None = None,
 ) -> List[dict]:
     """Detect which providers have credentials and list their curated models.
 
@@ -2666,6 +2632,7 @@ def list_authenticated_providers(
         OPENROUTER_MODELS, _PROVIDER_MODELS,
         _MODELS_DEV_PREFERRED, _merge_with_models_dev, cached_provider_model_ids,
         clear_provider_models_cache, get_curated_nous_model_ids,
+        get_verified_opencode_free_model_ids,
     )
 
     # Explicit refresh: drop every provider's cached model-id list so the
@@ -2679,21 +2646,17 @@ def list_authenticated_providers(
         except Exception:
             pass
 
-    from hermes_cli.config import coerce_provider_id, stringify_provider_map
-
     results: List[dict] = []
     seen_slugs: set = set()  # lowercase-normalized to catch case variants (#9545)
-    # PyYAML parses unquoted numeric names (`provider: 2070`) as int. Later
-    # `.strip()` / `.lower()` on that raw value 500s GET /api/model/options.
-    current_provider = coerce_provider_id(current_provider)
-    current_base_url = str(current_base_url or "").strip()
-    current_model = str(current_model or "").strip()
-    _current_provider_norm = current_provider.lower()
-    _current_base_url_norm = current_base_url.rstrip("/").lower()
-    user_providers = stringify_provider_map(user_providers)
+    _current_provider_norm = str(current_provider or "").strip().lower()
+    _current_base_url_norm = str(current_base_url or "").strip().rstrip("/").lower()
 
     def _can_probe_custom_provider(*, row_is_current: bool) -> bool:
         return bool(probe_custom_providers or (probe_current_custom_provider and row_is_current))
+
+    included_providers, free_only_providers = _resolve_catalog_provider_policy(
+        included_providers, free_only_providers
+    )
 
     # Normalize the excluded-providers list once for fast membership checks.
     # Compared against hermes_id / mdev_id (section 1), pid / hermes_slug
@@ -2776,6 +2739,7 @@ def list_authenticated_providers(
     # Build curated model lists keyed by hermes provider ID
     curated: dict[str, list[str]] = dict(_PROVIDER_MODELS)
     curated["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
+    curated["opencode-free"] = get_verified_opencode_free_model_ids()
     # "nous" pulls from the remote model-catalog manifest published at
     # https://hermes-agent.nousresearch.com/docs/api/model-catalog.json so
     # newly added Portal models surface in the /model picker without
@@ -3270,7 +3234,7 @@ def list_authenticated_providers(
                 continue
             if ep_name.lower() in seen_slugs:
                 continue
-            display_name = coerce_provider_id(ep_cfg.get("name")) or ep_name
+            display_name = ep_cfg.get("name", "") or ep_name
             api_url = (
                 ep_cfg.get("base_url", "")
                 or ep_cfg.get("api", "")
@@ -3618,8 +3582,8 @@ def list_authenticated_providers(
             if not isinstance(entry, dict):
                 continue
 
-            raw_name = coerce_provider_id(entry.get("name"))
-            api_url = str(
+            raw_name = (entry.get("name") or "").strip()
+            api_url = (
                 entry.get("base_url", "")
                 or entry.get("url", "")
                 or entry.get("api", "")
@@ -3627,8 +3591,8 @@ def list_authenticated_providers(
             ).strip().rstrip("/")
             if not raw_name or not api_url:
                 continue
-            inline_api_key = str(entry.get("api_key") or "").strip()
-            key_env = str(entry.get("key_env") or "").strip()
+            inline_api_key = (entry.get("api_key") or "").strip()
+            key_env = (entry.get("key_env") or "").strip()
             api_key = inline_api_key or _scoped_key_env(key_env)
             api_mode = str(
                 entry.get("api_mode")
@@ -3941,10 +3905,148 @@ def list_authenticated_providers(
                 _row["total_models"] = _row.get("total_models", len(_models)) + 1
             break
 
+    results = _apply_catalog_provider_policy(
+        results,
+        included_providers=included_providers or [],
+        free_only_providers=free_only_providers or [],
+        force_refresh=refresh,
+    )
+
     # Sort: current provider first, then by model count descending
     results.sort(key=lambda r: (not r["is_current"], -r["total_models"]))
 
     return results
+
+
+def _resolve_catalog_provider_policy(
+    included_providers: list | None,
+    free_only_providers: list | None,
+) -> tuple[list, list]:
+    """Resolve picker policy once, so final picker filtering cannot be bypassed."""
+    if included_providers is not None and free_only_providers is not None:
+        return included_providers, free_only_providers
+    try:
+        from hermes_cli.config import load_config_readonly
+
+        catalog_cfg = load_config_readonly().get("model_catalog") or {}
+        if not isinstance(catalog_cfg, dict):
+            catalog_cfg = {}
+    except Exception:
+        catalog_cfg = {}
+    if included_providers is None:
+        value = catalog_cfg.get("included_providers") or []
+        included_providers = value if isinstance(value, list) else []
+    if free_only_providers is None:
+        value = catalog_cfg.get("free_only_providers") or []
+        free_only_providers = value if isinstance(value, list) else []
+    return included_providers, free_only_providers
+
+
+def _apply_catalog_provider_policy(
+    rows: list[dict],
+    *,
+    included_providers: list[str],
+    free_only_providers: list[str],
+    force_refresh: bool = False,
+) -> list[dict]:
+    """Apply managed picker provider/free-model policy at the shared source."""
+    included = {
+        str(value or "").strip().lower()
+        for value in included_providers
+        if str(value or "").strip()
+    }
+    free_only = {
+        str(value or "").strip().lower()
+        for value in free_only_providers
+        if str(value or "").strip()
+    }
+    filtered: list[dict] = []
+    for original in rows:
+        slug = str(original.get("slug") or "").strip().lower()
+        identities = {
+            slug,
+            str(original.get("name") or "").strip().lower(),
+            str(original.get("provider_id") or "").strip().lower(),
+        }
+        identities.update(
+            str(alias or "").strip().lower()
+            for alias in (original.get("aliases") or [])
+        )
+        if included and not (identities & included):
+            continue
+        # An explicit included_providers policy is the managed OpenComputer
+        # surface.  Unlike unmanaged Hermes, it must not advertise the static
+        # fallback when no current anonymous provider proof exists.
+        if slug == "opencode-free" and included:
+            try:
+                from hermes_cli.models import (
+                    get_verified_opencode_free_model_ids,
+                    has_fresh_verified_opencode_free_catalog,
+                )
+
+                if not has_fresh_verified_opencode_free_catalog():
+                    continue
+                allowed = {
+                    model.lower()
+                    for model in get_verified_opencode_free_model_ids()
+                }
+                verified_models = [
+                    model for model in (original.get("models") or [])
+                    if str(model).lower() in allowed
+                ]
+                if not verified_models:
+                    continue
+                original = dict(original)
+                original["models"] = verified_models
+                original["total_models"] = len(verified_models)
+            except Exception:
+                continue
+        if slug not in free_only:
+            filtered.append(original)
+            continue
+        try:
+            from hermes_cli.models import get_pricing_for_provider
+
+            pricing = get_pricing_for_provider(
+                slug, force_refresh=force_refresh
+            ) or {}
+        except Exception:
+            pricing = {}
+        free_models = []
+        for model in original.get("models") or []:
+            price = pricing.get(model)
+            if not isinstance(price, dict):
+                continue
+            if "prompt" not in price or "completion" not in price:
+                continue
+            try:
+                is_free = (
+                    float(price["prompt"]) == 0
+                    and float(price["completion"]) == 0
+                )
+            except (TypeError, ValueError):
+                is_free = False
+            # Novita's generic /models list can include image/video or plain
+            # text rows.  A zero price alone does not prove Hermes can run its
+            # tool-calling agent loop.  Managed free-only Novita needs an
+            # explicit signal retained from the authoritative live catalog.
+            if slug == "novita" and price.get("tool_capable") is not True:
+                is_free = False
+            # Keep OpenRouter's normal picker compatible with old catalogs,
+            # but require the same explicit live tool proof for managed
+            # free-only rows.  Missing/malformed metadata is unknown, not a
+            # license to advertise a model that cannot run the agent toolset.
+            if slug == "openrouter" and price.get("tool_capable") is not True:
+                is_free = False
+            if is_free:
+                free_models.append(model)
+        if not free_models:
+            continue
+        row = dict(original)
+        row["models"] = free_models
+        row["total_models"] = len(free_models)
+        filtered.append(row)
+    return filtered
 
 
 def _prepend_moa_picker_provider(providers: List[dict], current_provider: str = "") -> List[dict]:
@@ -3976,6 +4078,8 @@ def list_picker_providers(
     current_model: str = "",
     include_moa: bool = False,
     excluded_providers: list | None = None,
+    included_providers: list | None = None,
+    free_only_providers: list | None = None,
 ) -> List[dict]:
     """Interactive-picker variant of :func:`list_authenticated_providers`.
 
@@ -3998,6 +4102,10 @@ def list_picker_providers(
     """
     from hermes_cli.models import fetch_openrouter_models
 
+    included_providers, free_only_providers = _resolve_catalog_provider_policy(
+        included_providers, free_only_providers
+    )
+
     providers = list_authenticated_providers(
         current_provider=current_provider,
         current_base_url=current_base_url,
@@ -4007,6 +4115,11 @@ def list_picker_providers(
         current_model=current_model,
         for_picker=True,
         excluded_providers=excluded_providers,
+        # Apply policy below, after MoA injection and OpenRouter's live-model
+        # expansion.  Passing empty policy lists here avoids a second pricing
+        # fetch while keeping the final executable picker path authoritative.
+        included_providers=[],
+        free_only_providers=[],
     )
     if include_moa:
         providers = _prepend_moa_picker_provider(providers, current_provider=current_provider)
@@ -4030,4 +4143,8 @@ def list_picker_providers(
             continue
         filtered.append(p)
 
-    return filtered
+    return _apply_catalog_provider_policy(
+        filtered,
+        included_providers=included_providers,
+        free_only_providers=free_only_providers,
+    )

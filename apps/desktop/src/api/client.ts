@@ -15,6 +15,11 @@ import type { HermesApiRequest } from '@/global'
 // keep the short default so a genuinely-dead backend is still detected fast.
 export const STARTUP_REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS = 30_000
+export const GATEWAY_ERROR_MESSAGES = {
+  closed: 'OpenComputer gateway connection closed',
+  connect: 'Could not connect to OpenComputer gateway',
+  notConnected: 'OpenComputer gateway is not connected'
+} as const
 // prompt.submit is effectively fire-and-forget: turn completion is signaled by
 // stream / message.complete events, NOT by the RPC return. A long turn (MoA
 // presets running references + aggregator in series, deep reasoning, large tool
@@ -28,10 +33,10 @@ export const PROMPT_SUBMIT_REQUEST_TIMEOUT_MS = 1_800_000
 export class HermesGateway extends JsonRpcGatewayClient {
   constructor() {
     super({
-      closedErrorMessage: 'Hermes gateway connection closed',
-      connectErrorMessage: 'Could not connect to Hermes gateway',
+      closedErrorMessage: GATEWAY_ERROR_MESSAGES.closed,
+      connectErrorMessage: GATEWAY_ERROR_MESSAGES.connect,
       createRequestId: nextId => nextId,
-      notConnectedErrorMessage: 'Hermes gateway is not connected',
+      notConnectedErrorMessage: GATEWAY_ERROR_MESSAGES.notConnected,
       requestTimeoutMs: DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS
     })
   }
@@ -90,11 +95,12 @@ export function connectionScoped(): { connectionId?: string } {
  *  routing may override the active source for an explicitly-owned resource.
  *
  *  Helpers under `api/` go through here rather than calling the preload bridge
- *  directly, so the connection tag cannot be forgotten on a new one.
- *  capabilityScoped() now emits an explicit `connectionId` for EVERY object
- *  pin — `'local'` included — so a pin always overrides the ambient tag spread
- *  underneath it. (It used to omit the key for 'local', which made the pin
- *  unable to beat the ambient tag; helpers then had to bypass this wrapper.) */
+ *  directly, so the connection tag cannot be forgotten on a new one — with one
+ *  exception. A capabilityScoped() helper must NOT: that scope says "the local
+ *  pool" by omitting `connectionId` entirely, and an absent key cannot override
+ *  the ambient tag spread underneath it, so a 'local' pin would silently route
+ *  to whatever remote gateway happened to be active. Those helpers call the
+ *  bridge directly and own their routing end to end. */
 export function hermesApi<T>(request: HermesApiRequest): Promise<T> {
   return window.hermesDesktop.api<T>({ ...connectionScoped(), ...request })
 }
@@ -112,14 +118,10 @@ export function hermesApi<T>(request: HermesApiRequest): Promise<T> {
 //     connection tag (connectionScoped, same contract the cron helpers adopted
 //     in #87882). Without the tag, a window activated onto a registered remote
 //     gateway read the LOCAL pool's skills/tools/MCP — the wrong machine.
-//   - `{ connectionId, profile }` → explicit pin. A non-empty connection id —
-//     `'local'` INCLUDED — is sent through so Electron's registry resolver
-//     owns the routing. Dropping the `'local'` pin (the pre-#91564 behavior,
-//     when an absent id always meant the local pool) silently re-routes a
-//     "This device" pick to the registry PRIMARY once that primary is a
-//     remote/cloud/ssh gateway: the v1 fallback route treats a remote registry
-//     primary as global-remote, so the explicit pin is the ONLY way back to
-//     this machine (see apiRequestRegistryConnectionId in Electron main).
+//   - `{ connectionId, profile }` → explicit pin. `''`/`'local'` connection
+//     ids mean the local pool and deliberately DROP the ambient connection
+//     tag, so a local-profile pick made while a remote gateway is active still
+//     routes to the local machine.
 export type ProfileScope = undefined | null | string | { connectionId?: null | string; profile?: null | string }
 
 export function capabilityScoped(scope?: ProfileScope): { connectionId?: string; profile?: string } {
@@ -129,25 +131,22 @@ export function capabilityScoped(scope?: ProfileScope): { connectionId?: string;
 
     return {
       ...(profile ? { profile } : {}),
-      ...(connectionId ? { connectionId } : {})
+      ...(connectionId && connectionId !== 'local' ? { connectionId } : {})
     }
   }
 
   return { ...profileScoped(scope), ...connectionScoped() }
 }
 
-/** Stable cache-key for a capability scope: `profile` for the ambient/legacy
- *  path, `connectionId::profile` for ANY explicit pin — `local` included. An
- *  explicit "This device" pick and the ambient path are no longer guaranteed
- *  to hit the same backend (a remote registry PRIMARY makes the ambient path
- *  remote), so sharing the bare-profile cache row between them painted one
- *  machine's config under the other's scope (AGENTS.md scope-in-key rule). */
+/** Stable cache-key for a capability scope: `profile` for the local/legacy
+ *  path, `connectionId::profile` for an explicit remote pin. Mirrors
+ *  normalizeProfileKey for plain strings so existing keys stay byte-identical. */
 export function profileScopeKey(scope?: ProfileScope): string {
   if (scope && typeof scope === 'object') {
     const profile = (scope.profile ?? '').trim() || 'default'
     const connectionId = (scope.connectionId ?? '').trim()
 
-    return connectionId ? `${connectionId}::${profile}` : profile
+    return connectionId && connectionId !== 'local' ? `${connectionId}::${profile}` : profile
   }
 
   return (scope ?? '').trim() || 'default'

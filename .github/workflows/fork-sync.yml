@@ -1,0 +1,210 @@
+name: Fork Sync (upstream Hermes → sync candidate)
+
+# Daily upstream catch-up for the OpenComputer fork.
+#
+# Deliberately does NOT push oc-branding. Customers install from oc-branding
+# (the branded installers and desktop update check resolve to the OpenComputer
+# fork @ oc-branding), so an unreviewed auto-merge there ships
+# straight to real installs. Instead this produces a candidate branch a human
+# fast-forwards after review.
+#
+# Fails loudly on conflict or on a lost OpenComputer file. A failed scheduled run
+# emails the repo owner through GitHub's own notifications, which is why this does
+# not depend on Issues - Issues are disabled on forks by default and the previous
+# version of this workflow died with HTTP 410 trying to file one, so nobody was
+# told for days.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # daily 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fork-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout oc-branding
+        uses: actions/checkout@v4
+        with:
+          ref: oc-branding
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "fork-sync[bot]"
+          git config user.email "fork-sync@users.noreply.github.com"
+
+      - name: Prune absorbed and stale sync branches
+        # Daily runs create a dated branch per day, so without this the fork
+        # accumulates one sync/upstream-* ref every 24h. Pruned by MERGE STATE
+        # first, not age: a branch fully contained in oc-branding (ahead=0) has
+        # already been absorbed and is debris whatever its date. Normal
+        # unabsorbed candidates age out at 14 days, but an unresolved
+        # -CONFLICTS branch is preserved indefinitely until it is absorbed or
+        # an operator explicitly retires it.
+        run: |
+          git fetch --no-tags origin '+refs/heads/sync/upstream-*:refs/remotes/origin/sync/upstream-*' || true
+          cutoff=$(date -u -d '14 days ago' +%s)
+          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/sync/upstream-*'); do
+            br=${ref#origin/}
+            ahead=$(git rev-list --count "origin/oc-branding..$ref" 2>/dev/null || echo 1)
+            when=$(git log -1 --format=%ct "$ref" 2>/dev/null || echo 0)
+            if [ "$ahead" = "0" ]; then
+              echo "absorbed (ahead=0), deleting: $br"
+              git push origin --delete "$br" || true
+            elif [[ "$br" == *-CONFLICTS ]]; then
+              echo "keeping unresolved conflict evidence: $br"
+            elif [ "$when" -lt "$cutoff" ]; then
+              echo "unabsorbed but older than 14d, deleting: $br"
+              git push origin --delete "$br" || true
+            else
+              echo "keeping (ahead=$ahead, still recent): $br"
+            fi
+          done
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/NousResearch/hermes-agent.git || \
+            git remote set-url upstream https://github.com/NousResearch/hermes-agent.git
+          git fetch --no-tags upstream main
+
+      - name: Anything to merge?
+        id: gap
+        run: |
+          behind="$(git rev-list --count HEAD..upstream/main)"
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "oc-branding is $behind commits behind upstream/main"
+
+      - name: Merge onto a candidate branch
+        if: steps.gap.outputs.behind != '0'
+        id: merge
+        run: |
+          # A date alone collides on rerun. Keep each candidate and its conflict
+          # evidence unique even when Actions retries on the same day.
+          BR="sync/upstream-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Workflow files cannot be pushed by GITHUB_TOKEN, and the checker is
+          # part of the fork's release control plane. Preserve both from the
+          # fork while reporting upstream changes for deliberate porting.
+          FORK_CONTROL_PATHS=(.github/workflows .github/scripts/assert-opencomputer-invariants.mjs .github/scripts/assert-opencomputer-boundary.mjs)
+          echo "branch=$BR" >> "$GITHUB_OUTPUT"
+          git checkout -b "$BR"
+          if git merge --no-ff --no-edit upstream/main; then
+            # GITHUB_TOKEN cannot push workflow-file changes without the
+            # workflow scope. Preserve the fork's workflows on EVERY path,
+            # including a clean merge, and report upstream workflow changes for
+            # a human to port deliberately.
+            git diff --name-only HEAD^1..HEAD -- "${FORK_CONTROL_PATHS[@]}" > /tmp/wf_changed.txt 2>/dev/null || true
+            if [ -s /tmp/wf_changed.txt ]; then
+              git checkout HEAD^1 -- "${FORK_CONTROL_PATHS[@]}"
+              git diff --name-only --diff-filter=A HEAD^1 -- "${FORK_CONTROL_PATHS[@]}" \
+                | xargs -r git rm -f --quiet --
+              git add -A -- "${FORK_CONTROL_PATHS[@]}"
+              git commit --amend --no-edit >/dev/null
+              {
+                echo "### Upstream workflow changes withheld"
+                echo ""
+                echo "These were not included in the candidate because the GitHub token cannot push workflow edits:"
+                echo '```'
+                cat /tmp/wf_changed.txt
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Merge conflict. Files:"
+            git diff --name-only --diff-filter=U
+            # Do NOT abort. Aborting threw the conflicted tree away and left the
+            # owner with a failure email and nothing to resolve from, so the sync
+            # simply never happened. Commit the conflicted state (markers and all)
+            # to a clearly-named branch so it can be resolved in a PR or locally.
+            # The invariant gate below is skipped on this path (clean != true), so
+            # the committed markers cannot be mistaken for a shippable candidate,
+            # and oc-branding is still never pushed.
+            CB="${BR}-CONFLICTS"
+            echo "conflict_branch=$CB" >> "$GITHUB_OUTPUT"
+            git diff --name-only --diff-filter=U > /tmp/conflicted.txt
+            # GITHUB_TOKEN is not permitted to push commits that modify files under
+            # .github/workflows/ - the push is rejected with "refusing to allow a
+            # GitHub App to create or update workflow ... without workflows
+            # permission". There is no `workflows:` key in the permissions block and
+            # actions:write does not grant it; the only token that can is a PAT with
+            # the workflow scope. Rather than require a new secret, keep OUR workflow
+            # files and invariant checker, which are the fork's release control plane.
+            # Upstream control-plane changes are reported below so they can be ported by hand.
+            git diff --name-only HEAD...upstream/main -- "${FORK_CONTROL_PATHS[@]}" > /tmp/wf_changed.txt 2>/dev/null || true
+            git checkout HEAD -- "${FORK_CONTROL_PATHS[@]}" 2>/dev/null || true
+            git add -A
+            # `git checkout HEAD --` restores files we already had, but it cannot
+            # remove ones upstream ADDED (2026-08-20: upstream renamed ci.yml to
+            # ci.yaml, so ci.yaml stayed staged as a new file and the push was still
+            # rejected). Drop any control-plane file that is an addition relative to HEAD.
+            git diff --cached --name-only --diff-filter=A -- "${FORK_CONTROL_PATHS[@]}" \
+              | xargs -r git rm -f --quiet --
+            git commit -m "UNRESOLVED upstream merge $(date -u +%Y-%m-%d) - contains conflict markers, do not ff-only this" >/dev/null
+            git branch -M "$CB"
+            # Never overwrite a prior unresolved candidate. BR includes the
+            # run id/attempt, and a surprising collision must fail loudly.
+            git push origin "$CB"
+            {
+              echo "### Upstream sync BLOCKED on conflicts"
+              echo ""
+              echo "Branch \`$CB\` was pushed with the conflict markers in place."
+              echo ""
+              echo "Conflicted files:"
+              echo '```'
+              cat /tmp/conflicted.txt
+              echo '```'
+              if [ -s /tmp/wf_changed.txt ]; then
+                echo "Upstream ALSO changed these release-control files. They were NOT taken"
+                echo "(workflow edits cannot be pushed by GITHUB_TOKEN); port by hand if wanted:"
+                echo '```'
+                cat /tmp/wf_changed.txt
+                echo '```'
+              fi
+              echo "Resolve:"
+              echo '```'
+              echo "git fetch origin && git checkout $CB"
+              echo "# fix the markers, then:"
+              echo "git commit -a --amend --no-edit"
+              echo "git checkout oc-branding && git merge --no-ff $CB"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: OpenComputer invariants must survive
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          # VM deployment helpers are intentionally VM-owned under /opt/lmi-ops
+          # after the 2026-08-24 deployment split. The executable checker covers
+          # source-owned product invariants without requiring those removed files.
+          node .github/scripts/assert-opencomputer-invariants.mjs
+          node .github/scripts/assert-opencomputer-boundary.mjs --self-test
+          node .github/scripts/assert-opencomputer-boundary.mjs upstream/main HEAD
+          test "$(git grep -l '^<<<<<<< ' | wc -l)" -eq 0 || {
+            echo "::error::conflict markers committed"
+            exit 1
+          }
+
+      - name: Push the candidate
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          git push origin "${{ steps.merge.outputs.branch }}"
+          echo "### Upstream sync candidate ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`${{ steps.merge.outputs.branch }}\` (${{ steps.gap.outputs.behind }} upstream commits)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Review, then ship it:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "git checkout oc-branding" >> "$GITHUB_STEP_SUMMARY"
+          echo "git merge --ff-only ${{ steps.merge.outputs.branch }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "git push origin oc-branding" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

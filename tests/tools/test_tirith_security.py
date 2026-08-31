@@ -222,6 +222,55 @@ class TestEnsureInstalled:
         _tirith_mod._resolved_path = None
         assert ensure_installed() is None
 
+    @pytest.mark.parametrize(
+        "host_machine,elf_machine,expected",
+        [("aarch64", 183, True), ("aarch64", 62, False),
+         ("x86_64", 62, True), ("x86_64", 183, False)],
+    )
+    def test_elf_architecture_is_checked(self, tmp_path, host_machine,
+                                         elf_machine, expected, monkeypatch):
+        """A cached native binary must match the host before it is selected."""
+        path = tmp_path / "tirith"
+        header = bytearray(20)
+        header[:4] = b"\x7fELF"
+        header[4] = 2  # ELFCLASS64
+        header[5] = 1  # little-endian
+        header[18:20] = int(elf_machine).to_bytes(2, "little")
+        path.write_bytes(header)
+        path.chmod(0o755)
+        monkeypatch.setattr(_tirith_mod.platform, "machine", lambda: host_machine)
+        assert _tirith_mod._binary_is_compatible(str(path)) is expected
+
+    def test_non_elf_script_remains_supported(self, tmp_path, monkeypatch):
+        path = tmp_path / "tirith"
+        path.write_text("#!/bin/sh\nexit 0\n")
+        path.chmod(0o755)
+        monkeypatch.setattr(_tirith_mod.platform, "machine", lambda: "aarch64")
+        assert _tirith_mod._binary_is_compatible(str(path)) is True
+
+    def test_default_resolver_repairs_wrong_architecture(self, tmp_path, monkeypatch):
+        """A stale x86 cached binary must not win over ARM auto-install."""
+        stale = tmp_path / "tirith"
+        header = bytearray(20)
+        header[:4] = b"\x7fELF"
+        header[4] = 2
+        header[5] = 1
+        header[18:20] = (62).to_bytes(2, "little")  # EM_X86_64
+        stale.write_bytes(header)
+        stale.chmod(0o755)
+        monkeypatch.setattr(_tirith_mod.platform, "machine", lambda: "aarch64")
+        monkeypatch.setattr(_tirith_mod, "_load_security_config", lambda: {
+            "tirith_enabled": True, "tirith_path": "tirith",
+            "tirith_timeout": 5, "tirith_fail_open": True,
+        })
+        monkeypatch.setattr(_tirith_mod.shutil, "which", lambda name: str(stale))
+        monkeypatch.setattr(_tirith_mod, "_hermes_bin_dir", lambda: str(tmp_path / "bin"))
+        monkeypatch.setattr(_tirith_mod, "_install_tirith",
+                            lambda: ("/new/aarch64/tirith", ""))
+        monkeypatch.setattr(_tirith_mod, "_clear_install_failed", lambda: None)
+        _tirith_mod._resolved_path = None
+        assert _tirith_mod._resolve_tirith_path("tirith") == "/new/aarch64/tirith"
+
     @patch("tools.tirith_security.shutil.which", return_value="/usr/local/bin/tirith")
     @patch("tools.tirith_security._load_security_config")
     def test_found_on_path_returns_immediately(self, mock_cfg, mock_which):

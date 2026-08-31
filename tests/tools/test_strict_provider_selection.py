@@ -334,9 +334,9 @@ class TestWriteProviderConfig:
         from hermes_cli.tools_config import _write_provider_config
 
         config = {"web": {"backend": "nous", "use_gateway": True}}
-        provider = {"name": "Keenable", "web_backend": "keenable"}
+        provider = {"name": "Tavily", "web_backend": "tavily"}
         _write_provider_config(provider, config, managed_feature=None)
-        assert config["web"]["backend"] == "keenable"
+        assert config["web"]["backend"] == "tavily"
         assert "use_gateway" not in config["web"]
 
     def test_managed_image_row_persists_nous_provider(self):

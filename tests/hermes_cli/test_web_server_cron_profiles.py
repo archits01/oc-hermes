@@ -742,7 +742,7 @@ async def test_trigger_cron_job_returns_completed_snapshot_for_retained_oneshot(
         "worker_alpha",
         "create_job",
         prompt="run once",
-        schedule="in 30m",
+        schedule="30m",
         name="completed-trigger-job",
     )
 

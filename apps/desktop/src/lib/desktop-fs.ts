@@ -22,13 +22,6 @@ function connectionCacheKey(connection: HermesConnection | null) {
     return 'local:'
   }
 
-  // A profile belongs to a registry connection, not the whole Desktop. The
-  // registry id is the isolation boundary, including for SSH connections; the
-  // stable host identity below is only the fallback for legacy connections.
-  if (connection.connectionId) {
-    return `connection:${connection.connectionId}:${connection.profile || ''}`
-  }
-
   const target =
     connection.remoteKind === 'ssh'
       ? connection.remoteIdentity || connection.remoteHost || ''
@@ -59,7 +52,7 @@ function bridge() {
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error('Hermes Desktop bridge is unavailable')
+    throw new Error('OpenComputer Desktop bridge is unavailable')
   }
 
   return desktop

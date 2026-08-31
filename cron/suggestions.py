@@ -70,9 +70,7 @@ def _secure_file(path: Path) -> None:
 
 
 def _ensure_dir() -> None:
-    from cron.jobs import _ensure_cron_dir
-
-    _ensure_cron_dir(CRON_DIR)
+    CRON_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _load_raw() -> Dict[str, Any]:

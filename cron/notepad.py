@@ -39,9 +39,7 @@ _lock = threading.RLock()
 
 
 def _connect() -> sqlite3.Connection:
-    from cron.jobs import _ensure_cron_dir
-
-    _ensure_cron_dir(NOTEPAD_FILE.parent)
+    NOTEPAD_FILE.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(NOTEPAD_FILE, timeout=5)
 
 

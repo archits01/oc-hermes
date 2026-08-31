@@ -51,7 +51,7 @@ function resolvePortAnnounceTimeoutMs(env = process.env) {
  * on every terminal path — resolve, reject, or timeout — so repeated
  * backend spawns don't leak listener slots on the child.
  */
-function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs(), describeOutputTail = () => '') {
+function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs()) {
   return new Promise((resolve, reject) => {
     let buf = ''
     let done = false
@@ -88,7 +88,7 @@ function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs(),
 
     function onExit(code, signal) {
       cleanup()
-      reject(new Error(`Hermes backend: exited before port announcement (${signal || code})${describeOutputTail()}`))
+      reject(new Error(`Hermes backend: exited before port announcement (${signal || code})`))
     }
 
     function onError(err) {
@@ -122,12 +122,7 @@ function readDashboardReadyFile(readyFile: fs.PathOrFileDescriptor) {
   }
 }
 
-function waitForDashboardReadyFile(
-  readyFile,
-  child,
-  timeoutMs = resolvePortAnnounceTimeoutMs(),
-  describeOutputTail = () => ''
-) {
+function waitForDashboardReadyFile(readyFile, child, timeoutMs = resolvePortAnnounceTimeoutMs()) {
   return new Promise((resolve, reject) => {
     let done = false
     let interval = null
@@ -159,7 +154,7 @@ function waitForDashboardReadyFile(
 
     function onExit(code, signal) {
       cleanup()
-      reject(new Error(`Hermes backend: exited before port announcement (${signal || code})${describeOutputTail()}`))
+      reject(new Error(`Hermes backend: exited before port announcement (${signal || code})`))
     }
 
     function onError(err) {
@@ -187,20 +182,17 @@ function waitForDashboardReadyFile(
 function waitForDashboardPortAnnouncement(
   child,
   options: {
-    /** Returns a formatted stdout/stderr tail suffix for exit errors (#93608). */
-    describeOutputTail?: () => string
-    readyFile?: fs.PathOrFileDescriptor | null
+    readyFile?: fs.PathOrFileDescriptor
     timeoutMs?: number
   } = {}
 ) {
   const timeoutMs = options.timeoutMs ?? resolvePortAnnounceTimeoutMs()
-  const describeOutputTail = options.describeOutputTail ?? (() => '')
 
   if (options.readyFile) {
-    return waitForDashboardReadyFile(options.readyFile, child, timeoutMs, describeOutputTail)
+    return waitForDashboardReadyFile(options.readyFile, child, timeoutMs)
   }
 
-  return waitForDashboardPort(child, timeoutMs, describeOutputTail)
+  return waitForDashboardPort(child, timeoutMs)
 }
 
 export {

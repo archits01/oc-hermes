@@ -2,19 +2,25 @@ import { useStore } from '@nanostores/react'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
+import { TitlebarIcon } from '@/app/shell/titlebar-icon'
+import { Button } from '@/components/ui/button'
+import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
 import { chatMessageText } from '@/lib/chat-messages'
+import { closeHud } from '@/store/hud'
 import { $activeSessionAwaitingInput } from '@/store/prompts'
 import { $busy, $messages } from '@/store/session'
 
 import { RICH_INPUT_SLOT } from '../chat/composer/rich-editor'
 import { WiredPane } from '../contrib/wiring'
+import { titlebarButtonClass } from '../shell/titlebar'
 
 import { useHudClickThrough } from './click-through'
 import { useHudGameOverlay } from './game-overlay'
 import { useHudGlass } from './glass'
 import { useHudGoto, useReportHudSession } from './handoff'
 import { hudTranscriptHeight } from './layout'
-import { hudResizeDirections, useHudResizeHandle } from './resize-handle'
+import { useHudResizeHandle } from './resize-handle'
 import { useHudThreadFocus } from './thread-focus'
 
 /** How long the transcript lingers at its glanceable opacity — after a turn
@@ -199,6 +205,7 @@ function useHudHeld(gameUnder: boolean): boolean {
  * `useRecentActivity`).
  */
 export function HudShell() {
+  const { t } = useI18n()
   const [recent, holdBand] = useRecentActivity()
   // A fullscreen app (a game) is under the HUD: wear `data-hud-game` so the
   // idle bar steps back to overlay opacity (see styles.css). Detection is
@@ -368,20 +375,15 @@ export function HudShell() {
     }
   }, [])
 
-  useHudGlass(rootRef, filled)
+  useHudGlass(rootRef, recent || held, filled)
   useHudClickThrough(rootRef)
   useHudThreadFocus(rootRef)
 
-  // Edge/corner resize frame. The window is created non-resizable so dragging can
+  // Corner resize handle. The window is created non-resizable so dragging can
   // never be misread as a resize gesture (the Windows transparent-frameless
   // growth bug); the handle is the one sanctioned way to change size, driving
   // the same flip-resizable-for-the-call pattern the pet overlay uses.
   const { resizing: hudResizing, onPointerDown: onHudResizePointerDown } = useHudResizeHandle()
-  const hudWindowing = window.hermesDesktop?.hud?.windowing
-  const resizeDirections = hudResizeDirections(hudWindowing?.clientPlacement !== false)
-  // Linux X11 cannot ignore-mouse; a visible band that also ignores the
-  // pointer just eats the click. The stylesheet keys off this.
-  const hudInput = hudWindowing?.solid ? 'solid' : 'click-through'
 
   // Force the HOST layers transparent. index.html's pre-paint script writes an
   // opaque themed background onto <html> as an INLINE style (the anti-white-
@@ -403,8 +405,6 @@ export function HudShell() {
       className="relative flex h-screen w-screen flex-col overflow-hidden"
       data-hud-edge={edge}
       data-hud-game={gameUnder ? '' : undefined}
-      data-hud-held={held ? '' : undefined}
-      data-hud-input={hudInput}
       data-hud-recent={recent || held ? '' : undefined}
       data-hud-shell
       // Letting go of the composer re-arms the hold, so the transcript steps
@@ -428,20 +428,35 @@ export function HudShell() {
 
       <WiredPane part="chatRoutes" />
 
-      {/* CanvasTTY-style resize frame. Windows/macOS/X11 get every edge and
-          corner; native Wayland gets the right/bottom handles it can honour
-          without forbidden global positioning. The handles are invisible
-          chrome with native cursors. `data-hud-grabbing` keeps click-through
-          from handing the pointer away while the window changes under it. */}
-      {resizeDirections.map(direction => (
-        <div
-          aria-hidden
-          data-hud-grabbing={hudResizing ? '' : undefined}
-          data-hud-resize={direction}
-          key={direction}
-          onPointerDown={event => onHudResizePointerDown(event, direction)}
-        />
-      ))}
+      {/* The way back — without it the only exits are ⌘⇧H and ⌘W, both
+          invisible. Placed and revealed entirely from styles.css. */}
+      <Tip label={t.titlebar.exitHud}>
+        <Button
+          aria-label={t.titlebar.exitHud}
+          className={`${titlebarButtonClass} absolute z-20`}
+          data-hud-exit=""
+          onClick={closeHud}
+          size="icon-titlebar"
+          type="button"
+          variant="ghost"
+        >
+          <TitlebarIcon name="screen-normal" />
+        </Button>
+      </Tip>
+
+      {/* The resize handle: bottom-right corner, the one sanctioned way to
+          change the HUD's size. Invisible chrome — a hot corner, not a
+          button — so it never reads as part of the surface. `data-hud-grabbing`
+          is the same flag the composer drag raises: a gesture in progress owns
+          the window, so click-through can't hand the mouse away mid-resize
+          when the growing edge outruns the cursor. */}
+      <div
+        aria-hidden
+        className="absolute bottom-0 right-0 z-20"
+        data-hud-grabbing={hudResizing ? '' : undefined}
+        data-hud-resize=""
+        onPointerDown={onHudResizePointerDown}
+      />
     </div>
   )
 }

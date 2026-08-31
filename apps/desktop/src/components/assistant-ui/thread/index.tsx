@@ -1,6 +1,5 @@
 import { createContext, memo, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
-import { ChatEmptySlot } from '@/components/assistant-ui/chat-empty-slot'
 import { AssistantMessage } from '@/components/assistant-ui/thread/assistant-message'
 import { ThreadMessageList } from '@/components/assistant-ui/thread/list'
 import { BackgroundResumeNotice, CenteredThreadSpinner } from '@/components/assistant-ui/thread/status'
@@ -81,10 +80,10 @@ export const Thread = memo(function Thread({
       throw new Error('Restore is unavailable for this message.')
     }
 
-    const { messageId, text, userOrdinal } = restoreConfirmTarget
+    const { messageId, rowId, text, userOrdinal } = restoreConfirmTarget
 
     closeRestoreConfirm()
-    void Promise.resolve(onRestoreToMessage(messageId, { text, userOrdinal })).catch((error: unknown) => {
+    void Promise.resolve(onRestoreToMessage(messageId, { rowId, text, userOrdinal })).catch((error: unknown) => {
       notifyError(error, 'Restore failed')
     })
   }, [closeRestoreConfirm, onRestoreToMessage, restoreConfirmTarget])
@@ -148,15 +147,9 @@ export const Thread = memo(function Thread({
     [hasBranchInNewChat, hasCancel, hasDismissError, hasRestoreToMessage, requestRestoreConfirm]
   )
 
-  // Core's splash belongs to a fresh draft; a session that exists but has
-  // nothing in it yet gets whichever plugin owns it. The slot often renders
-  // nothing, which costs an empty container — harmless, since there is no
-  // content to lay out until the first message swaps this branch out.
-  const emptyBody = intro ? <Intro {...intro} /> : sessionId ? <ChatEmptySlot sessionId={sessionId} /> : null
-
-  const emptyPlaceholder = emptyBody ? (
+  const emptyPlaceholder = intro ? (
     <div className="flex min-h-0 w-full flex-col items-center justify-center pt-[var(--composer-measured-height)]">
-      {emptyBody}
+      <Intro {...intro} />
     </div>
   ) : undefined
 

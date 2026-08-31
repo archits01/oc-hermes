@@ -52,6 +52,12 @@ interface PlatformIconSpec {
 }
 
 const PLATFORM_ICONS: Record<string, PlatformIconSpec> = {
+  // OpenComputer: Unipile-backed LMI channels. Same treatment as any other
+  // external platform so their rows render a real badge, not a blank.
+  linkedin: { color: '#0A66C2', kind: 'brand', monogram: 'in' },
+  instagram: { color: '#E4405F', kind: 'brand', monogram: 'IG' },
+  whatsapp_unipile: { Icon: SiWhatsapp, color: '#25D366', kind: 'brand' },
+  messenger_unipile: { color: '#0084FF', kind: 'brand', monogram: 'M' },
   telegram: { Icon: SiTelegram, color: '#26A5E4', kind: 'brand' },
   discord: { Icon: SiDiscord, color: '#5865F2', kind: 'brand' },
   // Slack removed from Simple Icons by Salesforce request — letter monogram.

@@ -231,7 +231,6 @@ export function useMainApp(gw: GatewayClient) {
   const onEventRef = useRef<(ev: GatewayEvent) => void>(() => {})
   const sysRef = useRef<(text: string) => void>(() => {})
   const submitRef = useRef<(value: string) => void>(() => {})
-  const submitLiteralRef = useRef<(value: string) => void>(() => {})
   const terminalHintsShownRef = useRef(new Set<string>())
   const historyItemsRef = useRef(historyItems)
   const lastUserMsgRef = useRef(lastUserMsg)
@@ -642,7 +641,7 @@ export function useMainApp(gw: GatewayClient) {
           tab: composeTabTitle(marker, ui.sessionTitle, '', ''),
           window: composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '')
         }
-      : 'Hermes'
+      : 'OpenComputer'
   )
 
   useEffect(() => {
@@ -780,7 +779,7 @@ export function useMainApp(gw: GatewayClient) {
 
   sysRef.current = sys
 
-  const { dispatchSubmission, send, sendQueued, submit, submitLiteral } = useSubmission({
+  const { dispatchSubmission, send, sendQueued, submit } = useSubmission({
     appendMessage,
     composerActions,
     composerRefs,
@@ -791,8 +790,6 @@ export function useMainApp(gw: GatewayClient) {
     submitRef,
     sys
   })
-
-  submitLiteralRef.current = submitLiteral
 
   // Drain one queued message whenever the session settles (busy → false):
   // agent turn ends, interrupt, shell.exec finishes, error recovered, or the
@@ -856,7 +853,7 @@ export function useMainApp(gw: GatewayClient) {
           resumeById: session.resumeById,
           setCatalog
         },
-        submission: { submitLiteralRef, submitRef },
+        submission: { submitRef },
         system: { bellOnComplete, stdout, sys },
         transcript: { appendMessage, panel, setHistoryItems },
         voice: {
@@ -880,7 +877,6 @@ export function useMainApp(gw: GatewayClient) {
       setVoiceProcessing,
       setVoiceRecording,
       stdout,
-      submitLiteralRef,
       submitRef,
       sys
     ]

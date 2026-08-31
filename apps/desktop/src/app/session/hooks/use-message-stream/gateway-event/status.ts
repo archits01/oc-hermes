@@ -4,7 +4,7 @@ import { coerceGatewayText } from '@/lib/chat-runtime'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { type AgentNoticePayload, clearAgentNotice, nativeNoticeInput, showAgentNotice } from '@/store/agent-notices'
 import { clearClarifyRequest } from '@/store/clarify'
-import { reconcileSessionCompacting, setSessionCompacting } from '@/store/compaction'
+import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
 import { applyGoalStatusText } from '@/store/goals'
 import { dispatchNativeNotification } from '@/store/native-notifications'
@@ -28,7 +28,7 @@ export function handleStatusEvent(ctx: GatewayEventContext): boolean {
       setSessionCompacting(sessionId, true)
       compactedTurnRef.current.add(sessionId)
     } else if (sessionId && payload?.kind === 'compacted') {
-      reconcileSessionCompacting(sessionId, 'terminal')
+      setSessionCompacting(sessionId, false)
       compactedTurnRef.current.delete(sessionId)
     } else if (sessionId && payload?.kind === 'process') {
       // The gateway's notification poller announces background process
@@ -128,7 +128,7 @@ export function handleStatusEvent(ctx: GatewayEventContext): boolean {
       clearAllPrompts(sessionId)
       clearClarifyRequest(undefined, sessionId)
       clearActiveSessionTodos(sessionId)
-      reconcileSessionCompacting(sessionId, 'terminal')
+      setSessionCompacting(sessionId, false)
       compactedTurnRef.current.delete(sessionId)
     }
 
