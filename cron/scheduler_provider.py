@@ -22,7 +22,6 @@ from __future__ import annotations
 import inspect
 import threading
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Any
 
 # Cap for the exponential tick backoff applied while consecutive ticks fail
@@ -63,31 +62,6 @@ def _note_tick_failure(exc: BaseException, consecutive_failures: int) -> int:
         _reclaim_fds_best_effort()
         return consecutive_failures + 1
     return 0
-
-
-def _existing_profile_homes(profile_homes: list) -> list:
-    """Drop profile homes whose directory no longer exists on disk.
-
-    The multiplex ticker's ``profile_homes`` is a snapshot taken at startup
-    (``web_server.py`` calls ``profiles_to_serve(multiplex=True)`` once, and
-    the gateway multiplex path does the same). If a profile is deleted while
-    the ticker runs — via ``hermes profile delete``, the desktop's DELETE
-    ``/api/profiles/<name>`` route, or any other path that removes the home
-    directory — that stale entry stays in the list.
-
-    Ticking or heartbeating a deleted home recreates its ``cron/`` workspace
-    (``record_ticker_heartbeat`` -> ``ensure_dirs`` -> ``mkdir(parents=True)``)
-    on every 60s cycle, so the "deleted" profile silently comes back on disk
-    and in ``hermes profile list`` (#47368). Filtering on directory existence
-    leaves a deleted profile's home untouched, which is the correct invariant:
-    a home that does not exist cannot hold jobs to fire.
-    """
-    live = []
-    for entry in profile_homes:
-        home = entry[1] if isinstance(entry, tuple) else entry
-        if Path(home).is_dir():
-            live.append(entry)
-    return live
 
 
 class CronScheduler(ABC):
@@ -558,8 +532,6 @@ class InProcessCronScheduler(CronScheduler):
         interval=60,
         can_dispatch=None,
         profile_homes=None,
-        profile_adapters=None,
-        default_profile=None,
     ):
         import logging
         from cron.scheduler import tick as cron_tick
@@ -587,8 +559,6 @@ class InProcessCronScheduler(CronScheduler):
                 loop=loop,
                 interval=interval,
                 can_dispatch=can_dispatch,
-                profile_adapters=profile_adapters,
-                default_profile=default_profile,
             )
             return
 
@@ -660,8 +630,6 @@ class InProcessCronScheduler(CronScheduler):
         loop=None,
         interval=60,
         can_dispatch=None,
-        profile_adapters=None,
-        default_profile=None,
     ):
         """Tick every served profile's cron store when multiplex_profiles is on.
 
@@ -689,10 +657,7 @@ class InProcessCronScheduler(CronScheduler):
         )
 
         # Recovery + initial heartbeat for every profile.
-        # A profile may have been deleted since this snapshot was taken;
-        # never recreate a deleted home's cron workspace via the heartbeat
-        # below (#47368).
-        for entry in _existing_profile_homes(profile_homes):
+        for entry in profile_homes:
             home = entry[1] if isinstance(entry, tuple) else entry
             home_token = set_hermes_home_override(str(home))
             try:
@@ -716,28 +681,14 @@ class InProcessCronScheduler(CronScheduler):
                 if can_dispatch is not None and not can_dispatch():
                     logger.debug("Cron dispatch paused while gateway drains existing work")
                 else:
-                    for entry in _existing_profile_homes(profile_homes):
-                        _pname = entry[0] if isinstance(entry, tuple) else None
+                    for entry in profile_homes:
                         home = entry[1] if isinstance(entry, tuple) else entry
                         home_token = set_hermes_home_override(str(home))
                         try:
                             with use_cron_store(home):
-                                # Deliver each profile's cron via ITS OWN adapters.
-                                # The shared `adapters` set belongs to the default
-                                # profile only. A secondary profile uses its own map
-                                # in profile_adapters[name], which is populated only
-                                # once that profile's bot connects. A secondary must
-                                # NEVER fall back to the default profile's `adapters`
-                                # (that ships its cron output through the wrong bot),
-                                # so before its adapter connects — map absent or empty
-                                # — it simply does not deliver this tick.
-                                if _pname is None or _pname == default_profile:
-                                    _tick_adapters = adapters
-                                else:
-                                    _tick_adapters = (profile_adapters or {}).get(_pname) or {}
                                 cron_tick(
                                     verbose=False,
-                                    adapters=_tick_adapters,
+                                    adapters=adapters,
                                     loop=loop,
                                     sync=False,
                                     can_dispatch=can_dispatch,
@@ -753,7 +704,7 @@ class InProcessCronScheduler(CronScheduler):
             else:
                 _tick_error = None
             # Record per-profile heartbeat after each tick cycle.
-            for entry in _existing_profile_homes(profile_homes):
+            for entry in profile_homes:
                 home = entry[1] if isinstance(entry, tuple) else entry
                 home_token = set_hermes_home_override(str(home))
                 try:

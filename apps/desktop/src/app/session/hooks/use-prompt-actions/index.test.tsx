@@ -9,7 +9,6 @@ import { textPart } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $composerAttachments, $composerDraft, type ComposerAttachment, setComposerDraft } from '@/store/composer'
 import { $queuedPromptsBySession, getQueuedPrompts } from '@/store/composer-queue'
-import { requestGatewayForAgent } from '@/store/gateway'
 import { $goalsBySession, setSessionGoal } from '@/store/goals'
 import { $hudMode } from '@/store/hud'
 import { $notifications, clearNotifications } from '@/store/notifications'
@@ -48,11 +47,6 @@ vi.mock('@/hermes', () => ({
   PROMPT_SUBMIT_REQUEST_TIMEOUT_MS: 1_800_000,
   setApiRequestProfile: vi.fn(),
   transcribeAudio: vi.fn()
-}))
-
-vi.mock('@/store/gateway', async importOriginal => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  requestGatewayForAgent: vi.fn()
 }))
 
 // The active id the desktop holds is the *runtime* session id from
@@ -1773,39 +1767,7 @@ describe('usePromptActions desktop slash pickers', () => {
 describe('usePromptActions submit / queue drain semantics', () => {
   afterEach(() => {
     cleanup()
-    $connection.set(null)
-    vi.mocked(requestGatewayForAgent).mockReset()
     vi.restoreAllMocks()
-  })
-
-  it('pins prompt.submit to the active registry connection when the remote session row is untagged', async () => {
-    $connection.set({ connectionId: 'hermes01', mode: 'remote' } as never)
-    setSessions([sessionInfo({ id: 'stored-remote', profile: 'default' })])
-
-    const ambientRequest = vi.fn(async () => ({}) as never)
-    vi.mocked(requestGatewayForAgent).mockResolvedValue({} as never)
-
-    let handle: HarnessHandle | null = null
-    await actRender(
-      <Harness
-        activeSessionId="runtime-remote"
-        onReady={h => (handle = h)}
-        refreshSessions={async () => undefined}
-        requestGateway={ambientRequest}
-        runtimeIdByStoredSessionIdRef={{ current: new Map([['stored-remote', 'runtime-remote']]) }}
-        storedSessionId="stored-remote"
-      />
-    )
-
-    expect(await handle!.submitText('continue remotely')).toBe(true)
-    expect(requestGatewayForAgent).toHaveBeenCalledWith(
-      'hermes01',
-      'default',
-      'prompt.submit',
-      { session_id: 'runtime-remote', text: 'continue remotely' },
-      1_800_000
-    )
-    expect(ambientRequest).not.toHaveBeenCalled()
   })
 
   it('clears a leftover interrupted flag on a fresh submit (so the new turn streams)', async () => {
@@ -2639,6 +2601,50 @@ describe('usePromptActions restoreToMessage', () => {
     )
   })
 
+  it('retries a stale-target restore once against refreshed history', async () => {
+    // #4018: the desktop renders compacted rows (include_compacted) as ordinary
+    // user bubbles with a row id and a Restore button, but the gateway resolves
+    // truncation against ACTIVE rows only and cannot address them. Edit has had
+    // a replan-and-retry since #82462; restore had none, so the same drift
+    // surfaced as a dead-end "Restore failed" toast.
+    let submitAttempts = 0
+
+    const requestGateway = vi.fn(async (method: string, params?: unknown) => {
+      void params
+
+      if (method === 'prompt.submit') {
+        submitAttempts += 1
+
+        if (submitAttempts === 1) {
+          throw new JsonRpcGatewayError('target user message is no longer in session history', { code: 4018 })
+        }
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+        seedMessages={$messages.get()}
+      />
+    )
+
+    await handle!.restoreToMessage('u1')
+
+    // Retried, and the retry is a real rewind — not a plain resubmit, which
+    // would drop the truncation and append the prompt as a fresh turn.
+    expect(submitAttempts).toBe(2)
+
+    const submits = requestGateway.mock.calls.filter(call => call[0] === 'prompt.submit')
+
+    expect(submits).toHaveLength(2)
+    expect(submits[1][1]).toMatchObject({ confirm_truncate: true, session_id: RUNTIME_SESSION_ID })
+  })
+
   it('rejects non-user targets and unknown ids without touching the gateway', async () => {
     const requestGateway = vi.fn(async () => ({}) as never)
 
@@ -3307,56 +3313,6 @@ describe('usePromptActions sleep/wake session recovery', () => {
     expect(calls.map(c => c.method)).toEqual(['prompt.submit', 'session.resume', 'prompt.submit'])
     expect(calls[1]?.params).toEqual({ session_id: STORED_SESSION_ID, source: 'desktop', omit_messages: true })
     expect(calls[2]?.params).toEqual({ session_id: RECOVERED_SESSION_ID, text: 'message after wake' })
-  })
-
-  it('publishes the recovered runtime binding before retrying through the remote owner router', async () => {
-    const calls: { method: string; params?: Record<string, unknown> }[] = []
-    let bindingPublished = false
-    let submitAttempts = 0
-
-    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
-      calls.push({ method, params })
-
-      if (method === 'prompt.submit') {
-        submitAttempts += 1
-
-        if (submitAttempts === 1) {
-          throw new JsonRpcGatewayError('session not found', { code: 4001 })
-        }
-
-        if (!bindingPublished) {
-          throw new JsonRpcGatewayError('session not found on ambient gateway', { code: 4001 })
-        }
-
-        return {} as never
-      }
-
-      if (method === 'session.resume') {
-        return { session_id: RECOVERED_SESSION_ID } as never
-      }
-
-      return {} as never
-    })
-
-    let handle: HarnessHandle | null = null
-    await actRender(
-      <Harness
-        onReady={h => (handle = h)}
-        onUpdateState={(runtimeId, storedId) => {
-          if (runtimeId === RECOVERED_SESSION_ID && storedId === STORED_SESSION_ID) {
-            bindingPublished = true
-          }
-        }}
-        refreshSessions={async () => undefined}
-        requestGateway={requestGateway}
-        storedSessionId={STORED_SESSION_ID}
-      />
-    )
-
-    expect(await handle!.submitText('remote follow-up after reap')).toBe(true)
-    expect(bindingPublished).toBe(true)
-    expect(calls.map(call => call.method)).toEqual(['prompt.submit', 'session.resume', 'prompt.submit'])
-    expect(calls[2]?.params).toEqual({ session_id: RECOVERED_SESSION_ID, text: 'remote follow-up after reap' })
   })
 
   it('resumes the stored session and retries once when reloadFromMessage (regenerate) reports "session not found"', async () => {

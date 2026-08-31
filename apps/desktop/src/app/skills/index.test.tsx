@@ -104,12 +104,7 @@ afterEach(() => {
   queryClient.clear()
 })
 
-// SkillsView is a heavy module: the first test pays the whole dynamic-import
-// cost, and the file legitimately runs ~14s on CI runners — right against the
-// global 15s per-test budget, so slow runners cascade-fail all 11 tests
-// (2× in a row on PR #93612, plus a main run the same hour). Give this file
-// headroom; the tests are not slow individually.
-describe('SkillsView toolset management', { timeout: 60_000 }, () => {
+describe('SkillsView toolset management', () => {
   it('renders a switch for each toolset and toggles it off', async () => {
     await renderSkills()
 

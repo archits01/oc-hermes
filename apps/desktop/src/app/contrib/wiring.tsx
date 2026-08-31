@@ -14,6 +14,7 @@ import { type CSSProperties, lazy, type ReactNode, Suspense, useCallback, useEff
 import { useLocation, useNavigate } from 'react-router'
 
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
+import { resolveSessionProfile } from '@/app/session/hooks/use-session-actions/utils'
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
 import { BootFailureOverlay } from '@/components/boot-failure-overlay'
 import { ConfirmHost } from '@/components/confirm-host'
@@ -32,7 +33,6 @@ import {
 import { FloatingPet } from '@/components/pet/floating-pet'
 import { RemoteDisplayBanner } from '@/components/remote-display-banner'
 import { SendDiagnosticsHost } from '@/components/send-diagnostics-dialog'
-import { TipHost } from '@/components/tips'
 import { emitGatewayEvent } from '@/contrib/events'
 import { getLatestSessionMessages } from '@/hermes'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
@@ -40,13 +40,14 @@ import { isMessagingSource } from '@/lib/session-source'
 import { latestSessionTodos } from '@/lib/todos'
 import { activateWakeIndicator } from '@/lib/wake-indicator'
 import { playWakeSound } from '@/lib/wake-sound'
+import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $billingSettingsRequest } from '@/store/billing-block'
 import { $desktopBoot } from '@/store/boot'
 import { requestVoiceConversationStart } from '@/store/composer'
 import { $activeConnectionId } from '@/store/connections'
 import { $cronReviewRequest, setCronFocusJobId } from '@/store/cron'
 import { $pinnedSessionIds, pinSession, restoreWorktree, unpinSession } from '@/store/layout'
-import { notifyError } from '@/store/notifications'
+import { notify } from '@/store/notifications'
 import { $previewTarget } from '@/store/preview'
 import {
   $activeGatewayProfile,
@@ -72,16 +73,18 @@ import {
   $selectedStoredSessionId,
   $sessionResumeRequest,
   $sessions,
-  requestSessionResume,
+  knownSessionProfile,
   sessionMatchesStoredId,
   sessionPinId,
   setAwaitingResponse,
   setBusy,
   setMessages
 } from '@/store/session'
+import { requestForSessionProfile, type SessionOwnerScope } from '@/store/session-request-router'
+import { $focusedStoredSessionId, sessionTileOwnerRoute, storedSessionIdForRuntimeId } from '@/store/session-states'
 import { clearSessionTodos, setSessionTodos, todosForHydration } from '@/store/todos'
 import { armWakeWord, stopClientCapture } from '@/store/wake-word'
-import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
+import { isAuxiliaryWindow, isHudWindow } from '@/store/windows'
 import { useSkinCommand } from '@/themes/use-skin-command'
 
 import { closeWorkspaceTab } from '../chat/close-tab'
@@ -149,9 +152,9 @@ import { useQuickEntryBridge } from './hooks/use-quick-entry-bridge'
 import { useSessionTileDelegate } from './hooks/use-session-tile-delegate'
 import { McpInstallDeepLinkDialog } from './mcp-install-deeplink-dialog'
 import { $restartPreviewServer, useTitlebarToolContributions } from './panes'
-import { createSessionRpcDispatcher } from './session-rpc-dispatcher'
 import { ChatRoutesSurface, SidebarSurface, StatusbarSurface, TerminalSurface } from './surfaces'
 import type { WiringActions, WiringApi } from './types'
+import { findStoredIdForRuntimeId, resolveRoutingSessionId } from './wiring-routing'
 
 // Overlay views the controller mounts over the shell — lazy, load on demand.
 // The workspace-route full-page views (skills/messaging/artifacts) are the
@@ -229,6 +232,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const profileScope = useStore($profileScope)
   const boot = useStore($desktopBoot)
+  const connection = useStore($connection)
 
   const routedSessionId = routeSessionId(location.pathname)
   const routedSessionIdRef = useRef(routedSessionId)
@@ -276,7 +280,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     activeSessionIdRef,
     ensureSessionState,
     getRuntimeIdForStoredSession,
-    holdSessionTranscriptView,
     resetViewSync,
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionIdRef,
@@ -296,17 +299,84 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
   // When chrome stays on the launch backend (Bot Mode / all-profiles
   // navigation), session-owned RPCs still have to hit the session's backend.
-  // The routing itself lives in createSessionRpcDispatcher (routed by the
-  // session the RPC targets, owner ladder in resolveSessionRpcOwner) so the
-  // exact production dispatcher is what the integration tests drive.
-  const requestGateway = useMemo(
-    () =>
-      createSessionRpcDispatcher({
-        ambientRequest: ambientRequestGateway,
-        runtimeIdByStoredSessionIdRef,
-        selectedStoredSessionIdRef,
-        sessionStateByRuntimeIdRef
-      }),
+  //
+  // Route by the SESSION THIS RPC TARGETS first: a session-scoped RPC carries
+  // its target in params.session_id, and dispatching it by the WINDOW's
+  // focused tile instead sends a background bot's prompt.submit to whichever
+  // backend the focused pane happens to own — the bot then runs on the
+  // default backend (its store, its logs), or 4001s when default doesn't
+  // hold the session. params.session_id is a RUNTIME id while tile routes
+  // key on the STORED id, so translate via the tile map before resolving.
+  // Only when the RPC names no session (config reads, list refreshes, cron)
+  // does the focused-tile key apply — those are genuinely window-ambient.
+  //
+  // A bot chat is a persisted TILE that already records the EXACT owning route
+  // (connectionId + profile) it was opened with — the same authoritative owner
+  // Sessions mode reads off the session row. Prefer it. The canonical Bot Chat
+  // is hidden, so it never appears in $sessions and rememberedSessionProfile's
+  // row lookup misses and falls back to the ACTIVE profile — the Bot Mode
+  // "session not found" / hang. The tile route is per-session, survives
+  // relaunch, and needs no list membership, so it fixes an already-open chat
+  // too. Fall back to the list-derived profile only when no tile route exists.
+  // Session-scoped RPCs route to the backend that OWNS the session — its
+  // profile's own local gateway — never to whatever is "active" (active is
+  // presentation only). Resolve the owner from, in order: the tile's persisted
+  // route (bot chats carry an exact connectionId+profile), the known session
+  // profile (row or open-time hint), then a cross-profile REST probe that
+  // stamps ownership for a hidden/unlisted session. Only a request with NO
+  // session at all (a fresh draft, global chrome) falls to the ambient socket.
+  // The probe result is cached as an owner hint so the next call is sync.
+  const requestGateway = useCallback(
+    async <T,>(method: string, params?: Record<string, unknown>, timeoutMs?: number, signal?: AbortSignal) => {
+      // Route each RPC by the session IT targets, not by whatever tile is
+      // focused. `requestGateway` is one shared closure used for every session
+      // RPC in the window; keying the owner off $focusedStoredSessionId sent a
+      // NON-focused tile's RPC (any bot chat while another pane is active) to
+      // the focused tile's backend. That is the Bot Mode bug: a bot's
+      // prompt.submit carried its own session_id but ran on the default backend
+      // (served via ?profile= from the default's state.db), or 4001'd when the
+      // default backend didn't hold the runtime session.
+      //
+      // params.session_id is a RUNTIME id, while tiles and session rows key on
+      // the STORED id, so translate first (state cache, then a reverse scan of
+      // the stored->runtime map, then the persisted tile map — the same ladder
+      // use-session-tile-delegate uses, plus the tile rung that survives a
+      // reload when the state cache is cold). A miss on ALL rungs means the id
+      // is already a stored id (several RPCs pass stored ids directly), so use
+      // it as-is. Only an RPC with no session_id at all (ambient/config calls)
+      // keeps the focused-tile route.
+      const paramSessionId = typeof params?.session_id === 'string' && params.session_id ? params.session_id : undefined
+
+      const routingSessionId = resolveRoutingSessionId({
+        focusedStoredSessionId: $focusedStoredSessionId.get(),
+        paramSessionId,
+        selectedStoredSessionId: selectedStoredSessionIdRef.current,
+        storedIdForRuntime: runtimeId =>
+          sessionStateByRuntimeIdRef.current.get(runtimeId)?.storedSessionId ??
+          findStoredIdForRuntimeId(runtimeIdByStoredSessionIdRef.current, runtimeId) ??
+          storedSessionIdForRuntimeId(runtimeId) ??
+          undefined
+      })
+
+      let owner: SessionOwnerScope =
+        (routingSessionId ? sessionTileOwnerRoute(routingSessionId) : undefined) ??
+        knownSessionProfile($sessions.get(), routingSessionId)
+
+      if (!owner && routingSessionId) {
+        // Unknown owner for a REAL session: probe across profiles (REST, not the
+        // gateway socket, so no recursion) rather than defaulting to active. A
+        // hit stamps ownership + caches a hint; a miss leaves owner undefined
+        // and the request falls to ambient, exactly as an unroutable session did
+        // before — but only after we tried, never as a silent active fallback.
+        const probed = await resolveSessionProfile(routingSessionId)
+
+        if (probed) {
+          owner = probed
+        }
+      }
+
+      return requestForSessionProfile<T>(owner, ambientRequestGateway, method, params ?? {}, timeoutMs, signal)
+    },
     [ambientRequestGateway, runtimeIdByStoredSessionIdRef, selectedStoredSessionIdRef, sessionStateByRuntimeIdRef]
   )
 
@@ -495,7 +565,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     ensureSessionState,
     getRouteToken,
     getRoutedStoredSessionId,
-    holdSessionTranscriptView,
     navigate,
     onFreshDraftRouteIntent: clearRoutedSessionIntent,
     requestGateway,
@@ -762,10 +831,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           if (payload?.start_new_session !== false) {
             newSessionInProfile(targetProfile)
           } else {
-            void ensureGatewayProfile(normalizeProfileKey(targetProfile)).catch((error: unknown) => {
-              // #81094: the voice-path switch must surface its failure too.
-              notifyError(error, `Failed to switch to profile "${normalizeProfileKey(targetProfile)}"`)
-            })
+            void ensureGatewayProfile(normalizeProfileKey(targetProfile))
           }
         } else if (payload?.start_new_session !== false) {
           startFreshSessionDraft()
@@ -800,12 +866,14 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (gatewayState === 'open') {
+    if (gatewayState === 'open' && wakeWordAllowedForConnection(connection?.mode)) {
       // Status-then-arm, syncing $wakeWord so the composer toggle reflects the
       // same listener this auto-arm claims.
       void armWakeWord(requestGateway)
+    } else if (connection?.mode === 'remote') {
+      stopClientCapture()
     }
-  }, [gatewayState, requestGateway])
+  }, [connection?.mode, gatewayState, requestGateway])
 
   const activeIsMessaging =
     !!selectedStoredSessionId &&
@@ -829,8 +897,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     refreshHermesConfig,
     refreshMessagingSessions,
     refreshSessions,
-    requestGateway,
-    updateSessionState
+    requestGateway
   })
 
   // Electron-main / OS / cross-window integrations: update polling, ⌘W close,
@@ -877,17 +944,24 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // the sidebar until its first message persists a turn and a refresh surfaces
   // it — Cursor-style. Every click opens a fresh "New session" tab (multiple
   // empty tabs are fine since none touch the session list).
-  //
-  // Bot Mode aims the "+" at the selected bot's own profile. Anything short of
-  // an exact route — a group chat's `blocked` target, an orphaned roster row —
-  // falls THROUGH to the ordinary session rather than refusing: the main strip
-  // carries plain session tabs alongside bot chats, so a "+" there must never
-  // be dead just because the sidebar's current selection has nowhere to route.
   const openNewSessionTab = useCallback(() => {
+    const workspaceMode = $workspaceMode.get()
     const workspaceOwnerKey = $workspaceOwnerKey.get()
     const workspaceNewSessionTarget = $workspaceNewSessionTarget.get()
 
-    if ($workspaceMode.get() === 'bots' && workspaceNewSessionTarget?.kind === 'route' && workspaceOwnerKey) {
+    if (workspaceMode === 'bots') {
+      if (workspaceNewSessionTarget?.kind !== 'route' || !workspaceOwnerKey) {
+        notify({
+          kind: 'info',
+          message:
+            workspaceNewSessionTarget?.kind === 'blocked'
+              ? workspaceNewSessionTarget.message
+              : 'Select a Bot or group first.'
+        })
+
+        return
+      }
+
       void openNewSessionTile('center', {
         listed: false,
         route: workspaceNewSessionTarget.route,
@@ -987,26 +1061,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     onRestoreToMessage: restoreToMessage,
     // Already on screen (open tile, or the main session)? Jump to its tab;
     // otherwise load it into main. Same door every other session link uses.
-    // The clicked ROW is the identity, not its bare id: two profiles can hold
-    // twins with the same stored id (#92454), and an id-only resume resolves
-    // against whichever cached row is found first — the user clicks a row
-    // previewing profile A and the resume dials profile B. Pin the row's own
-    // (connection, profile) as the resume owner before navigating; untagged
-    // rows (single-profile installs, legacy pages) keep the id-only path.
-    onResumeSession: (sessionId, session) => {
-      const rowProfile = session?.profile?.trim()
-
-      if (rowProfile) {
-        requestSessionResume(sessionId, {
-          connectionId: session?.connection_id?.trim() || 'local',
-          ...(session?.connection_id?.trim() ? {} : { mode: 'local' as const }),
-          profile: rowProfile,
-          targetProfile: rowProfile
-        })
-      }
-
-      openSession(sessionId, navigate)
-    },
+    onResumeSession: sessionId => openSession(sessionId, navigate),
     onRetryResume: sessionId => void resumeSession(sessionId, true),
     onSteer: steerPrompt,
     onSubmit: submitText,
@@ -1080,7 +1135,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // (preview's monitor/devtools cluster, …) arrive as registry contributions.
   const leftTitlebarTools = useTitlebarToolContributions('left')
   const rightTitlebarTools = useTitlebarToolContributions('right')
-  const connection = useStore($connection)
   const controlsPos = titlebarControlsPosition(connection?.windowButtonPosition, Boolean(connection?.isFullscreen))
   // Windows/WSLg reserve native min/max/close on the right (AppShell parity:
   // prefer the live WCO measurement, fall back to the static reservation).
@@ -1124,10 +1178,10 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           } as CSSProperties
         }
       >
-        {/* HUD and the popped-out Browser have no titlebar to hang these off —
-            the clusters are `fixed`, so without this they'd float over the
-            surface as orphaned buttons. */}
-        {!isHudWindow() && !isBrowserWindow() && (
+        {/* HUD mode has no titlebar to hang these off — the clusters are
+            `fixed`, so without this they'd float over the chat as orphaned
+            buttons. Exits are the ⌘⇧H toggle and ⌘W. */}
+        {!isHudWindow() && (
           <TitlebarControls
             leftTools={leftTitlebarTools}
             onOpenSettings={() => navigate(SETTINGS_ROUTE)}
@@ -1247,18 +1301,11 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
       {/* Petdex floating mascot — renders nothing unless installed + enabled.
           Never in the HUD: that window is the chat bar and nothing else. */}
-      {!isHudWindow() && !isBrowserWindow() && <FloatingPet />}
-
-      {/* In-app tips. Renders nothing until the app is quiet and has something
-          to point at, and nothing at all once they're off or all retired. The
-          HUD and browser windows have none of the surfaces a tip talks about. */}
-      {!isHudWindow() && !isBrowserWindow() && <TipHost />}
+      {!isHudWindow() && <FloatingPet />}
 
       {/* Single persistent xterm host chasing the terminal pane's slot rect.
           The HUD has no terminal pane, so it has nothing to chase. */}
-      {!isHudWindow() && !isBrowserWindow() && (
-        <PersistentTerminal onAddSelectionToChat={composer.addTerminalSelectionAttachment} />
-      )}
+      {!isHudWindow() && <PersistentTerminal onAddSelectionToChat={composer.addTerminalSelectionAttachment} />}
     </ContribWiringContext.Provider>
   )
 }

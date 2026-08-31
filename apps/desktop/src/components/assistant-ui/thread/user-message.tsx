@@ -70,6 +70,73 @@ export const USER_ACTION_ICON_BUTTON_CLASS =
   'grid place-items-center rounded-md bg-transparent text-(--ui-text-secondary) transition-colors hover:bg-(--ui-control-active-background) hover:text-foreground disabled:cursor-default disabled:text-(--ui-text-quaternary) disabled:opacity-70'
 
 export const USER_ACTION_ICON_SIZE = '0.6875rem'
+/** The minimum an AUI thread message must expose to be counted. */
+export interface OrdinalThreadMessage {
+  id?: string
+  role?: string
+  status?: { reason?: string; type?: string }
+}
+
+/**
+ * The checkpoint ordinal for `messageId` within the rendered thread.
+ *
+ * This MUST agree with `visibleUserOrdinal()` / `visibleUserMessageIndices()`
+ * in use-prompt-actions/utils.ts — that is the ONE visible-user ordinal space
+ * the rewind path shares with the gateway, and `planRestore()` resolves this
+ * number back to a message with `visibleUserIndexAtOrdinal()`.
+ *
+ * Two turns are excluded there and so must be excluded here:
+ *   - hidden user turns, which never enter the rendered branch chain at all
+ *     (runtime-repository only advances the branch head past visible turns),
+ *   - failed user turns — a user message followed by an errored assistant.
+ *     The submit never reached the gateway, so backend history has no slot
+ *     for it (see isFailedUserTurn).
+ *
+ * Counting a failed turn made every later checkpoint resolve one turn too
+ * far: restore aimed at the wrong message, or ran off the end of the ordinal
+ * list and surfaced "Could not find the message to restore." A ChatMessage
+ * carries the failure as `error`; the same assistant arrives here as an
+ * incomplete/error status.
+ */
+export function visibleUserOrdinalFromThread(
+  messages: readonly OrdinalThreadMessage[],
+  messageId: string | undefined
+): null | number {
+  if (messageId === undefined) {
+    return null
+  }
+
+  let ordinal = 0
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index]
+
+    if (message.role !== 'user') {
+      continue
+    }
+
+    const next = messages[index + 1]
+    const failed = next?.role === 'assistant' && next.status?.type === 'incomplete' && next.status.reason === 'error'
+
+    if (message.id === messageId) {
+      // A failed turn holds no slot in the shared space, so it has no ordinal
+      // to report. Returning the running count would hand back the NEXT
+      // surviving turn's number and silently rewind past the message the user
+      // clicked. null keeps planRestore on its id path, which handles failed
+      // turns explicitly.
+      return failed ? null : ordinal
+    }
+
+    if (failed) {
+      continue
+    }
+
+    ordinal += 1
+  }
+
+  return null
+}
+
 export const StopGlyph = <StopFilled aria-hidden className="size-3.5 -translate-y-px" />
 
 // Background-process notifications are injected into the conversation as user
@@ -283,22 +350,15 @@ export const UserMessage: FC<{
     return null
   })
 
-  const runtimeUserOrdinal = useAuiState(s => {
-    let ordinal = 0
+  const runtimeUserOrdinal = useAuiState(s => visibleUserOrdinalFromThread(s.thread.messages, s.message.id))
 
-    for (const message of s.thread.messages) {
-      if (message.role !== 'user') {
-        continue
-      }
+  // toRuntimeMessage puts the durable row id on metadata.custom for every
+  // role. It is the only address for this turn that a transcript rebuild
+  // cannot invalidate, so restore carries it instead of relying on the id.
+  const runtimeRowId = useAuiState(s => {
+    const custom = (s.message.metadata?.custom ?? {}) as { rowId?: unknown }
 
-      if (message.id === s.message.id) {
-        return ordinal
-      }
-
-      ordinal += 1
-    }
-
-    return null
+    return typeof custom.rowId === 'number' ? custom.rowId : undefined
   })
 
   const attachmentRefs = useAuiState(s => {
@@ -552,6 +612,7 @@ export const UserMessage: FC<{
                           event.stopPropagation()
                           triggerHaptic('selection')
                           onRequestRestoreConfirm?.(messageId, {
+                            rowId: runtimeRowId,
                             text: messageText,
                             userOrdinal: runtimeUserOrdinal
                           })

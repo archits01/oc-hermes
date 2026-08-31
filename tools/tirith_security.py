@@ -27,6 +27,7 @@ import os
 import platform
 import shutil
 import stat
+import struct
 import subprocess
 import tarfile
 import tempfile
@@ -280,6 +281,71 @@ def is_platform_supported() -> bool:
     return _detect_target() is not None
 
 
+def _expected_elf_machine() -> int | None:
+    """Return the ELF ``e_machine`` value for this host, when known.
+
+    Tirith is distributed as native binaries.  ``os.access(path, X_OK)`` is
+    not enough to establish that a cached executable can run: on Linux an
+    x86-64 ELF copied onto an ARM host is still executable and is only
+    rejected later by ``execve`` with ``ENOEXEC``.  Keep the mapping small and
+    explicit; non-ELF formats (for example Mach-O or a script) are left to
+    their normal interpreter/loader checks.
+    """
+    machine = platform.machine().lower()
+    if machine in {"x86_64", "amd64"}:
+        return 62  # EM_X86_64
+    if machine in {"aarch64", "arm64"}:
+        return 183  # EM_AARCH64
+    return None
+
+
+def _binary_is_compatible(path: str) -> bool:
+    """Return whether a cached Tirith binary is compatible with this host.
+
+    A non-ELF file is accepted so a user-provided script or a platform-native
+    format remains supported.  If the file cannot be read, retain the old
+    existence/access decision and let the subprocess report the operational
+    failure; this avoids turning a transient read race into an install loop.
+    """
+    expected = _expected_elf_machine()
+    if expected is None:
+        return True
+    try:
+        with open(path, "rb") as handle:
+            header = handle.read(20)
+    except OSError:
+        return True
+    if not header.startswith(b"\x7fELF"):
+        return True
+    if len(header) < 20 or header[4] != 2:  # only 64-bit releases are shipped
+        return False
+    if header[5] == 1:
+        endian = "<"
+    elif header[5] == 2:
+        endian = ">"
+    else:
+        return False
+    try:
+        machine = struct.unpack_from(endian + "H", header, 18)[0]
+    except struct.error:
+        return False
+    return machine == expected
+
+
+def _usable_binary(path: str) -> bool:
+    """Check existence, execute permission, and host compatibility together."""
+    if not (os.path.isfile(path) and os.access(path, os.X_OK)):
+        return False
+    if _binary_is_compatible(path):
+        return True
+    logger.warning(
+        "ignoring incompatible tirith binary %s for host architecture %s",
+        path,
+        platform.machine(),
+    )
+    return False
+
+
 def _download_file(url: str, dest: str, timeout: int = 10):
     """Download a URL to a local file."""
     req = urllib.request.Request(url)
@@ -509,7 +575,9 @@ def _resolve_tirith_path(configured_path: str) -> str:
 
     # Fast path: successfully resolved on a previous call.
     if _resolved_path is not None and _resolved_path is not _INSTALL_FAILED:
-        return _resolved_path
+        if _usable_binary(str(_resolved_path)):
+            return _resolved_path
+        _resolved_path = None
 
     expanded = os.path.expanduser(configured_path)
     explicit = _is_explicit_path(configured_path)
@@ -526,12 +594,12 @@ def _resolve_tirith_path(configured_path: str) -> str:
 
     # Explicit path: check it and stop. Never auto-download a replacement.
     if explicit:
-        if os.path.isfile(expanded) and os.access(expanded, os.X_OK):
+        if _usable_binary(expanded):
             _resolved_path = expanded
             return expanded
         # Also try shutil.which in case it's a bare name on PATH
         found = shutil.which(expanded)
-        if found:
+        if found and _usable_binary(found):
             _resolved_path = found
             return found
         logger.warning("Configured tirith path %r not found; scanning disabled", configured_path)
@@ -543,14 +611,14 @@ def _resolve_tirith_path(configured_path: str) -> str:
     # install is picked up even after a previous network failure (P2 fix:
     # long-lived gateway/CLI recovers without restart).
     found = shutil.which("tirith")
-    if found:
+    if found and _usable_binary(found):
         _resolved_path = found
         _install_failure_reason = ""
         _clear_install_failed()
         return found
 
     hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
-    if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+    if _usable_binary(hermes_bin):
         _resolved_path = hermes_bin
         _install_failure_reason = ""
         _clear_install_failed()
@@ -604,17 +672,19 @@ def _background_install(*, log_failures: bool = True):
     with _install_lock:
         # Double-check after acquiring lock (another thread may have resolved)
         if _resolved_path is not None:
-            return
+            if _resolved_path is _INSTALL_FAILED or _usable_binary(str(_resolved_path)):
+                return
+            _resolved_path = None
 
         # Re-check local paths (may have been installed by another process)
         found = shutil.which("tirith")
-        if found:
+        if found and _usable_binary(found):
             _resolved_path = found
             _install_failure_reason = ""
             return
 
         hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
-        if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+        if _usable_binary(hermes_bin):
             _resolved_path = hermes_bin
             _install_failure_reason = ""
             return
@@ -646,8 +716,9 @@ def ensure_installed(*, log_failures: bool = True):
     # Already resolved from a previous call
     if _resolved_path is not None and _resolved_path is not _INSTALL_FAILED:
         path = _resolved_path
-        if os.path.isfile(path) and os.access(path, os.X_OK):
+        if _usable_binary(str(path)):
             return path
+        _resolved_path = None
         return None
 
     # Platform has no tirith build (e.g. Windows) — don't probe PATH,
@@ -664,11 +735,11 @@ def ensure_installed(*, log_failures: bool = True):
 
     # Explicit path: synchronous check only, no download
     if explicit:
-        if os.path.isfile(expanded) and os.access(expanded, os.X_OK):
+        if _usable_binary(expanded):
             _resolved_path = expanded
             return expanded
         found = shutil.which(expanded)
-        if found:
+        if found and _usable_binary(found):
             _resolved_path = found
             return found
         _resolved_path = _INSTALL_FAILED
@@ -677,14 +748,14 @@ def ensure_installed(*, log_failures: bool = True):
 
     # Default "tirith" — quick local checks first (no network)
     found = shutil.which("tirith")
-    if found:
+    if found and _usable_binary(found):
         _resolved_path = found
         _install_failure_reason = ""
         _clear_install_failed()
         return found
 
     hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
-    if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+    if _usable_binary(hermes_bin):
         _resolved_path = hermes_bin
         _install_failure_reason = ""
         _clear_install_failed()

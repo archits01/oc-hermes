@@ -523,8 +523,15 @@ describe('renderRpcResult', () => {
 
   describe('session.usage', () => {
     it('formats calls / input / output / total with thousands separators', () => {
+      // renderRpcResult uses toLocaleString() with no explicit locale, so the
+      // grouping follows the machine (en-IN groups 1234567 as 12,34,567). The
+      // expectation is built the same way rather than pinned to en-US, so this
+      // asserts the shape — labels, order, separators — on any host instead of
+      // failing everywhere outside the US.
+      const n = (value: number) => value.toLocaleString()
+
       expect(renderRpcResult({ calls: 12, input: 1_234_567, output: 89_012, total: 1_323_579 }, 'usage')).toBe(
-        'Usage: 12 calls · 1,234,567 in / 89,012 out · 1,323,579 total'
+        `Usage: ${n(12)} calls · ${n(1_234_567)} in / ${n(89_012)} out · ${n(1_323_579)} total`
       )
     })
 

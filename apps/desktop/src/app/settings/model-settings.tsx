@@ -109,6 +109,7 @@ interface AuxTaskMeta {
 
 const AUX_TASKS: readonly AuxTaskMeta[] = [
   { key: 'vision' },
+  { key: 'web_extract' },
   { key: 'compression' },
   { key: 'skills_hub' },
   { key: 'approval' },
@@ -862,7 +863,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
           <p className="mt-2 text-xs text-muted-foreground">
             {selectedProviderRow?.auth_type === 'api_key'
               ? `${selectedProviderRow?.name} needs an API key — set it up to choose a model.`
-              : `${selectedProviderRow?.name} signs in through your browser — Hermes runs the flow for you.`}
+              : `${selectedProviderRow?.name} signs in through your browser — OpenComputer runs the flow for you.`}
           </p>
         )}
         {config && mainModel && (reasoningSupported || fastSupported) && (
