@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 from tools.browser_tool import (
     AGENT_BROWSER_NPX_SPEC,
-    _legacy_kill_process_tree,
+    _kill_process_tree,
     warm_agent_browser_npx_cache,
 )
 
@@ -216,11 +216,7 @@ def test_returns_false_instead_of_raising_on_unexpected_communicate_exception():
     mock_kill.assert_called_once_with(proc)
 
 
-class TestLegacyKillProcessTree:
-    """Contract of the pre-#85125 local fallback (used when agent.deadline
-    delegation fails); the delegating wrapper is covered in
-    tests/agent/test_treekill_consolidation.py."""
-
+class TestKillProcessTree:
     def test_posix_kills_process_group_term_then_kill(self, monkeypatch):
         import signal
 
@@ -233,7 +229,7 @@ class TestLegacyKillProcessTree:
             "os.killpg", lambda pgid, sig: killpg_calls.append((pgid, sig))
         )
 
-        _legacy_kill_process_tree(proc)
+        _kill_process_tree(proc)
 
         assert killpg_calls == [(999, signal.SIGTERM), (999, signal.SIGKILL)]
 
@@ -247,7 +243,7 @@ class TestLegacyKillProcessTree:
 
         monkeypatch.setattr("os.getpgid", _raise)
 
-        _legacy_kill_process_tree(proc)  # must not raise
+        _kill_process_tree(proc)  # must not raise
 
     def test_posix_missing_killpg_attribute_falls_back_to_proc_kill(self, monkeypatch):
         """Some POSIX-like environments may lack os.killpg entirely (the
@@ -264,7 +260,7 @@ class TestLegacyKillProcessTree:
         monkeypatch.setattr("os.name", "posix")
         monkeypatch.delattr(os_module, "killpg", raising=False)
 
-        _legacy_kill_process_tree(proc)
+        _kill_process_tree(proc)
 
         proc.kill.assert_called_once()
 
@@ -277,7 +273,7 @@ class TestLegacyKillProcessTree:
         monkeypatch.setattr("os.name", "posix")
         monkeypatch.delattr(os_module, "killpg", raising=False)
 
-        _legacy_kill_process_tree(proc)  # must not raise
+        _kill_process_tree(proc)  # must not raise
 
     def test_posix_sigterm_permission_denied_does_not_attempt_sigkill(self, monkeypatch):
         """If SIGTERM itself is rejected (e.g. a stale pgid reused by an
@@ -297,7 +293,7 @@ class TestLegacyKillProcessTree:
 
         monkeypatch.setattr("os.killpg", fake_killpg)
 
-        _legacy_kill_process_tree(proc)  # must not raise
+        _kill_process_tree(proc)  # must not raise
 
         assert killpg_calls == [(999, signal.SIGTERM)]
 
@@ -306,7 +302,7 @@ class TestLegacyKillProcessTree:
         proc.pid = 4321
         monkeypatch.setattr("os.name", "nt")
         with patch("subprocess.run") as mock_run:
-            _legacy_kill_process_tree(proc)
+            _kill_process_tree(proc)
 
         mock_run.assert_called_once()
         cmd = mock_run.call_args.args[0]
@@ -317,4 +313,4 @@ class TestLegacyKillProcessTree:
         proc.pid = 4321
         monkeypatch.setattr("os.name", "nt")
         with patch("subprocess.run", side_effect=OSError("taskkill missing")):
-            _legacy_kill_process_tree(proc)  # must not raise
+            _kill_process_tree(proc)  # must not raise

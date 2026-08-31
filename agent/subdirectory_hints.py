@@ -314,9 +314,8 @@ class SubdirectoryHintTracker:
                     rel_path = str(hint_path.relative_to(self.working_dir))
                 except (ValueError, RuntimeError):
                     try:
-                        # as_posix: "~/" shorthand implies POSIX rendering
-                        # (avoids ~/AppData\Local\... chimeras on Windows).
-                        rel_path = "~/" + hint_path.relative_to(Path.home()).as_posix()
+                        rel_path = str(hint_path.relative_to(Path.home()))
+                        rel_path = "~/" + rel_path
                     except (ValueError, RuntimeError):
                         pass  # keep absolute
                 found_hints.append((rel_path, content))

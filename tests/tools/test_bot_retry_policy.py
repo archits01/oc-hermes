@@ -76,18 +76,11 @@ def _deliver(params):
     return srv._methods["bot_relay.deliver"](1, params)
 
 
-def _is_hermes_cli(argv) -> bool:
-    """Match the delivery CLI by basename — local_delivery_command may
-    resolve the venv-relative hermes next to the interpreter (#93590)."""
-    name = str(argv[0]).rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
-    return name in ("hermes", "hermes.exe")
-
-
 def _transport_calls(calls):
     """Only the Bot Chat transport spawns — a global subprocess.run patch also
     catches unrelated maintenance calls (git version probes on first server
     import), which must not count as delivery attempts."""
-    return [argv for argv in calls if argv and _is_hermes_cli(argv)]
+    return [argv for argv in calls if argv and argv[0] == "hermes"]
 
 
 class _Proc:
@@ -104,7 +97,7 @@ def test_deliver_retries_same_argv_on_transient_failure(home, monkeypatch):
 
     def _fake_run(argv, **kwargs):
         calls.append(list(argv))
-        if not _is_hermes_cli(list(argv)):
+        if list(argv)[:1] != ["hermes"]:
             return _Proc(0)
         if len(_transport_calls(calls)) == 1:
             return _Proc(1, stderr="Error code: 429 - rate limit exceeded")
@@ -126,7 +119,7 @@ def test_deliver_retries_once_on_context_overflow(home, monkeypatch):
 
     def _fake_run(argv, **kwargs):
         calls.append(list(argv))
-        if not _is_hermes_cli(list(argv)):
+        if list(argv)[:1] != ["hermes"]:
             return _Proc(0)
         if len(_transport_calls(calls)) == 1:
             return _Proc(1, stderr="This model's maximum context length is 200000 tokens")
@@ -146,7 +139,7 @@ def test_deliver_never_retries_auth_failure(home, monkeypatch):
 
     def _fake_run(argv, **kwargs):
         calls.append(list(argv))
-        if not _is_hermes_cli(list(argv)):
+        if list(argv)[:1] != ["hermes"]:
             return _Proc(0)
         return _Proc(1, stderr="Error code: 401 - Your API key is invalid")
 
@@ -163,7 +156,7 @@ def test_deliver_failure_carries_typed_reason(home, monkeypatch):
     monkeypatch.setattr(
         "subprocess.run",
         lambda argv, **k: _Proc(1, stderr="502 server error - overloaded")
-        if _is_hermes_cli(list(argv))
+        if list(argv)[:1] == ["hermes"]
         else _Proc(0),
     )
     out = _deliver({"profile": "ops", "message": "ping"})

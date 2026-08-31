@@ -101,7 +101,7 @@ describe('the catalog owns model curation', () => {
     renderMenu()
     await screen.findByText(/Gemini 3\.1 Pro/i)
 
-    fireEvent.click(screen.getByText('Edit models…'))
+    fireEvent.click(screen.getByText('Edit Models…'))
 
     expect($modelVisibilityOpen.get()).toBe(true)
   })

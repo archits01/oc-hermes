@@ -504,14 +504,6 @@ test('pathForRegistryBackendRequest uses the resolved registry backend scope', (
     }),
     '/api/fs/download?path=%2Fsrv%2Freport.pdf'
   )
-  assert.equal(
-    pathForRegistryBackendRequest(
-      '/api/profiles/sessions/sidebar?recents_profile=research&recents_exclude=cron%2Cdesktop',
-      'research',
-      { remoteProfile: 'remote-research' }
-    ),
-    '/api/profiles/sessions/sidebar?recents_profile=remote-research&recents_exclude=cron%2Cdesktop'
-  )
 })
 
 // --- pathWithGlobalRemoteProfile ---
@@ -612,23 +604,8 @@ test('translateSelfProfileQuery rewrites the self-profile filter into the backen
   )
 })
 
-test('translateSelfProfileQuery rewrites sidebar recents_profile aliases for managed SSH', () => {
-  assert.equal(
-    translateSelfProfileQuery(
-      '/api/profiles/sessions/sidebar?recents_profile=research&recents_limit=20&cron_limit=50&messaging_limit=100',
-      'research',
-      'remote-research'
-    ),
-    '/api/profiles/sessions/sidebar?recents_profile=remote-research&recents_limit=20&cron_limit=50&messaging_limit=100'
-  )
-})
-
 test('translateSelfProfileQuery leaves cross-profile and unfiltered paths untouched', () => {
   assert.equal(translateSelfProfileQuery('/api/cron/jobs?profile=all', 'mara', 'default'), '/api/cron/jobs?profile=all')
-  assert.equal(
-    translateSelfProfileQuery('/api/profiles/sessions/sidebar?recents_profile=all', 'mara', 'default'),
-    '/api/profiles/sessions/sidebar?recents_profile=all'
-  )
   assert.equal(
     translateSelfProfileQuery('/api/cron/jobs?profile=worker', 'mara', 'default'),
     '/api/cron/jobs?profile=worker'
@@ -762,37 +739,6 @@ test('resolveProfileApiRequest scopes complete safe families according to their 
       backendProfile: null,
       requestPath: '/api/profiles/worker'
     }
-  )
-})
-
-test('resolveProfileApiRequest routes action-status polls with the action-spawning routes', () => {
-  // /api/actions/{name}/status must land on the SAME backend as the endpoints
-  // that spawn actions (skills hub install/uninstall/update, mcp catalog
-  // install): _spawn_hermes_action registers the dynamic action name only in
-  // the spawning process. Splitting the pair 404s the poll with
-  // "Unknown action: skills-install-<slug>-<hash>".
-  assert.deepEqual(
-    resolveProfileApiRequest('iris', '/api/actions/skills-install-ascii-art-dd7bccf1/status?lines=200', {
-      requestMethod: 'GET'
-    }),
-    {
-      backendProfile: null,
-      requestPath: '/api/actions/skills-install-ascii-art-dd7bccf1/status?lines=200&profile=iris'
-    }
-  )
-  // The spawn side (hub install) and the poll side must agree on the backend.
-  assert.deepEqual(
-    resolveProfileApiRequest('iris', '/api/skills/hub/install', {
-      requestMethod: 'POST'
-    }),
-    { backendProfile: null, requestPath: '/api/skills/hub/install?profile=iris' }
-  )
-  // MCP catalog installs spawn background actions too — same pairing rule.
-  assert.deepEqual(
-    resolveProfileApiRequest('iris', '/api/mcp/catalog/install', {
-      requestMethod: 'POST'
-    }),
-    { backendProfile: null, requestPath: '/api/mcp/catalog/install?profile=iris' }
   )
 })
 

@@ -71,7 +71,6 @@ export type GatewayEventPayload = {
   inline_diff?: string
   duration_s?: number
   todos?: unknown
-  revision?: number
   model?: string
   provider?: string
   reasoning_effort?: string
@@ -125,10 +124,7 @@ export type GatewayEventPayload = {
   preset?: string
   // tour.request (tour tool — agent-guided driver.js walkthrough). `action`
   // and `steps` name the tour verb and step list; `surface` picks the app's
-  // own DOM vs the preview pane's guest page. tip.show (tip tool — one accent
-  // bubble with an arrow, no overlay) adds no fields of its own: it reuses
-  // `selector`/`side` here plus `text`/`title`, and carries no request_id
-  // because a tip is fire-and-forget.
+  // own DOM vs the preview pane's guest page.
   surface?: string
   selector?: string
   side?: string

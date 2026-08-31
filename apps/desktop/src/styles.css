@@ -10,10 +10,6 @@
   font-size: var(--titlebar-icon-size);
 }
 
-/* v4 gates hover: on @media (hover: hover). Some Windows hosts with a
-   digitizer answer false even with a mouse, so hover-reveal controls stay
-   opacity-0 (clickable, invisible). Trust :hover itself. */
-@custom-variant hover (&:hover);
 @custom-variant dark (&:is(.dark *));
 
 /* Blanket reduced-motion override: kill ALL CSS animations and transitions
@@ -314,10 +310,6 @@
       var(--ui-accent) var(--theme-row-active-accent-mix),
       color-mix(in srgb, var(--ui-base) 5%, transparent)
     );
-    /* Open in a pane, but not the FOCUSED one: the active band at reduced
-       strength, so every session on screen is marked and the one you're in
-       still wins. Mixed from the active token so a theme tunes both at once. */
-    --ui-row-open-background: color-mix(in srgb, var(--ui-row-active-background) 28%, transparent);
     --ui-control-hover-background: color-mix(
       in srgb,
       var(--ui-accent) var(--theme-control-hover-accent-mix),
@@ -395,11 +387,6 @@
     --dt-popover-foreground: var(--ui-text-primary);
     --dt-primary: var(--theme-primary);
     --dt-primary-foreground: #fcfcfc;
-    /* Boot-paint fallbacks. themes/context.tsx replaces --dt-primary-solid with
-       the hue deepened until #fcfcfc clears AA on it; until it runs, the raw
-       primary is the closest honest guess. */
-    --dt-primary-solid: var(--theme-primary);
-    --dt-primary-solid-foreground: #fcfcfc;
     --dt-secondary: var(--theme-secondary);
     --dt-secondary-foreground: var(--ui-text-secondary);
     --dt-accent: var(--theme-accent-soft);
@@ -422,11 +409,6 @@
     --ui-tab-hover-darken: 2.5%;
     --dt-ring: var(--ui-stroke-primary);
     --dt-midground: var(--theme-midground);
-    /* Scrollbars carry no theme colour: the accent-tinted thumb read as a
-       coloured element in the corner of every list. Same lightness as the
-       midground so each theme still gets a thumb that sits right against its
-       own surfaces — chroma 0 is the only thing removed. */
-    --dt-scrollbar-thumb: oklch(from var(--dt-midground) l 0 h);
     --dt-composer-ring: var(--ui-base);
     --dt-destructive: #cf2d56;
     --dt-destructive-foreground: #ffffff;
@@ -579,25 +561,23 @@
   }
 
   /* ── Window glass (Settings → Appearance → Window Translucency: Glass) ──
-     Set on <html> by store/translucency.ts; chat windows on a glass-capable
-     OS (macOS vibrancy, Windows 11 DWM acrylic/mica). The native material
-     composites BELOW the web contents; the page normally buries it under
-     fully opaque surfaces.
+     Set on <html> by store/translucency.ts; macOS chat windows only. Every
+     chat window already carries an NSVisualEffectView (`vibrancy: 'sidebar'`
+     in electron/main.ts) that WindowServer composites BELOW the web contents;
+     the page normally buries it under fully opaque surfaces.
 
      ONE PAINTER: <body> paints the glass tint exactly once, at
-     `--translucency-glass-keep` (set inline from the Tint slider, linear to
-     zero — the top of the lever is bare material), and the field tokens
-     (chat / sidebar / editor surface) go fully transparent. The field
-     surfaces NEST — body > pane container > chat section > transcript
-     wrapper all wear these tokens — so thinning the tokens themselves stacks
-     the tint once per layer and a session pane ends up near-opaque (~0.93 at
-     60%) while the landing page, with fewer layers, reads far clearer. With a
-     single painter the field alpha is the same number on every route. Raised
-     content (cards, popovers, bubbles, the composer) keeps its own opaque
-     fills over full-contrast text; regions still read distinct through their
-     borders and the material itself. Unlike Clear, nothing on the page fades
-     — the separate Fade lever does that natively, at the window level, and
-     defaults to off.
+     `--translucency-glass-keep` (set inline from the intensity slider, floor
+     30%), and the field tokens (chat / sidebar / editor surface) go fully
+     transparent. The field surfaces NEST — body > pane container > chat
+     section > transcript wrapper all wear these tokens — so thinning the
+     tokens themselves stacks the tint once per layer and a session pane ends
+     up near-opaque (~0.93 at 60%) while the landing page, with fewer layers,
+     reads far clearer. With a single painter the field alpha is the same
+     number on every route. Raised content (cards, popovers, bubbles, the
+     composer) keeps its own opaque fills over full-contrast text; regions
+     still read distinct through their borders and the material itself.
+     Unlike Clear, nothing on the page fades.
 
      The boot script in index.html pins an opaque inline background on <html>
      before first paint; it has to go transparent here or it sits behind the
@@ -1342,14 +1322,14 @@ body.guest-pointer-lock :is(webview, iframe) {
 
   .scrollbar-dt::-webkit-scrollbar-thumb,
   .scrollbar-dt *:not(.scrollbar-overlay)::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--dt-scrollbar-thumb) 18%, transparent);
+    background: color-mix(in srgb, var(--dt-midground) 18%, transparent);
     border-radius: 9999rem;
     background-clip: padding-box;
   }
 
   .scrollbar-dt::-webkit-scrollbar-thumb:hover,
   .scrollbar-dt *:not(.scrollbar-overlay)::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--dt-scrollbar-thumb) 40%, transparent);
+    background: color-mix(in srgb, var(--dt-midground) 40%, transparent);
     background-clip: padding-box;
   }
 
@@ -1370,12 +1350,12 @@ body.guest-pointer-lock :is(webview, iframe) {
 
   .scrollbar-fade:hover::-webkit-scrollbar-thumb,
   .scrollbar-dt .scrollbar-fade:hover::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 18%, transparent);
+    background-color: color-mix(in srgb, var(--dt-midground) 18%, transparent);
   }
 
   .scrollbar-fade:hover::-webkit-scrollbar-thumb:hover,
   .scrollbar-dt .scrollbar-fade:hover::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 40%, transparent);
+    background-color: color-mix(in srgb, var(--dt-midground) 40%, transparent);
   }
 
   /* Hover marquee: a truncated line that scrolls its overflow into view while
@@ -1422,13 +1402,13 @@ body.guest-pointer-lock :is(webview, iframe) {
   }
 
   .dt-portal-scrollbar::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--dt-scrollbar-thumb) 28%, transparent);
+    background: color-mix(in srgb, var(--dt-midground) 28%, transparent);
     border-radius: 9999rem;
     background-clip: padding-box;
   }
 
   .dt-portal-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--dt-scrollbar-thumb) 50%, transparent);
+    background: color-mix(in srgb, var(--dt-midground) 50%, transparent);
     background-clip: padding-box;
   }
 
@@ -1440,19 +1420,19 @@ body.guest-pointer-lock :is(webview, iframe) {
     .scrollbar-dt,
     .scrollbar-dt *:not(.scrollbar-overlay) {
       scrollbar-width: thin;
-      scrollbar-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 18%, transparent) transparent;
+      scrollbar-color: color-mix(in srgb, var(--dt-midground) 18%, transparent) transparent;
     }
 
     .dt-portal-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 28%, transparent) transparent;
+      scrollbar-color: color-mix(in srgb, var(--dt-midground) 28%, transparent) transparent;
     }
 
     /* Firefox has no real overlay mode; thin + transparent track is the closest
        match to the Chromium overlay opt-out above. */
     .scrollbar-overlay {
       scrollbar-width: thin;
-      scrollbar-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 28%, transparent) transparent;
+      scrollbar-color: color-mix(in srgb, var(--dt-midground) 28%, transparent) transparent;
     }
 
     /* No transition — Firefox doesn't animate scrollbar-color. */
@@ -1461,7 +1441,7 @@ body.guest-pointer-lock :is(webview, iframe) {
     }
 
     .scrollbar-fade:hover {
-      scrollbar-color: color-mix(in srgb, var(--dt-scrollbar-thumb) 18%, transparent) transparent;
+      scrollbar-color: color-mix(in srgb, var(--dt-midground) 18%, transparent) transparent;
     }
   }
 }
@@ -1621,19 +1601,6 @@ body.guest-pointer-lock :is(webview, iframe) {
   container-type: inline-size;
 }
 
-/* The display lettering an empty chat is titled with. Kept here beside
-   `.fit-text` rather than as utilities on the element: the two always travel
-   together, and the face is the whole point of the treatment — it must not be
-   something a class-merge or a missed scan can quietly drop, leaving the
-   wordmark rendered in body text. */
-.wordmark {
-  font-family: 'Collapse', var(--font-sans);
-  font-weight: 700;
-  line-height: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .fit-text > [aria-hidden] {
   visibility: hidden;
 }
@@ -1702,32 +1669,10 @@ body.guest-pointer-lock :is(webview, iframe) {
    much stronger over a light backdrop), full strength in dark mode. */
 :root {
   --dock-glow-scale: 0.55;
-  /* Unfocused chat surface (multi-pane): a pane the user isn't in recedes so
-     the focused conversation reads as the one being worked in. Light needs a
-     deeper cut — a dim over a bright surface loses contrast far more slowly
-     than the same dim over a dark one. Pairs with a grayscale pass on the same
-     element — one treatment for the whole pane, not per-part tuning. */
-  --chat-unfocused-opacity: 0.62;
 }
 
 .dark {
   --dock-glow-scale: 1;
-  --chat-unfocused-opacity: 0.72;
-}
-
-/* The whole surface recedes as ONE layer — thread, timeline rail, composer,
-   header — fading and desaturating together rather than each part taking its
-   own treatment. Both properties on the surface root also composite the
-   already-painted layer instead of repainting descendants. */
-[data-chat-surface][data-chat-unfocused] {
-  opacity: var(--chat-unfocused-opacity);
-  filter: grayscale(1);
-}
-
-[data-chat-surface] {
-  transition:
-    opacity 75ms ease-out,
-    filter 75ms ease-out;
 }
 
 /* Drag-region hatch — a diagonal ///// pattern (Photoshop-style) that fades into
@@ -2011,8 +1956,8 @@ body.guest-pointer-lock :is(webview, iframe) {
    *pairs* qualified meant the live status line (not tool, thinking or prose)
    fell through every branch and carried its own half-size margin instead. */
 [data-slot='aui_assistant-message-content']
-  > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_turn-activity'], .aui-md)
-  + :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_turn-activity'], .aui-md) {
+  > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall'], .aui-md)
+  + :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall'], .aui-md) {
   margin-top: var(--turn-block-gap);
 }
 
@@ -2030,8 +1975,8 @@ body.guest-pointer-lock :is(webview, iframe) {
    is the wrong hook here: it's absent on a multi-call tool GROUP, which is most
    of a real run, and present on rows nested inside one. */
 [data-slot='aui_assistant-message-content']
-  > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_turn-activity'])
-  + :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_turn-activity']) {
+  > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall'])
+  + :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall']) {
   margin-top: var(--scaffold-block-gap);
 }
 
@@ -2071,15 +2016,11 @@ body.guest-pointer-lock :is(webview, iframe) {
 [data-slot='aui_turn-pair']
   > [data-slot='aui_assistant-message-root']:has(
     > [data-slot='aui_assistant-message-content']
-      > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_turn-activity']):last-child
+      > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall']):last-child
   ):not(:has([data-file-edit]))
   + [data-slot='aui_assistant-message-root']:has(
     > [data-slot='aui_assistant-message-content']
-      > :is(
-        [data-slot='tool-block'],
-        [data-slot='aui_thinking-disclosure'],
-        [data-slot='aui_turn-activity']
-      ):first-child
+      > :is([data-slot='tool-block'], [data-slot='aui_thinking-disclosure'], [data-slot='aui_stream-stall']):first-child
   ):not(:has([data-file-edit])) {
   margin-top: calc(var(--scaffold-block-gap) - var(--conversation-turn-gap));
 }
@@ -2608,6 +2549,12 @@ button[data-slot='aui_msg-reactions'] svg {
   /* The band is narrower than the bar, centred under it, so the bar's corner
      controls sit clear of the sheet's edge instead of on top of it. */
   --hud-band-inset: 0.5rem;
+  /* Clear space above the composer for the exit chip. */
+  --hud-chip-strip: 1.625rem;
+  /* How long the exit chip stays after you stop pointing at the HUD. Long
+     enough to cross the gap between the bar and the chip without it
+     evaporating, short enough that it isn't furniture. */
+  --hud-exit-hold: 600ms;
 }
 
 /* Chat surface carries nothing in HUD mode — the visual is the BAND below. */
@@ -2846,37 +2793,6 @@ button[data-slot='aui_msg-reactions'] svg {
   pointer-events: auto;
 }
 
-/* A held band is the interface — clarify / approval / a live turn. It must
-   take clicks even if the composer never received focus. On click-through
-   hosts that is a deliberate dead zone over the game; on a prompt it is a
-   surface you cannot use. */
-[data-hud-shell][data-hud-held] [data-slot='composer-bounds'] {
-  pointer-events: auto;
-}
-
-/* Linux X11 is a solid window: ignore-mouse cannot restore, so a visible
-   band that still has pointer-events:none swallows the click and does
-   nothing. Once the band is up it is the surface. */
-[data-hud-shell][data-hud-input='solid'][data-hud-recent] [data-slot='composer-bounds'] {
-  pointer-events: auto;
-}
-
-/* Widgets and links opt in even when the band is a ghost, so a click-through
-   HUD can still answer a clarify option or open an OAuth URL without sitting
-   in the composer first. Children inherit auto from these roots. */
-[data-hud-shell]
-  :is(
-    [data-slot='clarify-inline'],
-    [data-clarify-choices],
-    [data-clarify-batch],
-    [data-slot='tool-approval-inline'],
-    [data-slot='tool-approval-fallback'],
-    [data-slot='tool-approval-actions'],
-    a[href]
-  ) {
-  pointer-events: auto;
-}
-
 /* Three states, not two. A turn landing brings the transcript up, but only part
    way — it is there to be glanced at over whatever you are actually doing, and
    full-strength text over another app reads as the HUD demanding attention it
@@ -3103,10 +3019,17 @@ button[data-slot='aui_msg-reactions'] svg {
    Parked in the top half of the screen (data-hud-edge='top', broadcast by
    main on move/resize), the whole HUD mirrors vertically: composer hugs the
    window's top edge, the band hangs BELOW it, and text melts at the bottom.
-   Same surfaces, same variables — only the anchors swap. */
+   Same surfaces, same variables — only the anchors swap.
+
+   The bar would sit flush against the window's top edge, leaving no "above the
+   composer" to put anything in — which is where the exit chip belongs. Reserve
+   the strip as dock padding rather than moving the bar: --hud-bar-height is
+   measured from the dock's box, so the band's offset picks the gap up on its
+   own instead of needing a second variable kept in sync. */
 [data-hud-shell][data-hud-edge='top'] [data-slot='composer-dock'] {
   top: 0 !important;
   bottom: auto !important;
+  padding-top: var(--hud-chip-strip) !important;
 }
 
 /* Flipped, the band hangs from the bar instead of standing on it. */
@@ -3189,37 +3112,15 @@ button[data-slot='aui_msg-reactions'] svg {
   --thread-viewport-height: 100%;
 }
 
-/* `-webkit-app-region: drag` in HUD mode is NATIVE WAYLAND ONLY. The window
-   manager takes a draggable region's mouse input whole, so the page never sees the
-   cursor arrive there — on macOS/Windows that starves `useHudClickThrough`,
-   which decides solidity from exactly those moves, so the press falls through
-   to the app behind (every app-region attempt there was therefore unusable,
-   and left the HUD solid over dead space once you left it). Native Wayland's
-   click-through decision is fed by MAIN's cursor poll (`startHudCursorFeed`),
-   not page events, and apps cannot position their own top-level surfaces, so
-   the compositor takes the press and moves the window with xdg_toplevel.move.
-   X11 deliberately keeps the renderer drag path: a Chromium drag region
-   intercepts the pointer stream needed by Ctrl+primary-button drag. The
-   composer's interactive surface opts out with `-webkit-app-region: no-drag`
-   (input element + global button rule); the rest of the bar is the handle.
-   macOS/Windows/X11 use `useHudComposerDrag` — press and hold, then move. */
-
-/* Grip affordance for the native Wayland drag band: the top padding (pt-4)
-   is the only surface the region owns once the input/buttons are carved out,
-   so make it look like a handle — a centered pill, like a mobile grip. */
-.hud-native-drag::before {
-  content: '';
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 4px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--ui-text-tertiary) 55%, transparent);
-  pointer-events: none;
-}
-
+/* NOTHING in HUD mode declares `-webkit-app-region: drag`. The window manager
+   takes a draggable region's mouse input whole, so the page never sees the
+   cursor arrive there — and `useHudClickThrough`, which decides whether the
+   window is solid from exactly those moves, has already handed the window away
+   by the time you press. Every version of the app-region handle was therefore
+   both unusable (the press fell through to the app behind) and the reason the
+   HUD stayed solid over dead space once you left it. The two mechanisms cannot
+   share a window; click-through wins, and dragging is `useHudComposerDrag` —
+   press and hold the bar, then move. */
 [data-hud-shell] [data-slot='composer-dock'] {
   /* The one surface that is always there, so the one that always takes the
      mouse — everything else in the shell earns it by being on screen. */
@@ -3376,95 +3277,144 @@ button[data-slot='aui_msg-reactions'] svg {
 }
 
 /* The exit button. HUD mode has no titlebar, so this is the only visible way
-   back — it rides the composer's controls row (see ExitHudButton in
-   composer/controls.tsx) and therefore needs no placement, no reveal, and no
-   substrate of its own here: it is one of the bar's buttons and wears what
-   they wear.
+   back; it rides the bar's outer edge at the right.
 
-   It used to float above the bar in a reserved 26px strip, hidden until you
-   hovered. That strip was transparent window, which the glass band then
-   rendered as a slab of bare untinted material across the top of the HUD, and
-   the chip needed its own opaque card to be legible over an unknown desktop.
-   Both problems were the placement, not the button: on the bar it is already
-   on our surface. */
+   It wears the BAR'S material, not the desktop's. Every shipped control that
+   floats over content the app does not own resolves this the same way — give
+   the control its own substrate and let the glyph read against that, never
+   against the backdrop:
 
-/* The resize frame — hot edges/corners, not buttons. The window is created
+     - Apple HIG, Materials: "Materials help visually separate foreground
+       elements, such as text and controls, from background elements." Controls
+       sit ON a material, never directly on content; even `clear` Liquid Glass
+       is specced with a 35%-opacity dimming layer behind it over bright
+       content.
+       https://developer.apple.com/design/human-interface-guidelines/materials
+     - Firefox picture-in-picture, the closest analogue we have (a small
+       always-on-top window over arbitrary content): the close/unpip buttons
+       are `background-color: rgba(255,255,255,.8)` with a `#000` glyph — an
+       opaque chip, not a bare icon.
+       toolkit/themes/shared/pictureinpicture/player.css
+     - Discord's overlay redesign: "This layer provided contrast against the
+       game making the UI easier to see."
+       https://discord.com/blog/redesigning-the-discord-overlay
+
+   Anything that instead tries to derive contrast from the backdrop is a dead
+   end here. mix-blend-difference composites against the PAGE behind the
+   element, and behind a transparent Electron window that is nothing — the
+   desktop is composited by WindowServer after Chromium has finished drawing
+   the frame (the same reason backdrop-filter can't frost the HUD). A glyph
+   halo has the same flaw from the other side: it guesses one backdrop
+   luminance and is grime over everything else.
+
+   So: the composer bar's exact tokens — same fill, same hairline, same bottom
+   shadow. The bar is the HUD's solved case for "our surface, over an unknown
+   desktop, in either appearance", and theme plus OS light/dark (mode 'system')
+   come free with it, because --dt-card and --ui-text-primary are the pair the
+   whole app is built on. The chip inverts with the appearance instead of
+   betting on one.
+
+   Placed from --hud-bar-height rather than CSS anchor(). Lightning CSS drops a
+   whole rule containing an `anchor()` on the vertical axis, so the flipped-edge
+   override never reached the browser and the chip rendered off screen. */
+[data-hud-shell] [data-hud-exit] {
+  left: auto;
+  top: auto;
+  right: 0.375rem;
+  bottom: calc(var(--hud-bar-height, var(--composer-fallback-height)) + 0.375rem);
+  /* Square. `size="icon-titlebar"` sizes width and height from two DIFFERENT
+     vars (--titlebar-control-size / --titlebar-control-height, 20x22 today),
+     which is right in a titlebar row and reads as a dent on a lone floating
+     chip — so height comes off the width instead. */
+  aspect-ratio: 1 / 1;
+  height: auto;
+  background: var(--dt-card) !important;
+  border: 1px solid var(--ui-stroke-secondary) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 0.12);
+  color: var(--ui-text-primary) !important;
+  /* Gone until you reach for the HUD. A permanent chip is a fragment of Hermes
+     parked on top of whatever you are really working in; reaching for the bar
+     is the motion that means "I want the app", so that is what brings the way
+     out with it. Hover, not focus — the gate #81893 warned about made the
+     escape hatch depend on the caret landing in the composer, broken exactly
+     when you most want out, whereas pointing at the bar needs nothing to be
+     working.
+
+     `visibility`, not opacity alone: an always-on-top window eats clicks
+     wherever the page hands the hit test something real, so a 0-opacity chip
+     with `pointer-events: auto` would be an invisible button in the corner
+     that drops you out of HUD mode when you click the app behind it.
+     `visibility: hidden` takes it out of `elementFromPoint` as well as off the
+     screen, and it transitions discretely, so it flips in step with the fade
+     rather than needing a second mechanism. */
+  opacity: 0;
+  visibility: hidden;
+  /* Leaving holds first. The chip sits 0.375rem clear of the bar, so the
+     cursor crosses shell dead space on its way up from the bar to the chip and
+     both hover triggers are false for that moment — without the hold it would
+     fade out from under a hand that is on its way to press it. */
+  transition:
+    opacity var(--hud-fade) var(--hud-ease-exit) var(--hud-exit-hold),
+    visibility 0s linear calc(var(--hud-exit-hold) + var(--hud-fade)),
+    background-color var(--hud-reveal) var(--hud-ease-enter);
+  pointer-events: auto;
+}
+
+/* Flipped, "above the composer" is the reserved strip at the top of the
+   window rather than a gap the band has to leave. */
+[data-hud-shell][data-hud-edge='top'] [data-hud-exit] {
+  bottom: auto;
+  top: 0;
+}
+
+/* What counts as reaching for it: the bar, the transcript band, or the chip
+   itself. The band only answers `:hover` while it is on screen (faded out it
+   is `pointer-events: none`), so this can't reveal the chip over a HUD that
+   isn't there. The chip's own hover is in the set so arriving re-asserts the
+   reveal that the hold above was covering for.
+
+   Hovering the shell at large is deliberately NOT a trigger — most of the
+   HUD's rectangle is empty window over someone else's app, and it is
+   `pointer-events: none` precisely so the cursor passing through means
+   nothing. */
+[data-hud-shell]:has([data-slot='composer-dock']:hover) [data-hud-exit],
+[data-hud-shell]:has([data-slot='composer-bounds']:hover) [data-hud-exit],
+[data-hud-shell] [data-hud-exit]:hover,
+[data-hud-shell] [data-hud-exit]:focus-visible {
+  opacity: 1;
+  visibility: visible;
+  transition-duration: var(--hud-reveal), 0s, var(--hud-reveal);
+  transition-delay: 0s;
+}
+
+/* Hover and focus-visible: the app's own control-hover tint, so pointing at it
+   confirms it is a button with the same feedback every other icon button in
+   Hermes gives. Layered OVER the card rather than replacing it —
+   --ui-control-hover-background is a translucent color-mix meant to sit on an
+   opaque titlebar, and here the button IS the opaque surface, so assigning it
+   directly would make the chip see-through on hover. */
+[data-hud-shell] [data-hud-exit]:hover,
+[data-hud-shell] [data-hud-exit]:focus-visible {
+  background:
+    linear-gradient(var(--ui-control-hover-background), var(--ui-control-hover-background)), var(--dt-card) !important;
+}
+
+/* The corner resize handle — a hot corner, not a button. The window is created
    non-resizable (the transparent-frameless Windows drag-growth bug), so this
    is the one sanctioned way to change the HUD's size; it drives
    `hermes:hud:set-bounds`, which flips resizable on for the call.
 
-   CanvasTTY grammar: four edge strips + four larger corner targets, each with
-   its native resize cursor and each preserving the opposite edge. Deliberately
-   invisible chrome: no glyph or border over whatever app is below the HUD. */
+   Deliberately invisible chrome: no glyph, no border — the corner of the bar
+   reads as the affordance, and painting a handle on a surface that lives over
+   other apps would be a stray UI fragment. It opts in to pointer events the
+   same way every other HUD control does (the shell defaults to none). */
 [data-hud-shell] [data-hud-resize] {
-  position: absolute;
-  z-index: 20;
-  pointer-events: auto;
-  touch-action: none;
-}
-
-[data-hud-shell] [data-hud-resize='n'] {
-  top: 0;
-  right: 1.25rem;
-  left: 1.25rem;
-  height: 0.625rem;
-  cursor: ns-resize;
-}
-
-[data-hud-shell] [data-hud-resize='e'] {
-  top: 1.25rem;
-  right: 0;
-  bottom: 1.25rem;
-  width: 0.625rem;
-  cursor: ew-resize;
-}
-
-[data-hud-shell] [data-hud-resize='s'] {
-  right: 1.25rem;
-  bottom: 0;
-  left: 1.25rem;
-  height: 0.625rem;
-  cursor: ns-resize;
-}
-
-[data-hud-shell] [data-hud-resize='w'] {
-  top: 1.25rem;
-  bottom: 1.25rem;
-  left: 0;
-  width: 0.625rem;
-  cursor: ew-resize;
-}
-
-[data-hud-shell] [data-hud-resize='ne'],
-[data-hud-shell] [data-hud-resize='se'],
-[data-hud-shell] [data-hud-resize='sw'],
-[data-hud-shell] [data-hud-resize='nw'] {
   width: 1.25rem;
   height: 1.25rem;
-}
-
-[data-hud-shell] [data-hud-resize='ne'] {
-  top: 0;
-  right: 0;
-  cursor: nesw-resize;
-}
-
-[data-hud-shell] [data-hud-resize='se'] {
-  right: 0;
-  bottom: 0;
   cursor: nwse-resize;
-}
-
-[data-hud-shell] [data-hud-resize='sw'] {
-  bottom: 0;
-  left: 0;
-  cursor: nesw-resize;
-}
-
-[data-hud-shell] [data-hud-resize='nw'] {
-  top: 0;
-  left: 0;
-  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 /* The composer's drop target is a full-window dashed sheet sized for the app's
@@ -3497,14 +3447,11 @@ html:has([data-hud-shell]) [data-slot='popover-content'] [class*='max-h-'] {
   max-height: max(5rem, calc(100dvh - 9rem)) !important;
 }
 
-/* The menu panels themselves: never taller than the window minus the bar.
-   Portalled out of the shell, they must still take the pointer — the HUD
-   defaults to none and a right-click menu that cannot be clicked is dead. */
+/* The menu panels themselves: never taller than the window minus the bar. */
 html:has([data-hud-shell]) [data-slot='dropdown-menu-content'],
 html:has([data-hud-shell]) [data-slot='popover-content'] {
   max-height: calc(100dvh - 4.5rem) !important;
   overflow-y: auto;
-  pointer-events: auto;
 }
 
 /* Hide the scrollbar — a HUD with a visible track stops reading as an overlay. */

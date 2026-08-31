@@ -9,7 +9,6 @@ import type { CSSProperties } from 'react'
 import { writeClipboardText } from '@/components/ui/copy-button'
 import { markRightPanePerf } from '@/debug/right-pane-events'
 import { triggerHaptic } from '@/lib/haptics'
-import { isComposerChord } from '@/lib/keybinds/chords'
 import { $previewTarget } from '@/store/preview'
 import { useTheme } from '@/themes/context'
 
@@ -20,6 +19,7 @@ import { makeTerminalReader, registerTerminalReader } from './buffer'
 import { mirrorSelection, terminalClipboardIntent } from './clipboard'
 import { terminalLinkHandler, terminalWebLinksAddon } from './links'
 import {
+  isAddSelectionShortcut,
   isMacPlatform,
   resolveSurfaceColor,
   terminalSelectionAnchor,
@@ -476,7 +476,7 @@ export function useTerminalSession({
   // must reach the shell as clear-screen.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!isComposerChord(event) || !readSelection().trim()) {
+      if (!isAddSelectionShortcut(event) || !readSelection().trim()) {
         return
       }
 

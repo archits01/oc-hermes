@@ -59,7 +59,7 @@ def build_update_parser(subparsers, *, cmd_update: Callable) -> None:
         "-y",
         action="store_true",
         default=False,
-        help="Run without blocking on prompts: accepts the config-migration and stash-restore prompts, skips the fork-upstream prompt without adding a remote. API-key entry is skipped; run 'hermes config migrate' separately for those.",
+        help="Assume yes for interactive prompts (config migration, stash restore). API-key entry is skipped; run 'hermes config migrate' separately for those.",
     )
     update_parser.add_argument(
         "--keep-stash",
@@ -71,24 +71,6 @@ def build_update_parser(subparsers, *, cmd_update: Callable) -> None:
             "stay parked in git stash instead of being restored onto the "
             "updated code. Used by the desktop updater so local source edits "
             "never silently ride along across updates."
-        ),
-    )
-    update_parser.add_argument(
-        "--keep-stash",
-        action="store_true",
-        default=False,
-        help=(
-            "Keep local source changes in the autostash after updating; do not "
-            "re-apply or drop them (used by detached Desktop update hand-offs)."
-        ),
-    )
-    update_parser.add_argument(
-        "--keep-stash",
-        action="store_true",
-        default=False,
-        help=(
-            "Keep local source changes in the autostash after updating; do not "
-            "re-apply or drop them (used by detached Desktop update hand-offs)."
         ),
     )
     update_parser.add_argument(

@@ -90,7 +90,7 @@ except (ModuleNotFoundError, ImportError):
     def display_hermes_home() -> str:
         home = get_hermes_home()
         try:
-            return "~/" + home.relative_to(Path.home()).as_posix()
+            return "~/" + str(home.relative_to(Path.home()))
         except ValueError:
             return str(home)
 
