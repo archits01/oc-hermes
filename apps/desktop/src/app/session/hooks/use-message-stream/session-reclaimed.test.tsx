@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
+import { resetRuntimeGoneHealing } from '@/store/runtime-gone'
+import { $activeSessionId, $sessionResumeRequest } from '@/store/session'
 import { $sessionStates, $sessionTiles, publishSessionState } from '@/store/session-states'
 import type { RpcEvent } from '@/types/hermes'
 
@@ -68,14 +70,20 @@ const reclaim = (sessionId: string, reason = 'ws_orphan_reap') =>
 beforeEach(() => {
   handleEvent = null
   queryClient = new QueryClient()
+  resetRuntimeGoneHealing()
   $sessionStates.set({})
   $sessionTiles.set([])
+  $activeSessionId.set(null)
+  $sessionResumeRequest.set(null)
 })
 
 afterEach(() => {
   cleanup()
+  resetRuntimeGoneHealing()
   $sessionStates.set({})
   $sessionTiles.set([])
+  $activeSessionId.set(null)
+  $sessionResumeRequest.set(null)
   vi.restoreAllMocks()
 })
 
@@ -161,5 +169,26 @@ describe('session.reclaimed', () => {
 
     expect(wiringCache.has('live-gone')).toBe(false)
     expect(wiringCache.has('live-kept')).toBe(true)
+  })
+
+  it('requests a durable resume when the reclaimed runtime is the active chat', () => {
+    mountStream()
+    $activeSessionId.set('live-gone')
+    publishSessionState('live-gone', createClientSessionState('stored-1'))
+
+    reclaim('live-gone')
+
+    expect($sessionResumeRequest.get()?.sessionId).toBe('stored-1')
+  })
+
+  it('does not navigate the primary chat when a background runtime is reclaimed', () => {
+    mountStream()
+    $activeSessionId.set('live-kept')
+    publishSessionState('live-gone', createClientSessionState('stored-1'))
+    publishSessionState('live-kept', createClientSessionState('stored-2'))
+
+    reclaim('live-gone')
+
+    expect($sessionResumeRequest.get()).toBeNull()
   })
 })

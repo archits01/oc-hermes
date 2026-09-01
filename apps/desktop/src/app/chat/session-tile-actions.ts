@@ -23,8 +23,19 @@ import { resetSessionBackground } from '@/store/composer-status'
 import { notifyError } from '@/store/notifications'
 import { clearPreviewArtifacts } from '@/store/preview-status'
 import { clearAllPrompts } from '@/store/prompts'
-import { $connection, $sessions, sessionMatchesStoredId } from '@/store/session'
-import { $sessionStates, patchSessionTile, sessionTileDelegate } from '@/store/session-states'
+import { $sessions, knownSessionOwner, ownerLookupSessionRows, sessionMatchesStoredId } from '@/store/session'
+import {
+  requestForSessionProfile,
+  type SessionOwnerScope,
+  type SessionProfileRoute
+} from '@/store/session-request-router'
+import {
+  $sessionStates,
+  isSessionRemote,
+  patchSessionTile,
+  sessionTileDelegate,
+  sessionTileOwnerRoute
+} from '@/store/session-states'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents } from '@/store/subagents'
 import { clearSessionTodos } from '@/store/todos'
@@ -38,6 +49,7 @@ import {
   applyBranchVisibility,
   applyReloadOptimistic,
   applyRewindOptimistic,
+  durableRowIdsForRebind,
   finalizeInterruptedMessages,
   planEdit,
   planReload,
@@ -86,11 +98,20 @@ export function listTileSessionRow(deps: {
     return false
   }
 
+  const knownOwner =
+    sessionTileOwnerRoute(deps.storedSessionId) ?? knownSessionOwner(deps.sessions, deps.storedSessionId)
+
+  const ownerRoute: SessionProfileRoute | undefined =
+    knownOwner && typeof knownOwner === 'object' ? knownOwner : undefined
+
   upsertOptimisticSession(
     { info: { cwd: deps.cwd, model: deps.model }, session_id: deps.runtimeId, stored_session_id: deps.storedSessionId },
     deps.storedSessionId,
     null,
-    preview
+    preview,
+    null,
+    undefined,
+    ownerRoute
   )
   broadcastSessionsChanged()
 
@@ -154,6 +175,23 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
   const readState = useCallback(() => $sessionStates.get()[runtimeIdRef.current], [])
   const readMessages = useCallback(() => readState()?.messages ?? [], [readState])
 
+  // Tile session RPCs must follow the tile's composite owner even when the
+  // active gateway has moved to a same-named profile on another source.
+  const requestSessionGateway = useCallback(
+    <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number, signal?: AbortSignal) => {
+      const knownOwner: SessionOwnerScope =
+        sessionTileOwnerRoute(storedIdRef.current) ?? knownSessionOwner(ownerLookupSessionRows(), storedIdRef.current)
+
+      // A bare profile is the legacy/unknown tile shape. Preserve its ambient
+      // behavior; only a composite route is strong enough to retarget a tile
+      // across same-named sources.
+      const owner: SessionOwnerScope = knownOwner && typeof knownOwner === 'object' ? knownOwner : undefined
+
+      return requestForSessionProfile<T>(owner, requestGateway, method, params ?? {}, timeoutMs, signal)
+    },
+    [requestGateway]
+  )
+
   // A ⌘T tab's session is unlisted until its first turn persists — seed the
   // row from the user's first message so the tab and sidebar name it right
   // away (see listTileSessionRow).
@@ -179,7 +217,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       attachments: ComposerAttachment[],
       options: { updateComposerAttachments?: boolean } = {}
     ): Promise<{ attachments: ComposerAttachment[]; sessionId: string }> => {
-      const remote = $connection.get()?.mode === 'remote'
+      const remote = isSessionRemote(storedIdRef.current ?? sessionId)
       let liveSessionId = sessionId
       const synced: ComposerAttachment[] = []
 
@@ -201,7 +239,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
           const next = await uploadComposerAttachment(attachment, {
             backendCwd: readState()?.cwd,
             remote,
-            requestGateway,
+            requestGateway: requestSessionGateway,
             sessionId: liveSessionId,
             storedSessionId: storedIdRef.current,
             onSessionRecovered
@@ -234,7 +272,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
 
       return { attachments: synced, sessionId: liveSessionId }
     },
-    [bindRecoveredRuntime, readState, requestGateway, scope.attachments]
+    [bindRecoveredRuntime, readState, requestSessionGateway, scope.attachments]
   )
 
   // The REAL submit pipeline with tile seams: session always exists, and the
@@ -250,7 +288,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
     // token is a stable constant (the guard never trips for a tile).
     getRouteToken: () => runtimeId,
     onRuntimeRecovered: bindRecoveredRuntime,
-    requestGateway,
+    requestGateway: requestSessionGateway,
     runtimeIdByStoredSessionIdRef,
     // Tile ids are always bound before this hook mounts, so routed recovery is
     // unreachable here; keep the shared submit contract explicit.
@@ -316,16 +354,16 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       await withSessionNotFoundResume(
         sessionId,
         storedIdRef.current,
-        liveId => requestGateway('session.interrupt', { session_id: liveId }),
+        liveId => requestSessionGateway('session.interrupt', { session_id: liveId }),
         {
-          requestGateway,
+          requestGateway: requestSessionGateway,
           onRecovered: bindRecoveredRuntime
         }
       )
     } catch (err) {
       notifyError(err, copy.stopFailed)
     }
-  }, [bindRecoveredRuntime, copy.stopFailed, requestGateway, update])
+  }, [bindRecoveredRuntime, copy.stopFailed, requestSessionGateway, update])
 
   const steerPrompt = useCallback(
     async (rawText: string): Promise<boolean> => {
@@ -375,9 +413,9 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
         const { result } = await withSessionNotFoundResume(
           sessionId,
           storedIdRef.current,
-          liveId => requestGateway<{ status?: string }>('session.redirect', { session_id: liveId, text }),
+          liveId => requestSessionGateway<{ status?: string }>('session.redirect', { session_id: liveId, text }),
           {
-            requestGateway,
+            requestGateway: requestSessionGateway,
             onRecovered: bindRecoveredRuntime
           }
         )
@@ -405,7 +443,7 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
 
       return false
     },
-    [bindRecoveredRuntime, requestGateway]
+    [bindRecoveredRuntime, requestSessionGateway]
   )
 
   // Rewind primitive (interrupt-first for live turns, busy-retry) — shared with
@@ -418,10 +456,14 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
       truncateMessageId?: string,
       truncateRowId?: number,
       sourceText?: string,
+<<<<<<< HEAD
       targetIsFirstUserTurn?: boolean
+=======
+      rebindRowIds?: readonly number[]
+>>>>>>> upstream/main
     ) =>
       runRewindSubmit(
-        requestGateway,
+        requestSessionGateway,
         runtimeIdRef.current,
         text,
         truncateOrdinal,
@@ -433,9 +475,13 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
         },
         truncateRowId,
         sourceText,
+<<<<<<< HEAD
         targetIsFirstUserTurn
+=======
+        rebindRowIds
+>>>>>>> upstream/main
       ),
-    [bindRecoveredRuntime, requestGateway]
+    [bindRecoveredRuntime, requestSessionGateway]
   )
 
   // After a durable rewind the surviving bubbles' cached rowIds are stale (the
@@ -475,6 +521,8 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
         return
       }
 
+      const messages = state.messages
+
       update(current => applyReloadOptimistic(current, plan))
 
       try {
@@ -489,11 +537,24 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
-        update(current => ({ ...current, busy: false, awaitingResponse: false, turnLive: false, turnStartedAt: null }))
+        // Mirror the primary-chat reload catch: optimistic hide/truncate
+        // must roll back when the submit is rejected (#95745).
+        update(current => ({
+          ...current,
+          busy: false,
+          awaitingResponse: false,
+          turnLive: false,
+          turnStartedAt: null,
+          messages
+        }))
         notifyError(err, copy.regenerateFailed)
       }
     },
@@ -529,7 +590,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
@@ -578,7 +643,11 @@ export function useSessionTileActions({ requestGateway, runtimeId, scope, stored
             plan.truncateMessageId,
             plan.truncateRowId,
             plan.sourceText,
+<<<<<<< HEAD
             plan.targetIsFirstUserTurn
+=======
+            durableRowIdsForRebind(messages)
+>>>>>>> upstream/main
           )
         )
       } catch (err) {
