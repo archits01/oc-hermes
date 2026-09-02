@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useI18n } from '@/i18n'
 import { chatMessageText, collectUnspokenTurnSpeech } from '@/lib/chat-messages'
 import { triggerHaptic } from '@/lib/haptics'
+<<<<<<< HEAD
+=======
+import { markAssistantIdSpoken, resolveSpokenReply } from '@/lib/spoken-reply'
+import { CONVERSATION_LEASE, READ_ALOUD_LEASE, syncTtsLease } from '@/lib/tts-lease'
+>>>>>>> upstream/main
 import { clearWakeIndicator, syncWakeIndicatorWithVoice } from '@/lib/wake-indicator'
 import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $voiceConversationStartRequest, takeVoiceConversationStart } from '@/store/composer'
@@ -277,6 +282,26 @@ export function useComposerVoice({
   }, [t, voiceConversationActive])
 
   useEffect(() => resumeWakeIfPaused, [resumeWakeIfPaused])
+
+  // Speech-output toggles are TTS warm-up / release signals. Entering a voice
+  // conversation acquires this window's lease (pre-loads the engine so the
+  // first spoken reply doesn't start with dead air); ending it releases the
+  // lease, and the backend unloads resident local models once no surface holds
+  // one. Fire-and-forget — the toggle never waits on or fails from this.
+  useEffect(() => {
+    void syncTtsLease(CONVERSATION_LEASE, voiceConversationActive)
+  }, [voiceConversationActive])
+
+  useEffect(() => () => void syncTtsLease(CONVERSATION_LEASE, false), [])
+
+  // "Read replies aloud" is the same signal, held for as long as the toggle is
+  // on (it mirrors voice.auto_tts, so this also warms at startup when the
+  // preference is already set).
+  const autoSpeakReplies = useStore($autoSpeakReplies)
+
+  useEffect(() => {
+    void syncTtsLease(READ_ALOUD_LEASE, autoSpeakReplies)
+  }, [autoSpeakReplies])
 
   // Explicit start/end for the on-screen conversation controls (the hotkey uses
   // the gated toggle above).

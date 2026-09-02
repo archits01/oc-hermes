@@ -202,7 +202,9 @@ export function goToProject(id: string, options?: { newSession?: boolean }): voi
 //
 // Priority (first hit wins):
 //   1. Explicit sidebar project scope (drilled into a project / Home bucket)
-//   2. Configured default project dir / remote remembered cwd (detached otherwise)
+//   2. Configured default project dir (detached otherwise — in BOTH local and
+//      remote mode; a bare new chat never inherits the sticky remembered cwd,
+//      #57911 / #84220)
 //
 // The "active project" is just an atom ($projectScope) — so inside a project a
 // new session (cmd-n, the trunk "+") starts at that project's root (its primary
@@ -349,6 +351,12 @@ async function gatewayRequestOn<T>(
   return gateway.request<T>(method, params)
 }
 
+function isRetryableProjectTreeReadError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+
+  return message.includes('request timed out') || message.includes('gateway connection closed')
+}
+
 interface ActiveProjectsContext {
   gateway: HermesGateway
   profile: string
@@ -441,9 +449,35 @@ async function refreshProjectTreeOn(gateway: HermesGateway): Promise<void> {
   }
 
   try {
+<<<<<<< HEAD
     const res = await gatewayRequestOn<ProjectTreePayload>(gateway, 'projects.tree', {
       preview_limit: PROJECT_TREE_PREVIEW_LIMIT
     })
+=======
+    let res: ProjectTreePayload
+
+    try {
+      res = await gatewayRequestOn<ProjectTreePayload>(
+        gateway,
+        'projects.tree',
+        projectParams({ preview_limit: PROJECT_TREE_PREVIEW_LIMIT }, profile)
+      )
+    } catch (error) {
+      // A remote source switch can leave the first read RPC on a newly-opened
+      // socket without a response even though the gateway remains healthy.
+      // Retry once only while this exact gateway/profile is still foreground;
+      // missing-method and other authoritative failures stay visible as-is.
+      if (!isRetryableProjectTreeReadError(error) || !stillOnProjectsContext(context)) {
+        throw error
+      }
+
+      res = await gatewayRequestOn<ProjectTreePayload>(
+        gateway,
+        'projects.tree',
+        projectParams({ preview_limit: PROJECT_TREE_PREVIEW_LIMIT }, profile)
+      )
+    }
+>>>>>>> upstream/main
 
     if (generation !== projectTreeRefreshGeneration || activeGateway() !== gateway) {
       return
