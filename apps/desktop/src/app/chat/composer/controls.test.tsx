@@ -60,8 +60,48 @@ afterEach(() => {
   cleanup()
 })
 
+<<<<<<< HEAD
 beforeEach(() => {
   $connection.set({ mode: 'local' } as never)
+=======
+// The HUD is a Spotlight bar a few hundred pixels wide: the four voice
+// controls fold into one menu there, and the way out of HUD mode joins the
+// row instead of floating above the bar in a reserved strip. The docked
+// composer keeps every control inline and shows no exit.
+describe('HUD mode', () => {
+  it('keeps the voice controls inline and offers no exit in the docked composer', () => {
+    renderControls()
+
+    expect(screen.getByLabelText('Voice dictation')).toBeTruthy()
+    expect(screen.getByLabelText('Read replies aloud')).toBeTruthy()
+    expect(screen.queryByLabelText('Exit HUD mode')).toBeNull()
+    expect(screen.queryByLabelText('Reset HUD size and position')).toBeNull()
+    expect(screen.queryByLabelText('Voice')).toBeNull()
+  })
+
+  it('folds them into one menu and offers the way out in the HUD', () => {
+    $hudMode.set(true)
+    renderControls()
+
+    expect(screen.getByLabelText('Voice')).toBeTruthy()
+    expect(screen.getByLabelText('Reset HUD size and position')).toBeTruthy()
+    expect(screen.getByLabelText('Exit HUD mode')).toBeTruthy()
+
+    // Folded away, not duplicated — the whole point is the row's width back.
+    expect(screen.queryByLabelText('Voice dictation')).toBeNull()
+    expect(screen.queryByLabelText('Read replies aloud')).toBeNull()
+  })
+
+  // A collapsed menu that looked idle while the mic was open would be a worse
+  // trade than the space it saves, so the trigger reports the live state.
+  it('reports a live voice state on the collapsed trigger', () => {
+    $hudMode.set(true)
+    renderControls({ voiceStatus: 'recording' })
+
+    expect(screen.getByLabelText('Stop dictation')).toBeTruthy()
+    expect(screen.queryByLabelText('Voice')).toBeNull()
+  })
+>>>>>>> upstream/main
 })
 
 // A tile can be narrower than the controls cost, and the row is inside an

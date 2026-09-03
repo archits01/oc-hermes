@@ -12,13 +12,9 @@ import {
   $projectScope,
   $projectsRpcAvailable,
   $projectTree,
-  $removedSessionIds,
-  $sessionMutationsInFlight,
   $worktreeRefreshToken,
   ALL_PROJECTS,
-  beginSessionMutation,
   createProject,
-  endSessionMutation,
   enterProject,
   exitProjectScope,
   openProjectCreate,
@@ -30,9 +26,15 @@ import {
   refreshWorktrees,
   resolveNewSessionCwd,
   scanAndRecordRepos,
-  startWorkInRepo,
-  tombstoneSessions
+  startWorkInRepo
 } from './projects'
+import {
+  $removedSessionIds,
+  $sessionMutationsInFlight,
+  beginSessionMutation,
+  endSessionMutation,
+  tombstoneSessions
+} from './session-removal'
 
 vi.mock('@/i18n', () => ({
   translateNow: (key: string) => key
@@ -530,7 +532,38 @@ describe('repository discovery policy', () => {
 })
 
 describe('project tree profile isolation', () => {
+<<<<<<< HEAD
   it('does not publish a late response from the previous profile', async () => {
+=======
+  beforeEach(() => {
+    setShowAllProfiles(false)
+    $activeGatewayProfile.set('default')
+    $projects.set([])
+    $projectTree.set([])
+  })
+
+  it('retries a dropped projects.tree request once on the active gateway', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('request timed out after 30s: projects.tree'))
+      .mockResolvedValueOnce({
+        active_id: null,
+        projects: [{ id: 'remote-tree', label: 'Remote tree', path: null, repos: [], sessionCount: 0 }],
+        scoped_session_ids: []
+      })
+
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+
+    await refreshProjectTree()
+
+    expect(request).toHaveBeenCalledTimes(2)
+    expect($projectTree.get().map(project => project.id)).toEqual(['remote-tree'])
+  })
+
+  it('does not publish a late response from the previous gateway', async () => {
+>>>>>>> upstream/main
     let resolveA: ((value: unknown) => void) | undefined
 
     const responseA = new Promise(resolve => {
