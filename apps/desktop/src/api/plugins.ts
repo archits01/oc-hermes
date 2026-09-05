@@ -52,7 +52,7 @@ function pluginPathSuffix(caller: string, path: string): string {
  *  declared-capability seam; today the namespace IS the boundary. */
 export async function pluginRest<T>(pluginId: string, path: string, opts: PluginRestOptions = {}): Promise<T> {
   if (!window.hermesDesktop?.api) {
-    throw new Error('OpenComputer desktop bridge unavailable')
+    throw new Error('Open Computer desktop bridge unavailable')
   }
 
   const suffix = pluginPathSuffix('pluginRest', path)

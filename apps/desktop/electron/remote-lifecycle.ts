@@ -167,7 +167,7 @@ async function locateHermes(ssh, remoteHermesPath) {
     }
 
     const err: any = new Error(
-      `The Hermes path you set is not an executable on the remote host: "${remoteHermesPath}". ` +
+      `The Open Computer path you set is not an executable on the remote host: "${remoteHermesPath}". ` +
         'Check the path (it must be the full path to the `hermes` binary on the remote, e.g. ' +
         '~/hermes-agent/.venv/bin/hermes), or clear it to auto-detect.'
     )
@@ -205,9 +205,9 @@ async function locateHermes(ssh, remoteHermesPath) {
   }
 
   const err: any = new Error(
-    'Hermes is not installed on the remote host (could not find a `hermes` executable). ' +
+    'Open Computer is not installed on the remote host (could not find a `hermes` executable). ' +
       'Install it on the remote with:  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh  ' +
-      '— or set the Hermes path explicitly in the SSH connection settings.'
+      '— or set the Open Computer path explicitly in the SSH connection settings.'
   )
 
   err.kind = 'hermes-not-found'
@@ -234,7 +234,7 @@ async function probeRemotePlatform(ssh) {
 
   if (!SUPPORTED_REMOTE_OS.has(osName)) {
     const err: any = new Error(
-      `Unsupported remote platform "${osName || 'unknown'}". Hermes Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
+      `Unsupported remote platform "${osName || 'unknown'}". Open Computer Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
     )
 
     err.kind = 'unsupported-platform'
@@ -253,7 +253,7 @@ async function probeRemoteHermesHome(ssh) {
 
     return out || '~/.hermes'
   } catch (cause) {
-    const error: any = new Error('Could not resolve the remote Hermes home.')
+    const error: any = new Error('Could not resolve the remote Open Computer home.')
     error.kind = 'transient-transport-error'
     error.cause = cause
     throw error
@@ -268,7 +268,7 @@ async function listRemoteHermesProfiles(ssh) {
   try {
     listing = await ssh.exec(`if [ -d ${dir} ]; then ls -1 ${dir}; fi`)
   } catch (cause) {
-    const error: any = new Error('Could not list remote Hermes profiles.')
+    const error: any = new Error('Could not list remote Open Computer profiles.')
     error.kind = 'transient-transport-error'
     error.cause = cause
     throw error
@@ -281,7 +281,7 @@ function assertSafeRemoteHome(home) {
   const value = String(home || '').trim()
 
   if (!/^(\/|~\/)[A-Za-z0-9._/+-]+$/.test(value) || value.includes('..')) {
-    const error: any = new Error('Unsafe remote Hermes home.')
+    const error: any = new Error('Unsafe remote Open Computer home.')
     error.kind = 'unsafe-path'
     throw error
   }
@@ -591,8 +591,8 @@ async function scrapeReadyPort(ssh, logPath, { timeoutMs = DEFAULT_READY_TIMEOUT
 async function spawnRemoteDashboard(ssh, { hermesPath, profile, token, ownershipId }) {
   if (!(await remoteSupportsSshOwnership(ssh, hermesPath))) {
     const err: any = new Error(
-      'The remote Hermes install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
-        'Update Hermes on the remote host to continue using Desktop SSH mode.'
+      'The remote Open Computer install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
+        'Update Open Computer on the remote host to continue using Desktop SSH mode.'
     )
 
     err.kind = 'update-required'

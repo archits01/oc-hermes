@@ -4150,7 +4150,7 @@ function AvatarPicker({ shape, color, image, onShape, onColor, onImage, generate
               className: 'px-2 py-3 text-center text-xs leading-5 text-(--ui-text-tertiary)',
               children:
                 imagen === false
-                  ? 'No image model available. If you just enabled one (or updated OpenComputer), restart the gateway: Ctrl+K → "Restart gateway".'
+                  ? 'No image model available. If you just enabled one (or updated Open Computer), restart the gateway: Ctrl+K → "Restart gateway".'
                   : 'Checking image backend…'
             })
         : null,
@@ -4797,7 +4797,7 @@ function isDefaultBot(bot) {
 
 function newBotChat(bot) {
   if (typeof host.newChat !== 'function') {
-    host.notify?.({ kind: 'error', message: 'Update OpenComputer Desktop to open another Bot chat.' })
+    host.notify?.({ kind: 'error', message: 'Update Open Computer Desktop to open another Bot chat.' })
 
     return
   }
@@ -4805,7 +4805,7 @@ function newBotChat(bot) {
   const route = botConnectionRoute(bot)
 
   if (!route) {
-    host.notify?.({ kind: 'error', message: 'Update OpenComputer Desktop to open another Bot chat.' })
+    host.notify?.({ kind: 'error', message: 'Update Open Computer Desktop to open another Bot chat.' })
 
     return
   }
@@ -5284,7 +5284,7 @@ const CANONICAL_CHAT_TITLE = 'Bot Chat'
 
 async function openStoredBotChat(owner, storedId, summary) {
   if (!storedId || typeof host.openSession !== 'function') {
-    throw new Error('This OpenComputer Desktop version cannot open stored sessions')
+    throw new Error('This Open Computer Desktop version cannot open stored sessions')
   }
 
   const { bot, name, route } = botOwner(owner)
@@ -5526,7 +5526,7 @@ async function prepareBotSource(bot) {
   const route = botConnectionRoute(bot)
 
   if (route && typeof host.requestProfile !== 'function') {
-    throw new Error('Update OpenComputer Desktop to chat with agents on other connections.')
+    throw new Error('Update Open Computer Desktop to chat with agents on other connections.')
   }
 
   if (!route && typeof host.ensureAgent === 'function') {
@@ -5696,7 +5696,7 @@ function displayName(bot, meta) {
   // that reads like nobody bothered. Present it as Hermes (the agent it is)
   // unless the user gives it a real title.
   if ((bot.name || '').trim().toLowerCase() === 'default' && !bot.title) {
-    return 'Hermes'
+    return 'Open Computer'
   }
 
   const raw = (bot.title || bot.name || '').replace(/[-_]+/g, ' ').trim()
@@ -6290,7 +6290,7 @@ function groupSpeakerLabel(name) {
     return renamed
   }
 
-  return trimmed.toLowerCase() === 'default' ? 'Hermes' : trimmed
+  return trimmed.toLowerCase() === 'default' ? 'Open Computer' : trimmed
 }
 
 /** Room-log line as a member sees it: `Name (user): …` / `Name: …` /
@@ -8490,7 +8490,7 @@ function AdvancedProfileConfig({ bot, state, setState }) {
   if (unsupported) {
     return jsx('div', {
       className: 'px-2 py-3 text-center text-xs text-(--ui-text-tertiary)',
-      children: 'Full configuration needs a newer gateway (restart it after updating OpenComputer).'
+      children: 'Full configuration needs a newer gateway (restart it after updating Open Computer).'
     })
   }
 
@@ -8913,7 +8913,7 @@ function HubSkillsSection({ forProfile, onInstalled }) {
                 },
                 children: jsx('iframe', {
                   src: HUB_PICKER_URL,
-                  title: 'OpenComputer Skills Hub',
+                  title: 'Open Computer Skills Hub',
                   ref: frameRef,
                   style: {
                     width: '133.34%',
@@ -9946,7 +9946,7 @@ function CreateAgentDialog({ open, onClose, roster }) {
                         ? jsx('div', {
                             className: 'px-2 py-3 text-center text-xs text-(--ui-text-tertiary)',
                             children:
-                              'Capability catalog needs a newer gateway (restart it after updating OpenComputer).'
+                              'Capability catalog needs a newer gateway (restart it after updating Open Computer).'
                           })
                         : !caps
                           ? jsx('div', {
@@ -11162,7 +11162,7 @@ async function openProfileSession(botName, session, gatewayGeneration) {
   const id = String(session?.id || '')
   if (!NAME_RE.test(profile) || !id || gatewayGeneration !== $sessionsGatewayGeneration.get()) return
   if (typeof host.openSession !== 'function') {
-    throw new Error('This OpenComputer Desktop version cannot open stored sessions')
+    throw new Error('This Open Computer Desktop version cannot open stored sessions')
   }
 
   // Same hydration contract as canonical Bot Chats (#89206): a bare open can
@@ -13288,7 +13288,7 @@ function BotsHomeView() {
   // A ghost is reconstructed from a persisted owner key while its gateway is
   // offline. That proves the profile name, not its public mention handle.
   const handle = bot.ghost ? '' : botHandle(bot.name, bot)
-  const gateway = bot.connectionLabel || (bot.connectionId === 'local' ? 'This device' : 'OpenComputer gateway')
+  const gateway = bot.connectionLabel || (bot.connectionId === 'local' ? 'This device' : 'Open Computer gateway')
   const gatewayKind = bot.connectionKind || (bot.connectionId === 'local' ? 'local' : 'remote')
   const { shape, color, image } = botAppearance(bot.name, meta)
   const photo = image && !isBackfilledFacePng(image) ? image : null
@@ -14434,7 +14434,7 @@ function BotsPane() {
               children: [
                 jsx('div', {
                   children: gatewayUp
-                    ? `Roster unavailable: ${error instanceof Error ? error.message : 'gateway error'}. If your gateway predates profiles.list, update OpenComputer and restart the gateway.`
+                    ? `Roster unavailable: ${error instanceof Error ? error.message : 'gateway error'}. If your gateway predates profiles.list, update Open Computer and restart the gateway.`
                     : 'Waiting for the gateway connection… (remote gateways can take a few seconds; retries automatically)'
                 }),
                 jsx(Button, {
@@ -14584,7 +14584,7 @@ function BotsPane() {
               children: [
                 'This will permanently delete the bot ',
                 jsx('span', { className: 'font-medium text-foreground', children: deleting.name }),
-                ' and its associated OpenComputer profile at ',
+                ' and its associated Open Computer profile at ',
                 jsx('span', { className: 'font-mono text-xs', children: deleting.path }),
                 '. This cannot be undone.'
               ]

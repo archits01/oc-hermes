@@ -257,7 +257,7 @@ export const TurnActivityIndicator: FC = () => {
   }
 
   return (
-    <StatusRow data-slot="aui_turn-activity" label={hint || 'OpenComputer is working'}>
+    <StatusRow data-slot="aui_turn-activity" label={hint || 'Open Computer is working'}>
       <StatusPulse
         aria-hidden="true"
         className="dither inline-block size-3 rounded-[2px] text-midground/80"
