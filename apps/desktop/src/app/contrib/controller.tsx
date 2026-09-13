@@ -6,10 +6,12 @@ import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
 import { PALETTE_AREA, type PaletteContribution, paletteToggle } from '@/app/command-palette/contrib'
 import { type StatusbarItem } from '@/app/shell/statusbar-controls'
+import { AskDirective } from '@/components/assistant-ui/ask-directive'
 import { InlinePreviewDirective } from '@/components/assistant-ui/inline-preview-directive'
 import { IdleMount } from '@/components/idle-mount'
+import { OnboardingChatDirective } from '@/components/onboarding-chat/directive'
 import { $layoutEditMode, toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import { allPaneIds, group, groupLeafIds, split } from '@/components/pane-shell/tree/model'
+import { allPaneIds, groupLeafIds } from '@/components/pane-shell/tree/model'
 import { LayoutTreeRoot } from '@/components/pane-shell/tree/renderer'
 import {
   $layoutTree,
@@ -34,16 +36,16 @@ import {
   toggleTargetZoneTabStrip,
   watchContributedPanes
 } from '@/components/pane-shell/tree/store'
+import { $workspaceOwnerLabels, workspaceOwnerTitle } from '@/components/pane-shell/workspace-scope'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { discoverBundledPlugins } from '@/contrib/plugins'
-import { Slot } from '@/contrib/react/slot'
-import { useContributions } from '@/contrib/react/use-contributions'
 import { registry } from '@/contrib/registry'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import { translateNow } from '@/i18n'
 import { NEW_SESSION_TITLE, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
 import { Download, FileText, LayoutDashboard, PanelBottom, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
+import { isOnboardingEnabled } from '@/lib/onboarding-enabled'
 import { TRANSCRIPT_DIRECTIVE_AREA, type TranscriptDirectiveContribution } from '@/lib/transcript-directives'
 import { setYoloEnabled } from '@/lib/yolo-session'
 import { pruneComposerPopoutZones } from '@/store/composer-popout'
@@ -63,10 +65,12 @@ import { runExportProfileFlow, runImportProfileFlow } from '@/store/profile-shar
 import { $reviewOpen, closeReview, openReview, REVIEW_PANE_ID } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
+import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
 import { $statusbarVisible } from '@/store/statusbar-prefs'
-import { isHudWindow } from '@/store/windows'
+import { isBrowserWindow, isHudWindow } from '@/store/windows'
 
+import { BrowserPopoutShell } from '../chat/browser-popout-shell'
 import type { SessionDragPayload } from '../chat/composer/inline-refs'
 import { watchPreviewTiles } from '../chat/preview-tile'
 import { watchRouteTiles } from '../chat/route-tile'
@@ -74,6 +78,7 @@ import { startSessionDrag } from '../chat/session-drag'
 import {
   SessionTileCloseConfirm,
   stackSessionTilesIntoMain,
+  startUnrestoredTileTitleBackfill,
   watchSessionTiles,
   WorkspaceTabMenu
 } from '../chat/session-tile'
@@ -82,6 +87,7 @@ import { HudShell } from '../hud/hud-shell'
 import { $terminalTakeover, setTerminalTakeover } from '../right-sidebar/store'
 import { $workspaceIsPage } from '../routes'
 
+import { DEFAULT_TREE, registerLayoutPresets } from './layout-presets'
 import { FilesPane, LogsPane, ReviewPaneContent } from './panes'
 import { ContribWiring, WiredPane } from './wiring'
 
@@ -169,7 +175,6 @@ registry.registerMany([
   {
     id: 'workspace',
     area: 'panes',
-    workspaceMode: 'sessions',
     // Live-retitled to the loaded session by syncWorkspaceTitle below.
     title: NEW_SESSION_TITLE,
     data: {
@@ -296,6 +301,28 @@ registry.registerMany([
       render: ({ attrs, streaming }) => <InlinePreviewDirective attrs={attrs} streaming={streaming} />
     } satisfies TranscriptDirectiveContribution
   },
+  ...(isOnboardingEnabled()
+    ? [
+        {
+          id: 'transcript.onboarding',
+          area: TRANSCRIPT_DIRECTIVE_AREA,
+          data: {
+            name: 'onboarding',
+            render: ({ attrs, streaming }) => <OnboardingChatDirective attrs={attrs} streaming={streaming} />
+          } satisfies TranscriptDirectiveContribution
+        },
+        // ::ask is the guided chat's question card, registered only with the
+        // onboarding flag. B4 decides its wider use.
+        {
+          id: 'transcript.ask',
+          area: TRANSCRIPT_DIRECTIVE_AREA,
+          data: {
+            name: 'ask',
+            render: ({ attrs, streaming }) => <AskDirective attrs={attrs} streaming={streaming} />
+          } satisfies TranscriptDirectiveContribution
+        }
+      ]
+    : []),
   {
     id: 'layout.reset',
     area: PALETTE_AREA,
@@ -368,69 +395,7 @@ registry.registerMany([
   }
 ])
 
-// ---------------------------------------------------------------------------
-// Layout presets — CHAT (main) always dominates.
-// ---------------------------------------------------------------------------
-
-// The REAL default: sessions left, chat main, and the right sidebars in column
-// order main | … | review | file-browser (files outermost). Each is its OWN
-// zone. Review collapses to nothing while its pane is hidden (⌘G off).
-//
-// Preview tiles are DYNAMIC panes (like session tiles), so no preset names one:
-// they're registered by watchPreviewTiles as tabs open, and dockPaneBeside lands
-// each one directly beside the file tree wherever that currently lives — so a
-// file double-click still slides a preview open as its own pane next to the
-// tree, never as a tab stacked into the files sidebar.
-const DEFAULT_TREE = split(
-  'row',
-  [
-    group(['sessions'], { id: 'grp-sessions' }),
-    group(['workspace'], { id: 'grp-main' }),
-    split(
-      'column',
-      [
-        split(
-          'row',
-          [group(['review'], { id: 'grp-review' }), group(['files'], { id: 'grp-files' })],
-          [1, 1.2],
-          'spl-rail'
-        ),
-        group(['terminal'], { id: 'grp-terminal' })
-      ],
-      [1.6, 1],
-      'spl-right'
-    )
-  ],
-  [1, 3.4, 1.25],
-  'spl-root'
-)
-
-const FOCUS_TREE = split('row', [group(['sessions']), group(['workspace', 'files', 'review', 'terminal'])], [1, 4.6])
-
-const TERMINAL_TREE = split(
-  'column',
-  [
-    split('row', [group(['sessions']), group(['workspace']), group(['files', 'review'])], [1, 3.2, 1.2]),
-    group(['terminal'])
-  ],
-  [3, 1]
-)
-
-const QUAD_TREE = split(
-  'column',
-  [
-    split('row', [group(['sessions', 'files']), group(['workspace'])], [1, 3]),
-    split('row', [group(['terminal']), group(['review'])], [1.4, 1])
-  ],
-  [3, 1]
-)
-
-registry.registerMany([
-  { id: 'default', area: 'layouts', title: 'Default', order: 0, data: DEFAULT_TREE },
-  { id: 'focus', area: 'layouts', title: 'Focus', order: 10, data: FOCUS_TREE },
-  { id: 'terminal-deck', area: 'layouts', title: 'Terminal deck', order: 20, data: TERMINAL_TREE },
-  { id: 'quad', area: 'layouts', title: 'Quad', order: 30, data: QUAD_TREE }
-])
+registerLayoutPresets()
 
 declareDefaultTree(DEFAULT_TREE)
 
@@ -444,10 +409,16 @@ discoverBundledPlugins()
 watchContributedPanes()
 
 // Session + route (page) tiles: persisted splits register panes docked beside
-// main.
-watchSessionTiles()
-watchRouteTiles()
-watchPreviewTiles()
+// main. A popped-out Browser and the HUD have no layout tree — registering
+// tiles there would still run, and preview-tile watching would try to dock
+// into a tree this window never renders (and, in the HUD, paint a webview
+// into the transparent overlay).
+if (!isBrowserWindow() && !isHudWindow()) {
+  watchSessionTiles()
+  startUnrestoredTileTitleBackfill()
+  watchRouteTiles()
+  watchPreviewTiles()
+}
 
 // Composer pop-out state is keyed by layout zone, so drop entries for zones the
 // user has since closed or merged away — otherwise a long-lived install keeps a
@@ -476,10 +447,14 @@ const syncWorkspaceTitle = () => {
   registry.register({
     id: 'workspace',
     area: 'panes',
-    workspaceMode: 'sessions',
     // The placeholder, not the draft's live name — `tabTitle` below renders
     // that. Keeping it here would re-register the pane on every keystroke.
-    title: stored ? storedSessionTitle(stored) : NEW_SESSION_TITLE,
+    // A bot chat reads as its BOT: every canonical Bot Chat is stored under
+    // the same name, which told two open bots apart by nothing (#99152).
+    title: workspaceOwnerTitle(
+      stored ? storedSessionTitle(stored) : NEW_SESSION_TITLE,
+      selected ? $botChatScopes.get()[selected] : undefined
+    ),
     data: {
       // The tab's status dot — the SAME primitive the sidebar row and session
       // tiles render, so the main tab never disagrees with its sidebar row. A
@@ -504,6 +479,8 @@ const syncWorkspaceTitle = () => {
 
 $selectedStoredSessionId.listen(syncWorkspaceTitle)
 $sessions.listen(syncWorkspaceTitle)
+$botChatScopes.listen(syncWorkspaceTitle)
+$workspaceOwnerLabels.listen(syncWorkspaceTitle)
 $workspaceIsPage.listen(syncWorkspaceTitle)
 
 // Layout reset collapses every session tile into main as a tab (after the
@@ -778,26 +755,6 @@ registerPaneCloser('files', () =>
 
 // ---------------------------------------------------------------------------
 
-interface TitlebarSlotProps {
-  area: 'titleBar.center' | 'titleBar.left' | 'titleBar.right'
-  className: string
-  style?: CSSProperties
-}
-
-function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
-  const items = useContributions(area)
-
-  if (items.length === 0) {
-    return null
-  }
-
-  return (
-    <div className={className} style={style}>
-      <Slot area={area} />
-    </div>
-  )
-}
-
 export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
   const statusbarVisible = useStore($statusbarVisible)
@@ -809,7 +766,16 @@ export function ContribController() {
   if (isHudWindow()) {
     return (
       <ContribWiring>
+        <AppContextMenu />
         <HudShell />
+      </ContribWiring>
+    )
+  }
+
+  if (isBrowserWindow()) {
+    return (
+      <ContribWiring>
+        <BrowserPopoutShell />
       </ContribWiring>
     )
   }
@@ -833,6 +799,7 @@ export function ContribController() {
           data-contrib-shell=""
           style={{ '--titlebar-height': '0px' } as CSSProperties}
         >
+<<<<<<< HEAD
           {/* Title bar: fixed chrome outside the grid, composable via slots.
               Layout contract (no contribution can break it):
                 - a full-bar DRAG BASE underneath (pointer-events-none, like
@@ -884,6 +851,9 @@ export function ContribController() {
           </div>
 
           <LayoutTreeRoot />
+=======
+          <LayoutTreeRoot titlebar />
+>>>>>>> upstream/main
 
           {/* "Close running tab?" — the busy/input-blocked tile close gate. */}
           <SessionTileCloseConfirm />

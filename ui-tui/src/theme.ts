@@ -250,11 +250,16 @@ export function themeToneHex(tone: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
+<<<<<<< HEAD
   name: 'OpenComputer',
   icon: '⚕',
+=======
+  name: 'Hermes Agent',
+  icon: '☤',
+>>>>>>> upstream/main
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',
-  goodbye: 'Goodbye! ⚕',
+  goodbye: 'Goodbye! ☤',
   tool: '┊',
   helpHeader: '(^_^)? Commands'
 }
