@@ -97,7 +97,7 @@ export async function confirmSendDiagnostics(): Promise<void> {
     const gateway = $gateway.get()
 
     if (!gateway) {
-      throw new Error('OpenComputer gateway unavailable')
+      throw new Error('Open Computer gateway unavailable')
     }
 
     const extraFiles = await collectLocalExtras()

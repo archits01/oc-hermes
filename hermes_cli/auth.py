@@ -7286,6 +7286,34 @@ def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
         return get_external_process_provider_status(target)
     if target == "azure-foundry":
         return _get_azure_foundry_auth_status()
+    # OpenRouter is intentionally not part of PROVIDER_REGISTRY because it is
+    # an aggregator with custom runtime/provider resolution. Its manual
+    # credential pool is nevertheless a real authenticated source and must be
+    # reflected in status/diagnostics; checking only OPENROUTER_API_KEY made a
+    # securely enrolled VM key appear logged out.
+    if target == "openrouter":
+        try:
+            from agent.credential_pool import load_pool
+
+            pool = load_pool("openrouter")
+            configured = pool.has_credentials()
+            return {
+                "configured": configured,
+                "provider": "openrouter",
+                "name": "OpenRouter",
+                "key_source": "credential_pool" if configured else "",
+                "base_url": "https://openrouter.ai/api/v1",
+                "logged_in": configured,
+            }
+        except Exception:
+            return {
+                "configured": False,
+                "provider": "openrouter",
+                "name": "OpenRouter",
+                "key_source": "",
+                "base_url": "https://openrouter.ai/api/v1",
+                "logged_in": False,
+            }
     # API-key providers
     pconfig = PROVIDER_REGISTRY.get(target)
     if pconfig and pconfig.auth_type == "api_key":
