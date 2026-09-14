@@ -936,10 +936,10 @@ function cookiesHaveLiveSession(cookies) {
 }
 
 /**
- * True if the cookie jar holds a live Nous PORTAL (Privy) session — a non-empty
+ * True if the cookie jar holds a live Open Computer account (Privy) session — a non-empty
  * `privy-token` (access-token) cookie, or a variant. This is the portal
- * analogue of `cookiesHaveLiveSession`: the portal authenticates via Privy, not
- * the Hermes gateway session cookies, so cloud sign-in / discovery liveness
+ * analogue of `cookiesHaveLiveSession`: the account portal authenticates via Privy, not
+ * the gateway session cookies, so cloud sign-in / discovery liveness
  * must check THIS, not the gateway helpers. (NAS `auth()` and the `/api/agents`
  * cookie path both key off `privy-token`.)
  */
