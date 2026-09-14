@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
@@ -8,6 +9,13 @@ import { createClientSessionState } from '@/lib/chat-runtime'
 import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './index'
+=======
+import type { GatewayEvent } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { type MessageStreamHarness, renderMessageStream } from './test-harness'
+>>>>>>> upstream/main
 
 const SID = 'session-1'
 let handleEvent: ((event: RpcEvent) => void) | null = null
@@ -47,6 +55,7 @@ async function mountStream() {
   await waitFor(() => expect(handleEvent).not.toBeNull())
 }
 
+<<<<<<< HEAD
 function emit(type: RpcEvent['type'], payload: RpcEvent['payload'] = {}) {
   act(() => handleEvent!({ payload, session_id: SID, type }))
 }
@@ -56,6 +65,10 @@ function reasoningText(): string {
   const part = message?.parts.find(p => p.type === 'reasoning')
 
   return part?.type === 'reasoning' ? part.text : ''
+=======
+function emit(type: GatewayEvent['type'], payload: GatewayEvent['payload'] = {}) {
+  act(() => stream.handleEvent({ payload, session_id: SID, type }))
+>>>>>>> upstream/main
 }
 
 describe('useMessageStream moa.reference accumulation (#64658)', () => {

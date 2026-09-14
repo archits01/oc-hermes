@@ -40,6 +40,7 @@ import {
   IconEar as Ear,
   IconEarOff as EarOff,
   IconEgg as Egg,
+  IconPlayerEjectFilled as Eject,
   IconExternalLink as ExternalLink,
   IconEye as Eye,
   IconEyeOff as EyeOff,
@@ -95,6 +96,11 @@ import {
   IconPin as Pin,
   IconPlayerPlay as Play,
   IconPlus as Plus,
+<<<<<<< HEAD
+=======
+  IconPower as Power,
+  IconQrcode as QrCode,
+>>>>>>> upstream/main
   IconRefresh as RefreshCw,
   IconRefresh as RefreshCwIcon,
   IconDeviceFloppy as Save,
@@ -103,6 +109,7 @@ import {
   IconSend as Send,
   IconSettings as Settings,
   IconSettings2 as Settings2,
+  IconShieldLock as ShieldLock,
   IconAdjustmentsHorizontal as SlidersHorizontal,
   IconMoodPlus as SmilePlusIcon,
   IconSquare as Square,
@@ -169,6 +176,7 @@ export {
   Ear,
   EarOff,
   Egg,
+  Eject,
   ExternalLink,
   Eye,
   EyeOff,
@@ -224,6 +232,11 @@ export {
   Pin,
   Play,
   Plus,
+<<<<<<< HEAD
+=======
+  Power,
+  QrCode,
+>>>>>>> upstream/main
   RefreshCw,
   RefreshCwIcon,
   Save,
@@ -232,6 +245,7 @@ export {
   Send,
   Settings,
   Settings2,
+  ShieldLock,
   SlidersHorizontal,
   SmilePlusIcon,
   Square,
