@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PROJECT_ID, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
 import { $sidebarAgentsGrouped, setSidebarAgentsGrouped } from '@/store/layout'
+<<<<<<< HEAD
 import { $activeGatewayProfile } from '@/store/profile'
+=======
+import { $activeGatewayProfile, $profileScope, ALL_PROFILES, setShowAllProfiles } from '@/store/profile'
+>>>>>>> upstream/main
 import { $currentCwd, $selectedStoredSessionId, $sessions, applyConfiguredDefaultProjectDir } from '@/store/session'
 
 import {
@@ -12,13 +16,9 @@ import {
   $projectScope,
   $projectsRpcAvailable,
   $projectTree,
-  $removedSessionIds,
-  $sessionMutationsInFlight,
   $worktreeRefreshToken,
   ALL_PROJECTS,
-  beginSessionMutation,
   createProject,
-  endSessionMutation,
   enterProject,
   exitProjectScope,
   openProjectCreate,
@@ -30,9 +30,15 @@ import {
   refreshWorktrees,
   resolveNewSessionCwd,
   scanAndRecordRepos,
-  startWorkInRepo,
-  tombstoneSessions
+  startWorkInRepo
 } from './projects'
+import {
+  $removedSessionIds,
+  $sessionMutationsInFlight,
+  beginSessionMutation,
+  endSessionMutation,
+  tombstoneSessions
+} from './session-removal'
 
 vi.mock('@/i18n', () => ({
   translateNow: (key: string) => key
@@ -118,6 +124,61 @@ describe('project scope', () => {
   })
 })
 
+<<<<<<< HEAD
+=======
+describe('projects RPC profile forwarding', () => {
+  it('distinguishes a failed drill-in from an empty project', async () => {
+    const failure = new Error('gateway read failed')
+    const request = vi.fn().mockRejectedValueOnce(failure).mockResolvedValueOnce({ project: null })
+    activeGateway.mockReturnValue({ connectionState: 'open', request } as unknown as ReturnType<typeof activeGateway>)
+    await expect(fetchProjectSessions('p_123')).rejects.toBe(failure)
+    await expect(fetchProjectSessions('p_123')).resolves.toBeNull()
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    $activeGatewayProfile.set('default')
+    $activeProjectId.set(null)
+    $projectTree.set([])
+    setShowAllProfiles(false)
+  })
+
+  it('forwards the normalized active profile to project read RPCs', async () => {
+    const request = vi.fn(async () => ({ active_id: null, projects: [], scoped_session_ids: [] }))
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    $activeGatewayProfile.set('  coder  ')
+
+    await refreshProjects()
+    await refreshProjectTree()
+    await fetchProjectSessions('p_123')
+
+    expect(request).toHaveBeenNthCalledWith(1, 'projects.list', { profile: 'coder' })
+    expect(request).toHaveBeenNthCalledWith(2, 'projects.tree', { preview_limit: 3, profile: 'coder' })
+    expect(request).toHaveBeenNthCalledWith(3, 'projects.project_sessions', {
+      profile: 'coder',
+      project_id: 'p_123'
+    })
+  })
+
+  it('skips project reads in the all-profiles view rather than forwarding its sentinel', async () => {
+    const request = vi.fn()
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    setShowAllProfiles(true)
+
+    await refreshProjects()
+    await refreshProjectTree()
+    await fetchProjectSessions('p_123')
+
+    expect(request).not.toHaveBeenCalled()
+    setShowAllProfiles(false)
+  })
+})
+
+>>>>>>> upstream/main
 describe('resolveNewSessionCwd', () => {
   beforeEach(() => {
     $projectScope.set(ALL_PROJECTS)
@@ -346,6 +407,55 @@ describe('createProject', () => {
     setSidebarAgentsGrouped(false)
     $activeProjectId.set(null)
     $projectsRpcAvailable.set(null)
+    $projects.set([])
+    $projectTree.set([])
+    $activeGatewayProfile.set('default')
+    setShowAllProfiles(false)
+  })
+
+  afterEach(() => {
+    setShowAllProfiles(false)
+    $activeGatewayProfile.set('default')
+  })
+
+  it.each(['default', 'coder'])('creates in the active %s profile without leaving All profiles', async profile => {
+    const created = { folders: [], id: 'p_new', name: 'Hermes Agent', primary_path: '/srv/hermes' }
+    const tree = { id: created.id, label: created.name, path: created.primary_path, repos: [], sessionCount: 0 }
+    const request = vi.fn().mockResolvedValue({ project: created })
+    activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+    vi.mocked(hermes.hermesApi).mockResolvedValue({ projects: [tree], active_id: created.id })
+    $activeGatewayProfile.set(profile)
+    setShowAllProfiles(true)
+
+    await expect(createProject({ folders: ['/srv/hermes'], name: created.name, use: true })).resolves.toEqual(created)
+
+    expect(request).toHaveBeenCalledWith('projects.create', expect.objectContaining({ profile, name: created.name }))
+    expect($profileScope.get()).toBe(ALL_PROFILES)
+    expect($projects.get()).toContainEqual(created)
+    expect($projectTree.get()).toEqual(expect.arrayContaining([expect.objectContaining({ id: created.id })]))
+    expect($activeProjectId.get()).toBe(created.id)
+    expect(hermes.hermesApi).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/profiles/projects/tree?preview_limit=3' })
+    )
+  })
+
+  it('does not retarget a project create when the profile changes during reconnect', async () => {
+    const reconnect = deferred<never>()
+    const request = vi.fn()
+    activeGateway.mockReturnValue({ connectionState: 'closed', request } as never)
+    vi.mocked(gw.ensureActiveGatewayOpen).mockReturnValue(reconnect.promise)
+    $activeGatewayProfile.set('coder')
+    setShowAllProfiles(true)
+
+    const pending = createProject({ folders: ['/srv/hermes'], name: 'Hermes Agent' })
+    const rejection = expect(pending).rejects.toThrow('Active Hermes profile changed while connecting')
+    const otherGateway = { connectionState: 'open', request }
+    $activeGatewayProfile.set('other')
+    activeGateway.mockReturnValue(otherGateway as never)
+    reconnect.resolve(otherGateway as never)
+
+    await rejection
+    expect(request).not.toHaveBeenCalled()
   })
 
   it('creates the project and flips into the grouped view so a blank slate shows it', async () => {
@@ -530,7 +640,38 @@ describe('repository discovery policy', () => {
 })
 
 describe('project tree profile isolation', () => {
+<<<<<<< HEAD
   it('does not publish a late response from the previous profile', async () => {
+=======
+  beforeEach(() => {
+    setShowAllProfiles(false)
+    $activeGatewayProfile.set('default')
+    $projects.set([])
+    $projectTree.set([])
+  })
+
+  it('retries a dropped projects.tree request once on the active gateway', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('request timed out after 30s: projects.tree'))
+      .mockResolvedValueOnce({
+        active_id: null,
+        projects: [{ id: 'remote-tree', label: 'Remote tree', path: null, repos: [], sessionCount: 0 }],
+        scoped_session_ids: []
+      })
+
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+
+    await refreshProjectTree()
+
+    expect(request).toHaveBeenCalledTimes(2)
+    expect($projectTree.get().map(project => project.id)).toEqual(['remote-tree'])
+  })
+
+  it('does not publish a late response from the previous gateway', async () => {
+>>>>>>> upstream/main
     let resolveA: ((value: unknown) => void) | undefined
 
     const responseA = new Promise(resolve => {
