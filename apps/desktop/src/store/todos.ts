@@ -1,7 +1,7 @@
 import { atom, computed } from 'nanostores'
 
 import { stableRecord } from '@/lib/stable-array'
-import type { TodoItem } from '@/lib/todos'
+import { parseTodoRevision, parseTodos, type TodoItem } from '@/lib/todos'
 
 import { $sessions, lineageAliases } from './session'
 import { $sessionStates } from './session-states'
@@ -16,6 +16,7 @@ import { $sessionStates } from './session-states'
  *   above the composer forever.
  */
 export const $todosBySession = atom<Record<string, TodoItem[]>>({})
+export const $todoRevisionsBySession = atom<Record<string, number>>({})
 
 export const todoListActive = (todos: readonly TodoItem[]) =>
   todos.some(t => t.status === 'pending' || t.status === 'in_progress')
@@ -77,11 +78,33 @@ function cancelScheduledClear(sid: string) {
   }
 }
 
-export function setSessionTodos(sid: string, todos: TodoItem[]) {
+function acceptRevision(sid: string, revision?: null | number): boolean {
+  const revisions = $todoRevisionsBySession.get()
+  const current = revisions[sid]
+
+  // tool.start has no revision. Apply the merge locally and leave the
+  // watermark alone so a later todo.updated / tool.complete can still win.
+  if (revision == null) {
+    return true
+  }
+
+  if (current != null && revision < current) {
+    return false
+  }
+
+  if (current !== revision) {
+    $todoRevisionsBySession.set({ ...revisions, [sid]: revision })
+  }
+
+  return true
+}
+
+export function setSessionTodos(sid: string, todos: TodoItem[], revision?: null | number) {
   if (!sid) {
     return
   }
 
+<<<<<<< HEAD
   cancelScheduledClear(sid)
   $todosBySession.set({ ...$todosBySession.get(), [sid]: todos })
 
@@ -98,15 +121,42 @@ export function setSessionTodos(sid: string, todos: TodoItem[]) {
 
 export function clearSessionTodos(sid: string) {
   cancelScheduledClear(sid)
-
-  const map = $todosBySession.get()
-
-  if (!(sid in map)) {
+=======
+  if (!acceptRevision(sid, revision)) {
     return
   }
 
-  const { [sid]: _drop, ...rest } = map
-  $todosBySession.set(rest)
+  clearTimers.cancel(sid)
+  $todosBySession.set({ ...$todosBySession.get(), [sid]: todos })
+
+  if (!todoListActive(todos)) {
+    clearTimers.schedule(sid, FINISHED_LINGER_MS, () => dropSessionTodos(sid, false))
+  }
+}
+
+function dropSessionTodos(sid: string, forgetRevision: boolean) {
+  clearTimers.cancel(sid)
+>>>>>>> upstream/main
+
+  const map = $todosBySession.get()
+
+  if (sid in map) {
+    const { [sid]: _drop, ...rest } = map
+    $todosBySession.set(rest)
+  }
+
+  if (forgetRevision) {
+    const revisions = $todoRevisionsBySession.get()
+
+    if (sid in revisions) {
+      const { [sid]: _drop, ...rest } = revisions
+      $todoRevisionsBySession.set(rest)
+    }
+  }
+}
+
+export function clearSessionTodos(sid: string) {
+  dropSessionTodos(sid, true)
 }
 
 // Drop a still-active todo list (any pending/in_progress item) — used at turn
@@ -121,5 +171,33 @@ export function clearActiveSessionTodos(sid: string) {
     return
   }
 
-  clearSessionTodos(sid)
+  dropSessionTodos(sid, false)
+}
+
+/** Apply a session.resume/activate or todo.updated full snapshot. Idle
+ * sessions keep the existing stale-active guard; running sessions restore the
+ * active plan because the backend has proved that turn is still live. */
+export function restoreSessionTodosFromSnapshot(sid: string, snapshot: unknown, running: boolean) {
+  const todos = parseTodos(snapshot)
+
+  if (!sid || todos === null) {
+    return
+  }
+
+  const revision = parseTodoRevision(snapshot)
+
+  // An unused store serializes as {todos: [], revision: 0}. That is not a
+  // real snapshot. Applying it would stamp watermark 0 and leave an empty
+  // list in the map.
+  if (todos.length === 0 && (revision == null || revision === 0)) {
+    return
+  }
+
+  const visible = running ? todos : todosForHydration(todos)
+
+  if (visible !== null) {
+    setSessionTodos(sid, visible, revision)
+  } else if (acceptRevision(sid, revision)) {
+    dropSessionTodos(sid, false)
+  }
 }
