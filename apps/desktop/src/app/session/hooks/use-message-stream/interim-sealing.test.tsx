@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
@@ -5,9 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { chatMessageText } from '@/lib/chat-messages'
+=======
+import type { GatewayEvent } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { ClientSessionState } from '@/app/types'
+import { chatMessageText, textPart } from '@/lib/chat-messages'
+>>>>>>> upstream/main
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { clearSessionTodos } from '@/store/todos'
-import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './index'
 
@@ -109,6 +117,31 @@ describe('useMessageStream interim text sealing', () => {
     const texts = assistantMessages()
     expect(texts).toContain('awaaaaa clean!! tsc zero errors')
     expect(texts).toContain('All checks passed.')
+  })
+
+  it('hydrates an empty completion when the live transcript still ends with the user message', async () => {
+    // #88036: the terminal frame arrived empty while this window never
+    // rendered any assistant output — the reply exists only in stored
+    // history, so the settle must hydrate instead of leaving the
+    // transcript ending on the user's message until restart.
+    const hydrateFromStoredSession = vi.fn<() => Promise<void>>(async () => undefined)
+
+    stream = renderMessageStream(SID, {
+      hydrateFromStoredSession,
+      states: new Map([
+        [
+          SID,
+          createClientSessionState('stored-session-1', [
+            { id: 'user-1', parts: [textPart('finish the task')], role: 'user' }
+          ])
+        ]
+      ])
+    })
+    await start()
+
+    await complete('')
+
+    expect(hydrateFromStoredSession).toHaveBeenCalledWith(3, 'stored-session-1', SID)
   })
 
   it('marks sealed interim bubbles interim and leaves the final reply unmarked', async () => {
@@ -337,12 +370,23 @@ describe('useMessageStream interim text sealing', () => {
     await start()
 
     // No payload at all
+<<<<<<< HEAD
     await act(() => handleEvent!({ type: 'message.interim' } as RpcEvent))
     // Empty text
     await act(() => handleEvent!({ payload: { text: '' }, session_id: SID, type: 'message.interim' } as RpcEvent))
     // Undefined text
     await act(() =>
       handleEvent!({ payload: { text: undefined }, session_id: SID, type: 'message.interim' } as RpcEvent)
+=======
+    await act(() => stream.handleEvent({ type: 'message.interim' } as GatewayEvent))
+    // Empty text
+    await act(() =>
+      stream.handleEvent({ payload: { text: '' }, session_id: SID, type: 'message.interim' } as GatewayEvent)
+    )
+    // Undefined text
+    await act(() =>
+      stream.handleEvent({ payload: { text: undefined }, session_id: SID, type: 'message.interim' } as GatewayEvent)
+>>>>>>> upstream/main
     )
 
     // Turn continues without finalizing or throwing
