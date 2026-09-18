@@ -23,8 +23,6 @@ import {
   buildGatewayWsUrlWithTicket,
   connectionScopeKey,
   cookiesHaveLiveSession,
-  cookiesHavePrivyAccessToken,
-  cookiesHavePrivySession,
   cookiesHaveSession,
   gatewayTicketFailure,
   gatewayWsUrlIpcResult,
@@ -48,6 +46,7 @@ import {
   resolveRemoteSshDashboardProfile,
   resolveTestWsUrl,
   RT_COOKIE_VARIANTS,
+  sanitizeRemoteHeaderValue,
   savedProfileSsh,
   tokenPreview,
   translateSelfProfileQuery,
@@ -98,6 +97,25 @@ test('normalizeRemoteHeaders keeps safe proxy headers and drops transport/auth h
       'CF-Access-Client-Secret': { encoding: 'plain', value: 'secret' }
     }
   )
+})
+
+test('sanitizeRemoteHeaderValue strips CR/LF so a pasted token cannot split a request', () => {
+  // Clipboard pastes of access-proxy service tokens routinely carry a trailing
+  // newline; a bare CR/LF inside the value is a request-splitting vector once
+  // it reaches setHeader / loadURL extraHeaders.
+  assert.equal(sanitizeRemoteHeaderValue('client-secret\r\n'), 'client-secret')
+  assert.equal(sanitizeRemoteHeaderValue('  client-secret\r  '), 'client-secret')
+  assert.equal(sanitizeRemoteHeaderValue('a\r\nX-Injected: evil'), 'aX-Injected: evil')
+  assert.equal(sanitizeRemoteHeaderValue(undefined), '')
+})
+
+test('normalizeRemoteHeaders sanitizes plaintext values at ingest', () => {
+  // A trailing newline was already handled by trim(); the gap this pins is an
+  // EMBEDDED CR/LF, which trim() leaves intact and which would otherwise reach
+  // the request as an injected second header.
+  assert.deepEqual(normalizeRemoteHeaders({ 'CF-Access-Client-Secret': 'secret\r\nX-Injected: evil' }), {
+    'CF-Access-Client-Secret': { encoding: 'plain', value: 'secretX-Injected: evil' }
+  })
 })
 
 test('remoteRequestMatchesBaseUrl treats HTTPS and WSS as the same gateway origin', () => {
@@ -334,10 +352,10 @@ const ROUTES = [
     expected: { backend: 'primary', descriptorProfile: null, scopePath: false }
   },
   {
-    name: 'a renamed primary profile still owns the window backend',
+    name: 'a renamed primary profile on a global remote is still scoped on the wire',
     profile: ' coder ',
     opts: { primaryProfile: 'coder', globalRemote: true },
-    expected: { backend: 'primary', descriptorProfile: null, scopePath: false }
+    expected: { backend: 'primary', descriptorProfile: 'coder', scopePath: true }
   },
   {
     name: 'an unset profile resolves to the primary',
@@ -404,6 +422,30 @@ const ROUTES = [
       requestPath: '/api/config'
     },
     expected: { backend: 'primary', descriptorProfile: 'coder', scopePath: true }
+  },
+  {
+    name: 'a read-only local session request reuses the primary backend',
+    profile: 'coder',
+    opts: {
+      primaryProfile: 'default',
+      globalRemote: false,
+      profileRemoteOverride: false,
+      requestMethod: 'GET',
+      requestPath: '/api/sessions/session-1/messages?limit=20'
+    },
+    expected: { backend: 'primary', descriptorProfile: 'coder', scopePath: true }
+  },
+  {
+    name: 'a local session write keeps its pooled backend',
+    profile: 'coder',
+    opts: {
+      primaryProfile: 'default',
+      globalRemote: false,
+      profileRemoteOverride: false,
+      requestMethod: 'PATCH',
+      requestPath: '/api/sessions/session-1'
+    },
+    expected: { backend: 'pool', descriptorProfile: null, scopePath: false }
   },
   {
     name: 'a profile-management request uses the primary without a query scope',
@@ -504,6 +546,14 @@ test('pathForRegistryBackendRequest uses the resolved registry backend scope', (
     }),
     '/api/fs/download?path=%2Fsrv%2Freport.pdf'
   )
+  assert.equal(
+    pathForRegistryBackendRequest(
+      '/api/profiles/sessions/sidebar?recents_profile=research&recents_exclude=cron%2Cdesktop',
+      'research',
+      { remoteProfile: 'remote-research' }
+    ),
+    '/api/profiles/sessions/sidebar?recents_profile=remote-research&recents_exclude=cron%2Cdesktop'
+  )
 })
 
 // --- pathWithGlobalRemoteProfile ---
@@ -518,14 +568,14 @@ test('pathWithGlobalRemoteProfile appends profile in global remote mode', () => 
   )
 })
 
-test('pathWithGlobalRemoteProfile skips the primary profile, which the remote already serves', () => {
+test('pathWithGlobalRemoteProfile scopes the primary label because the dashboard launch home may differ', () => {
   assert.equal(
     pathWithGlobalRemoteProfile('/api/model/info', 'coder', {
       globalRemote: true,
       primaryProfile: 'coder',
       profileRemoteOverride: false
     }),
-    '/api/model/info'
+    '/api/model/info?profile=coder'
   )
 })
 
@@ -604,8 +654,23 @@ test('translateSelfProfileQuery rewrites the self-profile filter into the backen
   )
 })
 
+test('translateSelfProfileQuery rewrites sidebar recents_profile aliases for managed SSH', () => {
+  assert.equal(
+    translateSelfProfileQuery(
+      '/api/profiles/sessions/sidebar?recents_profile=research&recents_limit=20&cron_limit=50&messaging_limit=100',
+      'research',
+      'remote-research'
+    ),
+    '/api/profiles/sessions/sidebar?recents_profile=remote-research&recents_limit=20&cron_limit=50&messaging_limit=100'
+  )
+})
+
 test('translateSelfProfileQuery leaves cross-profile and unfiltered paths untouched', () => {
   assert.equal(translateSelfProfileQuery('/api/cron/jobs?profile=all', 'mara', 'default'), '/api/cron/jobs?profile=all')
+  assert.equal(
+    translateSelfProfileQuery('/api/profiles/sessions/sidebar?recents_profile=all', 'mara', 'default'),
+    '/api/profiles/sessions/sidebar?recents_profile=all'
+  )
   assert.equal(
     translateSelfProfileQuery('/api/cron/jobs?profile=worker', 'mara', 'default'),
     '/api/cron/jobs?profile=worker'
@@ -669,6 +734,20 @@ test('resolveProfileApiRequest keeps eligible local REST on the primary backend'
     {
       backendProfile: null,
       requestPath: '/api/config?view=desktop&profile=iris'
+    }
+  )
+})
+
+test('resolveProfileApiRequest scopes read-only session probes without spawning a profile backend', () => {
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/sessions/stored-session?include_compacted=true', {
+      globalRemote: false,
+      profileRemoteOverride: false,
+      requestMethod: 'GET'
+    }),
+    {
+      backendProfile: null,
+      requestPath: '/api/sessions/stored-session?include_compacted=true&profile=iris'
     }
   )
 })
@@ -742,6 +821,60 @@ test('resolveProfileApiRequest scopes complete safe families according to their 
   )
 })
 
+<<<<<<< HEAD
+=======
+test('resolveProfileApiRequest keeps gateway lifecycle verbs on the primary with the profile scope', () => {
+  // A local sub-profile's gateway verbs must reach a backend that (a) receives
+  // `?profile=X` so the handler can answer "served by the multiplexer" (409 /
+  // restart the multiplexer) and (b) is the backend the gateway-restart status
+  // poll asks. A pooled `--profile X serve` gets neither: unscoped, it spawned a
+  // `-p X gateway restart` that exited 78 while the primary-routed poll read
+  // "no such action" as success.
+  for (const verb of ['restart', 'start', 'stop']) {
+    assert.deepEqual(resolveProfileApiRequest('iris', `/api/gateway/${verb}`, { requestMethod: 'POST' }), {
+      backendProfile: null,
+      requestPath: `/api/gateway/${verb}?profile=iris`
+    })
+  }
+
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/actions/gateway-restart/status?lines=200', { requestMethod: 'GET' }),
+    { backendProfile: null, requestPath: '/api/actions/gateway-restart/status?lines=200&profile=iris' }
+  )
+})
+
+test('resolveProfileApiRequest routes action-status polls with the action-spawning routes', () => {
+  // /api/actions/{name}/status must land on the SAME backend as the endpoints
+  // that spawn actions (skills hub install/uninstall/update, mcp catalog
+  // install): _spawn_hermes_action registers the dynamic action name only in
+  // the spawning process. Splitting the pair 404s the poll with
+  // "Unknown action: skills-install-<slug>-<hash>".
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/actions/skills-install-ascii-art-dd7bccf1/status?lines=200', {
+      requestMethod: 'GET'
+    }),
+    {
+      backendProfile: null,
+      requestPath: '/api/actions/skills-install-ascii-art-dd7bccf1/status?lines=200&profile=iris'
+    }
+  )
+  // The spawn side (hub install) and the poll side must agree on the backend.
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/skills/hub/install', {
+      requestMethod: 'POST'
+    }),
+    { backendProfile: null, requestPath: '/api/skills/hub/install?profile=iris' }
+  )
+  // MCP catalog installs spawn background actions too — same pairing rule.
+  assert.deepEqual(
+    resolveProfileApiRequest('iris', '/api/mcp/catalog/install', {
+      requestMethod: 'POST'
+    }),
+    { backendProfile: null, requestPath: '/api/mcp/catalog/install?profile=iris' }
+  )
+})
+
+>>>>>>> upstream/main
 test('resolveProfileApiRequest preserves remote routing precedence', () => {
   assert.deepEqual(
     resolveProfileApiRequest('iris', '/api/memory/reset', {
@@ -968,6 +1101,7 @@ test('cookiesHaveLiveSession is false for unrelated cookies and non-arrays', () 
   assert.equal(cookiesHaveLiveSession([]), false)
 })
 
+<<<<<<< HEAD
 // --- cookiesHavePrivySession (Portal / Privy auth, NOT gateway cookies) ---
 
 test('cookiesHavePrivySession detects the privy-token access cookie', () => {
@@ -1033,6 +1167,8 @@ test('cookiesHavePrivyAccessToken is false for empty values, gateway cookies, an
   assert.equal(cookiesHavePrivyAccessToken([]), false)
 })
 
+=======
+>>>>>>> upstream/main
 // --- tokenPreview ---
 
 test('tokenPreview returns null for empty', () => {
@@ -1287,4 +1423,35 @@ test('OAuth ticket-mint 401 stays on the reauth path (never Cloud-down)', () => 
   assert.equal(wrapped.message, 'auth message')
   assert.equal((wrapped as any).needsOauthLogin, true)
   assert.equal((wrapped as any).statusCode, 401)
+})
+
+test('FIX #95701: a confirmed 401/403 ticket rejection is tagged isReauthRequired so startHermes latches it', () => {
+  for (const statusCode of [401, 403]) {
+    const source = Object.assign(new Error(`${statusCode}: rejected`), { statusCode })
+    const wrapped = gatewayTicketFailure(source, 'auth copy', 'transport copy') as any
+
+    assert.equal(wrapped.message, 'auth copy')
+    assert.equal(wrapped.needsOauthLogin, true)
+    assert.equal(wrapped.isReauthRequired, true, `a ${statusCode} mint rejection cannot self-heal`)
+    assert.equal(wrapped.statusCode, statusCode)
+  }
+
+  // A pre-tagged rejection (needsOauthLogin from an upstream classifier) is
+  // confirmed the same way.
+  const tagged = gatewayTicketFailure({ needsOauthLogin: true }, 'auth copy', 'transport copy') as any
+  assert.equal(tagged.isReauthRequired, true)
+})
+
+test('FIX #95701: transport and server failures at the ticket mint stay retryable — never reauth', () => {
+  for (const source of [
+    Object.assign(new Error('503: unavailable'), { statusCode: 503 }),
+    new Error('Timed out connecting to Hermes backend after 8000ms'),
+    Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' })
+  ]) {
+    const wrapped = gatewayTicketFailure(source, 'auth copy', 'transport copy') as any
+
+    assert.equal(wrapped.message, 'transport copy')
+    assert.equal(wrapped.needsOauthLogin, undefined)
+    assert.equal(wrapped.isReauthRequired, undefined)
+  }
 })
