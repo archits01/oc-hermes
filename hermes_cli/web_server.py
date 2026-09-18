@@ -5717,17 +5717,32 @@ async def get_action_status(name: str, lines: int = 200):
         exit_code = result.get("exit_code") if result else None
         pid = result.get("pid") if result else None
         if result is None and durable_update_action_id:
-            exit_code = 0
+            # The marker is a legacy completion signal, not the durable
+            # outcome. An update receipt can still record a failed/refused
+            # run after the marker was written (for example, a late
+            # command-boundary failure). Let that receipt win so a
+            # restarted dashboard never reports a failed update as success.
+            receipt_outcome = (
+                update_receipt_summary.get("outcome")
+                if update_receipt_summary
+                else None
+            )
+            exit_code = 0 if receipt_outcome in (None, "success") else 1
         if (
             result is None
             and exit_code is None
             and update_receipt_summary is not None
-            and update_receipt_summary.get("outcome") in ("success", "partial")
+            and update_receipt_summary.get("outcome") in (
+                "success",
+                "partial",
+                "failed",
+                "refused",
+            )
         ):
             # No in-memory result and no log marker (e.g. log rotated), but
-            # the receipt proves a completed run: report its outcome rather
-            # than a null that clients time out on. ``partial`` maps to
-            # exit 1 exactly like the CLI run itself did.
+            # the receipt proves a terminal run: report its outcome rather
+            # than a null that clients time out on. Non-success outcomes map
+            # to exit 1 exactly like the CLI run itself did.
             exit_code = 0 if update_receipt_summary["outcome"] == "success" else 1
     else:
         exit_code = proc.poll()
@@ -5878,6 +5893,62 @@ def _normalize_config_for_web(config: Dict[str, Any]) -> Dict[str, Any]:
     else:
         config["model_context_length"] = 0
     return config
+
+
+_MCP_ENV_REF_RE = re.compile(
+    r"^\$\{(?:env:)?([A-Za-z_][A-Za-z0-9_]*)\}$"
+)
+
+
+def _protect_mcp_config_for_web(
+    config: Dict[str, Any], raw_config: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Keep resolved MCP credentials out of the desktop config editor.
+
+    ``load_config()`` expands environment references for runtime use. The
+    desktop editor needs the references, not their resolved values, so restore
+    them from the raw YAML before returning the config response.
+    """
+    if not isinstance(config, dict):
+        return config
+    mcp_cfg = config.get("mcp_servers")
+    if not isinstance(mcp_cfg, dict):
+        return config
+    raw_mcp = (raw_config or {}).get("mcp_servers")
+    if not isinstance(raw_mcp, dict):
+        raw_mcp = {}
+
+    protected = dict(config)
+    protected_servers: Dict[str, Any] = {}
+    for name, entry in mcp_cfg.items():
+        if not isinstance(entry, dict):
+            protected_servers[name] = entry
+            continue
+        safe_entry = dict(entry)
+        raw_entry = raw_mcp.get(name)
+        raw_entry = raw_entry if isinstance(raw_entry, dict) else {}
+        for field in ("env", "headers"):
+            values = entry.get(field)
+            if not isinstance(values, dict):
+                continue
+            raw_values = raw_entry.get(field)
+            raw_values = raw_values if isinstance(raw_values, dict) else {}
+            safe_values: Dict[str, Any] = {}
+            for key, value in values.items():
+                raw_value = raw_values.get(key)
+                raw_text = str(raw_value).strip() if isinstance(raw_value, str) else ""
+                if "${" in raw_text:
+                    safe_values[key] = raw_text
+                    continue
+                env_value = os.environ.get(str(key))
+                if field == "env" and env_value is not None and str(env_value) == str(value):
+                    safe_values[key] = f"${{{key}}}"
+                else:
+                    safe_values[key] = value
+            safe_entry[field] = safe_values
+        protected_servers[name] = safe_entry
+    protected["mcp_servers"] = protected_servers
+    return protected
 
 
 # ── Memory provider config: one generic GET/PUT pair, dispatching on storage ──
@@ -7140,7 +7211,8 @@ async def get_config(profile: Optional[str] = None):
     # override stays scoped to the worker thread.
     def _run():
         with _profile_scope(profile):
-            return _normalize_config_for_web(load_config())
+            config = _normalize_config_for_web(load_config())
+            return _protect_mcp_config_for_web(config, read_raw_config())
 
     config = await asyncio.to_thread(_run)
     # Strip internal keys that the frontend shouldn't see or send back
@@ -8866,10 +8938,10 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
         "required_env": ("SIGNAL_HTTP_URL", "SIGNAL_ACCOUNT"),
     },
     "whatsapp": {
-        "name": "WhatsApp",
+        "name": "WhatsApp (QR bridge)",
         "description": (
-            "Use Hermes through the bundled WhatsApp bridge with QR-based auth. "
-            "LMI uses the separate WhatsApp Unipile transport; do not enable both."
+            "Use the local QR bridge for profiles that do not use the LMI WhatsApp "
+            "channel. Do not enable this bridge while the LMI channel is connected."
         ),
         "docs_url": "https://github.com/tulir/whatsmeow",
         "env_vars": (
@@ -8881,10 +8953,10 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
         "required_env": (),
     },
     "whatsapp_unipile": {
-        "name": "WhatsApp (Unipile)",
+        "name": "WhatsApp (LMI)",
         "description": (
-            "LMI's customer WhatsApp channel through Unipile. This is separate "
-            "from the bundled QR-based WhatsApp bridge."
+            "LMI customer WhatsApp channel. This is the active channel for LMI "
+            "messaging; the local QR bridge is kept separate."
         ),
         "env_vars": (
             "WHATSAPP_UNIPILE_DSN",
@@ -9089,6 +9161,7 @@ _PLATFORM_ORDER: tuple[str, ...] = (
     "slack",
     "mattermost",
     "matrix",
+    "whatsapp_unipile",
     "whatsapp",
     "signal",
     "bluebubbles",
@@ -9490,21 +9563,45 @@ def _whatsapp_transport_conflict(
 
     if platform_id == "whatsapp" and (unipile_configured or runtime_unipile_connected):
         return (
-            "Native WhatsApp cannot be enabled while WhatsApp Unipile is "
-            "configured. Use the 'WhatsApp Unipile' channel; disable or clear "
+            "WhatsApp (QR bridge) cannot be enabled while WhatsApp (LMI) is "
+            "configured. Use the 'WhatsApp (LMI)' channel; disable or clear "
             "that transport first if you intentionally want the QR bridge."
         )
     if platform_id == "whatsapp_unipile" and (native_enabled or runtime_native_connected):
         return (
-            "WhatsApp Unipile cannot be enabled while the native WhatsApp "
-            "bridge is enabled. Disable the 'WhatsApp' channel first so only "
+            "WhatsApp (LMI) cannot be enabled while the WhatsApp (QR bridge) "
+            "is enabled. Disable the 'WhatsApp (QR bridge)' channel first so only "
             "one WhatsApp transport can receive and send messages."
         )
     return None
 
 
 def _messaging_env_info(key: str) -> dict[str, Any]:
-    info = OPTIONAL_ENV_VARS.get(key) or _MESSAGING_ENV_FALLBACKS.get(key) or {}
+    info = dict(OPTIONAL_ENV_VARS.get(key) or _MESSAGING_ENV_FALLBACKS.get(key) or {})
+    # Keep adapter-specific implementation names out of the user-facing
+    # Channels page. The environment keys remain stable for compatibility;
+    # only the labels and help text are normalized here.
+    channel_prefixes = ("WHATSAPP_", "INSTAGRAM_", "LINKEDIN_", "GMAIL_")
+    if key.startswith(channel_prefixes) and ("_UNIPILE_" in key or key.endswith("_ACCOUNT_ID")):
+        channel = key.split("_", 1)[0].title()
+        if key.endswith("_DSN"):
+            info.update(
+                description=f"Connection endpoint for LMI {channel}",
+                prompt="Connection endpoint",
+                help=f"Host and port for the LMI {channel} connection.",
+            )
+        elif key.endswith("_API_KEY"):
+            info.update(
+                description=f"Connection key for LMI {channel}",
+                prompt="Connection key",
+                help="Private key for the LMI channel connection.",
+            )
+        elif key.endswith("_ACCOUNT_ID"):
+            info.update(
+                description=f"Account identifier for LMI {channel}",
+                prompt="Account ID",
+                help=f"Account identifier for the LMI {channel} connection.",
+            )
     return {
         "description": info.get("description", ""),
         "prompt": info.get("prompt", key),
