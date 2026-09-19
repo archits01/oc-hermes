@@ -1059,14 +1059,12 @@ def get_opencode_free_picker_model_sets(
     authenticated daily probe promotes it into the verified catalog.
     """
     discovered = list(get_discovered_opencode_free_model_ids(now=now))
-    # Keep Hermes' curated free rows visible as disabled until the live daily
-    # probe confirms that the promotion still exists. This is presentation
-    # metadata only; it never widens the executable verified set.
-    seen_discovered = {model.lower() for model in discovered}
-    for model in _OPENCODE_FREE_STATIC_MODELS:
-        if model.lower() not in seen_discovered:
-            discovered.append(model)
-            seen_discovered.add(model.lower())
+    # A current provider discovery snapshot is authoritative for presentation.
+    # Only fall back to the in-repo static list when discovery is unavailable;
+    # otherwise stale legacy names would appear as misleading NOT VERIFIED rows
+    # even though the provider no longer advertises them.
+    if not discovered:
+        discovered = list(_OPENCODE_FREE_STATIC_MODELS)
     verified = (
         get_verified_opencode_free_model_ids(now=now)
         if has_fresh_verified_opencode_free_catalog(now=now)
@@ -1202,25 +1200,36 @@ def write_verified_opencode_free_catalog(
     *,
     verified_at: Optional[float] = None,
     source: str = "https://opencode.ai/zen/v1",
+    model_verified_at: Optional[dict[str, float]] = None,
 ) -> None:
-    """Atomically publish a fully verified keyless OpenCode catalog.
+    """Atomically publish a non-empty verified OpenCode Free catalog.
 
-    The caller must only pass successful anonymous inference probes.  Refuse
-    empty/corrupt input rather than accidentally replacing the fallback with
-    an unusable picker row.
+    The catalog-level timestamp records the refresh.  Optional per-model
+    timestamps preserve an earlier proof when a later provider probe is only
+    transiently unavailable; the reader still expires each item independently.
     """
     timestamp = time.time() if verified_at is None else verified_at
     if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or timestamp <= 0:
         raise ValueError("verified_at must be a positive timestamp")
+    timestamp_map = {
+        str(key).lower(): value
+        for key, value in (model_verified_at or {}).items()
+    }
     unique: list[str] = []
+    item_timestamps: list[float] = []
     seen: set[str] = set()
     for model_id in models:
         if not _valid_opencode_free_model_id(model_id):
             raise ValueError("invalid OpenCode free model id")
         key = model_id.lower()
-        if key not in seen:
-            unique.append(model_id)
-            seen.add(key)
+        if key in seen:
+            continue
+        item_stamp = timestamp_map.get(key, timestamp)
+        if not isinstance(item_stamp, (int, float)) or isinstance(item_stamp, bool) or item_stamp <= 0:
+            raise ValueError("model_verified_at must contain positive timestamps")
+        unique.append(model_id)
+        item_timestamps.append(float(item_stamp))
+        seen.add(key)
         if len(unique) > OPENCODE_FREE_CATALOG_MAX_MODELS:
             raise ValueError("too many OpenCode free models")
     if not unique:
@@ -1233,8 +1242,8 @@ def write_verified_opencode_free_catalog(
             "verified_at": timestamp,
             "source": source,
             "models": [
-                {"id": model_id, "verified_at": timestamp}
-                for model_id in unique
+                {"id": model_id, "verified_at": item_stamp}
+                for model_id, item_stamp in zip(unique, item_timestamps)
             ],
         },
         indent=2,
@@ -3536,6 +3545,13 @@ def list_available_providers() -> list[dict[str, str]]:
                 has_creds = bool(custom_base_url.strip())
             elif pid == "openrouter":
                 has_creds = has_usable_secret(os.getenv("OPENROUTER_API_KEY", ""))
+                if not has_creds:
+                    try:
+                        from agent.credential_pool import load_pool
+
+                        has_creds = load_pool("openrouter").has_credentials()
+                    except Exception:
+                        has_creds = False
             else:
                 status = get_auth_status(pid)
                 has_creds = bool(status.get("logged_in") or status.get("configured"))
@@ -6305,28 +6321,31 @@ def _opencode_auth_key() -> str:
 
 
 def opencode_zen_free_headers(*, session_id: Optional[str] = None, request_id: Optional[str] = None) -> dict:
-    """Headers for OpenCode Zen, using the local OpenCode auth when present.
+    """Return the keyless OpenCode Free request headers.
 
-    OpenCode's current relay requires its session/request headers.  When the
-    normal OpenCode credential is absent we retain the anonymous headers, but
-    the verifier and managed picker remain fail-closed until a probe succeeds.
+    The Zen free relay requires the OpenCode client/session/request identity
+    headers even though it must receive an empty Authorization header.
+    Omitting those headers makes the relay reject an otherwise valid free
+    request with the OpenCode-only 400 error.
+    Generate fresh IDs by default so every probe/runtime request has a valid
+    OpenCode identity without reading or forwarding a local credential.
     """
     try:
         from hermes_cli import __version__ as _v
     except Exception:
         _v = "0"
-    token = _opencode_auth_key()
-    headers = {
-        "Authorization": f"Bearer {token}" if token else "",
+    return {
+        # The SDK receives a non-empty placeholder api_key for construction,
+        # so this explicit empty value is the defense-in-depth override that
+        # keeps the placeholder off the wire.
+        "Authorization": "",
         "HTTP-Referer": "https://hermes-agent.nousresearch.com",
         "X-Title": "Hermes Agent",
         "User-Agent": f"HermesAgent/{_v}",
+        "x-opencode-session": session_id or f"ses_{uuid.uuid4().hex}",
+        "x-opencode-request": request_id or f"req_{uuid.uuid4().hex}",
+        "x-opencode-client": "hermes",
     }
-    if token:
-        headers["x-opencode-session"] = session_id or f"ses_{uuid.uuid4().hex}"
-        headers["x-opencode-request"] = request_id or f"req_{uuid.uuid4().hex}"
-        headers["x-opencode-client"] = "hermes"
-    return headers
 
 
 def opencode_zen_free_runtime(provider_id: Optional[str], model_id: Optional[str]) -> Optional[dict]:

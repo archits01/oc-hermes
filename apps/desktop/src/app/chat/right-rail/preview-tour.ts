@@ -15,8 +15,12 @@
  * the boot path.
  */
 
-import driverCss from 'driver.js/dist/driver.css?raw'
-import driverIife from 'driver.js/dist/driver.js.iife.js?raw'
+// driver.js does not export its IIFE payload through package exports. The
+// preview needs that exact raw file for executeJavaScript, so resolve the
+// hoisted workspace asset directly instead of asking the bundler to violate the
+// package export map.
+import driverCss from '../../../../../../node_modules/driver.js/dist/driver.css?raw'
+import driverIife from '../../../../../../node_modules/driver.js/dist/driver.js.iife.js?raw'
 
 import { collectTourTargets } from '@/lib/tour/collect-targets'
 import { runTourEngine, type TourAction, type TourResult } from '@/lib/tour/engine'
