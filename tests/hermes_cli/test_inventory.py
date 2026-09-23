@@ -40,6 +40,7 @@ def _cfg(model=None, providers=None, custom_providers=None) -> dict:
     }
 
 
+<<<<<<< HEAD
 def test_load_picker_context_reads_catalog_provider_policies():
     cfg = _cfg(model={"provider": "xai-oauth", "default": "grok"})
     cfg["model_catalog"] = {
@@ -54,8 +55,36 @@ def test_load_picker_context_reads_catalog_provider_policies():
     assert ctx.free_only_providers == ["openrouter"]
 
 
+=======
+def test_load_picker_context_coerces_numeric_yaml_provider():
+    """PyYAML parses unquoted `provider: 2070` as int; picker context must be str.
+>>>>>>> upstream/main
 
-
+    Desktop GET /api/model/options crashed when a custom endpoint was named
+    after a GPU: current_provider.strip() and providers dict keys .lower().
+    """
+    cfg = _cfg(
+        model={
+            "provider": 2070,
+            "default": "Qwen3.5-9B-Q4_K_M.gguf",
+            "base_url": "http://192.168.1.10:8082/v1",
+        },
+        providers={
+            2070: {
+                "name": 2070,
+                "base_url": "http://192.168.1.10:8082/v1",
+                "model": "Qwen3.5-9B-Q4_K_M.gguf",
+            }
+        },
+    )
+    with patch("hermes_cli.config.load_config", return_value=cfg):
+        ctx = load_picker_context()
+    assert ctx.current_provider == "2070"
+    assert isinstance(ctx.current_provider, str)
+    assert list(ctx.user_providers) == ["2070"]
+    assert all(isinstance(k, str) for k in ctx.user_providers)
+    assert ctx.current_model == "Qwen3.5-9B-Q4_K_M.gguf"
+    assert ctx.current_base_url == "http://192.168.1.10:8082/v1"
 
 
 # ─── with_overrides ────────────────────────────────────────────────────
@@ -100,43 +129,9 @@ def _nous_row(model: str = "openai/gpt-5.5") -> dict:
 
 
 
-def test_cli_model_picker_forwards_force_refresh_to_probe_flags():
-    """CLI /model picker must pass force_refresh to probe flags (#65652, #65650).
-
-    Normal open (/model bare) skips non-current probes; /model --refresh probes
-    all custom providers to freshen their model lists.
-    """
-    ctx = _empty_ctx()
-
-    # Normal open — skip non-current probes
-    force_refresh = False
-    with patch(
-        "hermes_cli.model_switch.list_authenticated_providers",
-        return_value=[],
-    ) as mock_list:
-        build_models_payload(
-            ctx,
-            probe_custom_providers=force_refresh,
-            probe_current_custom_provider=not force_refresh,
-        )
-    assert mock_list.call_args.kwargs["probe_custom_providers"] is False
-    assert mock_list.call_args.kwargs["probe_current_custom_provider"] is True
-
-    # Refresh open — probe everything
-    force_refresh = True
-    with patch(
-        "hermes_cli.model_switch.list_authenticated_providers",
-        return_value=[],
-    ) as mock_list:
-        build_models_payload(
-            ctx,
-            probe_custom_providers=force_refresh,
-            probe_current_custom_provider=not force_refresh,
-        )
-    assert mock_list.call_args.kwargs["probe_custom_providers"] is True
-    assert mock_list.call_args.kwargs["probe_current_custom_provider"] is False
 
 
+<<<<<<< HEAD
 def test_included_provider_policy_applies_after_current_row_recovery(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
     from hermes_cli.models import write_verified_opencode_free_catalog
@@ -259,6 +254,8 @@ def test_list_authenticated_providers_force_fresh_is_keyword_only():
     param = sig.parameters["force_fresh_nous_tier"]
     assert param.kind is inspect.Parameter.KEYWORD_ONLY
     assert param.default is False
+=======
+>>>>>>> upstream/main
 
 
 
@@ -405,11 +402,11 @@ def test_anthropic_oauth_presence_accepts_pool_only_oauth_entry():
 
     with (
         patch(
-            "agent.anthropic_adapter.read_hermes_oauth_credentials",
+            "agent.anthropic_credentials.read_hermes_oauth_credentials",
             return_value=None,
         ),
         patch(
-            "agent.anthropic_adapter.read_claude_code_credentials",
+            "agent.anthropic_credentials.read_claude_code_credentials",
             return_value=None,
         ),
         patch(
@@ -425,11 +422,11 @@ def test_anthropic_oauth_presence_accepts_pool_only_oauth_entry():
     # (they are handled by the explicit-config gate / env var paths).
     with (
         patch(
-            "agent.anthropic_adapter.read_hermes_oauth_credentials",
+            "agent.anthropic_credentials.read_hermes_oauth_credentials",
             return_value=None,
         ),
         patch(
-            "agent.anthropic_adapter.read_claude_code_credentials",
+            "agent.anthropic_credentials.read_claude_code_credentials",
             return_value=None,
         ),
         patch(
@@ -472,7 +469,6 @@ def test_picker_hints_api_key_warning_format():
         r for r in payload["providers"] if r["slug"] == "anthropic"
     )
     assert "ANTHROPIC_API_KEY" in anthropic["warning"]
-    assert anthropic["warning"].startswith("paste ")
 
 
 # ─── canonical_order ───────────────────────────────────────────────────
@@ -724,26 +720,6 @@ def test_build_models_payload_no_max_models_returns_full_list():
 # ─── refresh flag (cache-bust) ─────────────────────────────────────────
 
 
-def test_build_models_payload_forwards_refresh_flag():
-    """build_models_payload must forward refresh= to list_authenticated_providers.
-
-    The desktop picker's "Refresh Models" control passes refresh=True; the
-    flag has to reach list_authenticated_providers so the per-provider
-    model-id cache gets busted. Default opens pass refresh=False.
-    """
-    captured: dict = {}
-
-    def _capture(*args, **kwargs):
-        captured["refresh"] = kwargs.get("refresh")
-        return []
-
-    with patch("hermes_cli.model_switch.list_authenticated_providers", side_effect=_capture):
-        build_models_payload(_empty_ctx())
-    assert captured["refresh"] is False
-
-    with patch("hermes_cli.model_switch.list_authenticated_providers", side_effect=_capture):
-        build_models_payload(_empty_ctx(), refresh=True)
-    assert captured["refresh"] is True
 
 
 def test_list_authenticated_providers_refresh_busts_cache():
@@ -756,6 +732,7 @@ def test_list_authenticated_providers_refresh_busts_cache():
         assert clear.call_count == 0
         model_switch.list_authenticated_providers(refresh=True)
         assert clear.call_count == 1
+<<<<<<< HEAD
 
 
 # ─── _apply_featured (one-flagship-per-lab shortlist) ──────────────────
@@ -775,3 +752,5 @@ def _apply_featured_with_dates(rows, dates: dict[str, str]):
 
     with patch("agent.models_dev.get_model_info", side_effect=_fake_get_model_info):
         inventory._apply_featured(rows)
+=======
+>>>>>>> upstream/main

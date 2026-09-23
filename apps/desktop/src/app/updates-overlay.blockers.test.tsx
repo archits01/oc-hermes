@@ -180,6 +180,7 @@ describe('BlockerView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close previews and check again' }))
     expect(onStopAndUpdate).toHaveBeenCalledTimes(1)
   })
+<<<<<<< HEAD
 
   it('explains safe local previews and offers one-click close-and-update', async () => {
     const onStopAndUpdate = vi.fn()
@@ -210,4 +211,6 @@ describe('BlockerView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close previews and update' }))
     expect(onStopAndUpdate).toHaveBeenCalledTimes(1)
   })
+=======
+>>>>>>> upstream/main
 })

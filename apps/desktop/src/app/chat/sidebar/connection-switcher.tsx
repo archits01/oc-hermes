@@ -23,31 +23,28 @@ import {
   sortConnectionsForDisplay
 } from '@/lib/connection-display'
 import { triggerHaptic } from '@/lib/haptics'
-import { Cloud, Loader2, Monitor, Network, Terminal } from '@/lib/icons'
+import { Loader2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { $desktopBoot } from '@/store/boot'
-import {
-  $activeConnectionId,
-  $connectionsRegistry,
-  $pendingConnectionId,
-  initializeConnectionsRegistry,
-  refreshConnectionsRegistry,
-  selectConnection
-} from '@/store/connections'
+import { $activeConnectionId, $connectionsRegistry, $pendingConnectionId, selectConnection } from '@/store/connections'
 import { closeFindBar } from '@/store/find-in-page'
 import { notifyError } from '@/store/notifications'
+<<<<<<< HEAD
+=======
+
+import { ConnectionGlyph } from './connection-glyph'
+>>>>>>> upstream/main
 
 export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: boolean; onConnect: () => void }) {
   const { t } = useI18n()
   const registry = useStore($connectionsRegistry)
   const activeConnectionId = useStore($activeConnectionId)
-  const boot = useStore($desktopBoot)
   const pendingConnectionId = useStore($pendingConnectionId)
   const [searchQuery, setSearchQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const connectionListRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
+<<<<<<< HEAD
   useEffect(() => {
     void refreshConnectionsRegistry().catch(() => undefined)
 
@@ -70,6 +67,8 @@ export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: b
     }
   }, [boot.running])
 
+=======
+>>>>>>> upstream/main
   const connections = useMemo(() => sortConnectionsForDisplay(registry?.connections ?? []), [registry?.connections])
 
   const activeConnection = connections.find(connection => connection.id === activeConnectionId)
@@ -286,28 +285,6 @@ function ManageGatewaysLabel({ label }: { label: string }) {
     <span className="flex min-w-0 items-center gap-1.5 text-(--ui-text-secondary)">
       <Codicon aria-hidden="true" name="settings-gear" size="0.875rem" />
       <span className="truncate">{label}</span>
-    </span>
-  )
-}
-
-function ConnectionGlyph({ connection }: { connection: DesktopRegistryConnection }) {
-  const Icon =
-    connection.kind === 'local'
-      ? Monitor
-      : connection.kind === 'cloud'
-        ? Cloud
-        : connection.kind === 'ssh'
-          ? Terminal
-          : Network
-
-  return (
-    <span
-      aria-hidden="true"
-      className="grid size-3.5 shrink-0 place-items-center text-(--ui-text-quaternary)"
-      data-connection-kind={connection.kind}
-      data-slot="connection-glyph"
-    >
-      <Icon className="size-3" />
     </span>
   )
 }

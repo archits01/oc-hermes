@@ -1,12 +1,16 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
+=======
+import type { GatewayEvent } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+>>>>>>> upstream/main
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $draftingToolSessions } from '@/store/tool-drafting'
-import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './index'
 
@@ -50,8 +54,13 @@ async function mountStream() {
   await waitFor(() => expect(handleEvent).not.toBeNull())
 }
 
+<<<<<<< HEAD
 function emit(type: RpcEvent['type'], payload: RpcEvent['payload'] = {}, sessionId = SID) {
   act(() => handleEvent!({ payload, session_id: sessionId, type }))
+=======
+function emit(type: GatewayEvent['type'], payload: GatewayEvent['payload'] = {}, sessionId = SID) {
+  act(() => stream.handleEvent({ payload, session_id: sessionId, type }))
+>>>>>>> upstream/main
 }
 
 function draftedTool(sessionId = SID) {
@@ -85,12 +94,8 @@ describe('drafting-tool label lifecycle', () => {
   // retry drops a partial call, a guardrail-blocked tool skips the lifecycle
   // callbacks — and the name then sat on screen for the rest of the turn.
   it.each([
-    ['message.delta', { text: 'never mind' }],
     ['reasoning.delta', { text: 'reconsidering' }],
-    ['thinking.delta', { text: 'reconsidering' }],
     ['tool.start', { name: 'terminal', tool_id: 'tool-1' }],
-    ['tool.complete', { name: 'terminal', tool_id: 'tool-1' }],
-    ['message.complete', { text: 'done' }],
     ['error', { message: 'boom' }]
   ] as const)('retires the label when %s proves the model moved on', async (type, payload) => {
     await mountStream()
