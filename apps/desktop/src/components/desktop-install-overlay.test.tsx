@@ -90,6 +90,7 @@ afterEach(() => {
 })
 
 describe('DesktopInstallOverlay first-run setup', () => {
+<<<<<<< HEAD
   it('shows the remote/local choice without installer progress', async () => {
     installDesktopMock(
       bootstrapState({
@@ -107,6 +108,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
   })
 
   it('continues local bootstrap only when Install OpenComputer locally is selected', async () => {
+=======
+  it('continues local bootstrap only when Install Hermes locally is selected', async () => {
+>>>>>>> upstream/main
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent' }
@@ -197,6 +201,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
     expect(screen.queryByText('Local installation could not start. Restart OpenComputer Desktop and try again.')).toBeNull()
   })
 
+<<<<<<< HEAD
   it('opens the remote connection form from the first-run choice', async () => {
     installDesktopMock(
       bootstrapState({
@@ -213,6 +218,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     expect(screen.getByText('Apply and reconnect')).toBeTruthy()
   })
 
+=======
+>>>>>>> upstream/main
   it('returns from the remote connection form to the first-run choice', async () => {
     installDesktopMock(
       bootstrapState({

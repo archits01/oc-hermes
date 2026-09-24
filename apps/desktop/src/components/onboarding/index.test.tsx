@@ -27,7 +27,8 @@ function setProviders(providers: OAuthProvider[]) {
     requested: false,
     firstRunSkipped: false,
     manual: false,
-    localEndpoint: false
+    localEndpoint: false,
+    freeTierReady: false
   } satisfies DesktopOnboardingState)
 }
 
@@ -51,7 +52,8 @@ afterEach(() => {
     requested: false,
     firstRunSkipped: false,
     manual: false,
-    localEndpoint: false
+    localEndpoint: false,
+    freeTierReady: false
   })
 })
 
@@ -74,6 +76,7 @@ describe('onboarding Picker', () => {
     expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
   })
 
+<<<<<<< HEAD
   it('shows Fireworks first in the expanded list, ahead of other OAuth providers', () => {
     setProviders([
       provider('openai-codex', 'OpenAI Codex / ChatGPT'),
@@ -97,6 +100,13 @@ describe('onboarding Picker', () => {
 
   it('shows every provider directly when Portal is absent', () => {
     setProviders([provider('anthropic', 'Anthropic Claude'), provider('openai-codex', 'OpenAI Codex / ChatGPT')])
+=======
+  it('shows every provider directly when Nous Portal is absent', () => {
+    setProviders([
+      makeOAuthProvider('anthropic', 'Anthropic Claude'),
+      makeOAuthProvider('openai-codex', 'OpenAI Codex / ChatGPT')
+    ])
+>>>>>>> upstream/main
     render(<Picker ctx={ctx} />)
 
     expect(screen.getByText('Fireworks AI')).toBeTruthy()
