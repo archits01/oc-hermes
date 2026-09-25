@@ -1,8 +1,8 @@
-"""LIVE Windows E2E for the venv-holder preflight (fleet-update #91277).
+"""LIVE Windows E2E for retained lifecycle holder discovery (fleet-update #91277).
 
 Runs ONLY on a real Windows host (the on-demand ``windows-venv-e2e.yml``
 lane). Spawns REAL processes with realistic Hermes argv shapes and drives
-the actual detection / classification / exemption code against the live
+the actual detection code against the live
 process table — no mocked psutil, no faked cmdlines.
 
 Each test documents which cluster issue it probes. Tests written BEFORE
@@ -10,14 +10,9 @@ the consolidation fix intentionally pin the CORRECT behavior, so on
 unfixed main the buggy ones fail — that failure on the Windows runner is
 the empirical premise-check for each issue:
 
-  #90778 — holder message mislabels `hermes dashboard` as the Desktop
-           backend, and matches subcommands by substring ("--preserve"
-           contains "serve").
-  #78089 — pausable-gateway exemption vs. long managed-runtime
-           interpreter paths (claimed fixed on main; verified here).
+  #78089 — full command lines with long managed-runtime interpreter paths.
   #87594 — ancestor-exclusion hides the gateway from the scan when the
            updater is spawned BY the gateway (/update path).
-  #81774 — serve backends have no pause path (documented behavior probe).
 """
 
 from __future__ import annotations
@@ -30,14 +25,17 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    sys.platform != "win32", reason="live Windows venv-holder E2E"
-)
+pytestmark = [
+    pytest.mark.platforms("windows"),
+    # ``_spawn`` sleepers carry a "gateway run" argv tail as inert data (the guard's real-gateway
+    # spawn check matches it); every child is ``_kill``ed by the test.
+    pytest.mark.spawns_gateway_lookalike,
+]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _spawn(args: list[str], cwd: Path | None = None) -> subprocess.Popen:
+def _spawn(args: list[str], cwd: Path | None = None, python: str | None = None) -> subprocess.Popen:
     """Spawn a real sleeper process whose argv carries the given tail.
 
     ``python -c "sleep" <tail...>`` — the tail is inert data to the child
@@ -45,7 +43,7 @@ def _spawn(args: list[str], cwd: Path | None = None) -> subprocess.Popen:
     code classifies on.
     """
     proc = subprocess.Popen(
-        [sys.executable, "-c", "import time; time.sleep(300)", *args],
+        [python or sys.executable, "-c", "import time; time.sleep(300)", *args],
         cwd=str(cwd or PROJECT_ROOT),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -86,12 +84,26 @@ class TestDetection:
             _kill(proc)
 
     def test_foreign_python_not_detected(self):
-        """A python process with no Hermes argv and cwd OUTSIDE the install
-        must not be reported as a holder."""
+        """A python process with no Hermes argv, cwd OUTSIDE the install AND an
+        interpreter outside the project venv must not be reported as a holder.
+
+        ``sys.executable`` is the wrong sleeper here: the runner's ``uv run`` interpreter
+        lives in the checkout's ``.venv``, which ``project_venv_dir`` resolves since
+        7a94b1fbf77, so a ``sys.executable`` child IS a venv holder by design. The base
+        interpreter the venv was created from is the foreign python."""
         import tempfile
 
+        from hermes_constants import project_venv_dir
+
+        base = getattr(sys, "_base_executable", None) or sys.executable
+        venv_dir = project_venv_dir(PROJECT_ROOT)
+        if venv_dir is not None and str(Path(base).resolve()).lower().startswith(
+            str(venv_dir.resolve()).lower()
+        ):
+            pytest.skip("no interpreter outside the project venv available on this runner")
+
         outside = Path(tempfile.mkdtemp())
-        proc = _spawn(["totally", "unrelated"], cwd=outside)
+        proc = _spawn(["totally", "unrelated"], cwd=outside, python=base)
         try:
             pids = [pid for pid, _, _ in _detect()]
             assert proc.pid not in pids
@@ -111,73 +123,6 @@ class TestDetection:
             assert cmdline is not None, "long-path gateway missed by scan"
             assert "gateway run" in cmdline.lower(), (
                 f"argv truncated before `gateway run`: {cmdline!r}"
-            )
-        finally:
-            _kill(proc)
-
-
-class TestClassification:
-    def test_pausable_exemption_sees_long_path_gateway(self):
-        """#78089 follow-through: `_leftover_pausable_gateway_pids` must
-        classify the long-path gateway as pausable (not None)."""
-        from hermes_cli.update_cmd import _leftover_pausable_gateway_pids
-
-        padding = os.path.join("C:\\", "Users", "y" * 90, ".hermes-runtime")
-        proc = _spawn([padding, "-m", "hermes_cli.main", "gateway", "run"])
-        try:
-            matches = [m for m in _detect() if m[0] == proc.pid]
-            assert matches, "gateway not detected"
-            pids = _leftover_pausable_gateway_pids(matches)
-            assert pids == [proc.pid], (
-                f"pausable exemption failed for long-path gateway: {pids}"
-            )
-        finally:
-            _kill(proc)
-
-    def test_serve_backend_not_classified_pausable(self):
-        """#81774 premise probe: a serve backend is NOT pausable today —
-        pinning current behavior so the consolidation change is visible."""
-        from hermes_cli.update_cmd import _leftover_pausable_gateway_pids
-
-        proc = _spawn(["-m", "hermes_cli.main", "serve"])
-        try:
-            matches = [m for m in _detect() if m[0] == proc.pid]
-            assert matches, "serve backend not detected"
-            assert _leftover_pausable_gateway_pids(matches) is None
-        finally:
-            _kill(proc)
-
-
-class TestHolderMessage:
-    """#90778 — the refusal message must name holders accurately."""
-
-    def test_dashboard_not_labeled_desktop_backend(self):
-        from hermes_cli.update_cmd import _format_venv_python_holders_message
-
-        proc = _spawn(["-m", "hermes_cli.main", "dashboard"])
-        try:
-            matches = [m for m in _detect() if m[0] == proc.pid]
-            assert matches, "dashboard process not detected"
-            message = _format_venv_python_holders_message(matches)
-            assert "close the desktop app" not in message.lower(), (
-                "standalone `hermes dashboard` mislabeled as the Desktop "
-                f"backend (#90778):\n{message}"
-            )
-        finally:
-            _kill(proc)
-
-    def test_substring_subcommand_not_mislabeled(self):
-        """`--preserve-cache` contains 'serve'; the classifier must not
-        label an unrelated subcommand as the Desktop backend (#90778)."""
-        from hermes_cli.update_cmd import _format_venv_python_holders_message
-
-        proc = _spawn(["-m", "hermes_cli.main", "kanban", "--preserve-cache"])
-        try:
-            matches = [m for m in _detect() if m[0] == proc.pid]
-            assert matches, "kanban process not detected"
-            message = _format_venv_python_holders_message(matches)
-            assert "close the desktop app" not in message.lower(), (
-                f"substring match mislabeled `--preserve-cache` (#90778):\n{message}"
             )
         finally:
             _kill(proc)

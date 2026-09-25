@@ -1,3 +1,4 @@
+import { compactNumber } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { memo } from 'react'
 import type * as React from 'react'
@@ -15,11 +16,11 @@ import type { SessionInfo } from '@/hermes'
 import { type Translations, useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import { pathLeaf } from '@/lib/display-path'
-import { compactNumber } from '@/lib/format'
 import { triggerHaptic } from '@/lib/haptics'
 import { middleClickHandlers } from '@/lib/middle-click'
 import { displayModelName } from '@/lib/model-status-label'
 import { sessionProjectLabel } from '@/lib/session-project-label'
+import { SESSION_ROW_AREAS } from '@/lib/session-row-slots'
 import { handoffOriginSource, sessionSourceLabel } from '@/lib/session-source'
 import { coarseElapsed } from '@/lib/time'
 import { useStoreSelector } from '@/lib/use-session-slice'
@@ -28,6 +29,7 @@ import { $sidebarRowMeta } from '@/store/layout'
 import { normalizeProfileKey } from '@/store/profile'
 import { $projects } from '@/store/projects'
 import { $pullRequestsByBranch, sessionPrKey } from '@/store/pull-requests'
+import { sessionPinId } from '@/store/session'
 import { $sessionDotStateById, hasLiveTurn, showsRunningArc } from '@/store/session-dot-state'
 import { $sessionListDensity } from '@/store/session-list-density'
 import { sessionCostUsd } from '@/store/sidebar-archive'
@@ -45,9 +47,11 @@ import {
   SidebarRowLeadGlyph,
   SidebarRowShell
 } from './chrome'
+import { shellOwnsPress } from './reorderable-list'
 import { SessionActionsMenu, SessionContextMenu } from './session-actions-menu'
 import { sessionRowDetails } from './session-row-details'
 import { resolveSessionRowClick } from './session-row-gesture'
+import { SessionRowSlot } from './session-row-slots'
 import { useProfilePrewarm } from './use-profile-prewarm'
 
 interface SidebarSessionRowProps extends React.ComponentProps<'div'> {
@@ -109,8 +113,8 @@ function disarmMarquee(event: React.PointerEvent<HTMLElement>) {
 // and is never narrower than the button that has to cover it. A PR chip is the
 // exception while the pointer is on it: it's a link, and the kebab sits
 // absolute over this space, so it has to stop taking clicks too, not just fade.
-const TAIL_HIDES = 'min-w-5 transition-opacity group-hover:opacity-0 group-has-[[data-pr-link]:hover]:opacity-100'
-const KEBAB_YIELDS = 'group-has-[[data-pr-link]:hover]:pointer-events-none group-has-[[data-pr-link]:hover]:opacity-0'
+const TAIL_HIDES = 'session-row-tail min-w-5 transition-opacity group-hover:opacity-0'
+const KEBAB_YIELDS = 'session-row-kebab'
 
 function formatAge(seconds: number, r: Translations['sidebar']['row']): string {
   const { unit, value } = coarseElapsed(Date.now() - seconds * 1000)
@@ -143,7 +147,7 @@ function SidebarSessionRowImpl({
 }: SidebarSessionRowProps) {
   const { t } = useI18n()
   const r = t.sidebar.row
-  const { cancelPrewarm, startPrewarm } = useProfilePrewarm(session.profile)
+  const { cancelPrewarm, notePointerMove, startPrewarm } = useProfilePrewarm(session.profile)
   const title = sessionTitle(session)
   const density = useStore($sessionListDensity)
   const fmt = t.sidebar
@@ -224,7 +228,7 @@ function SidebarSessionRowImpl({
               <Tip label={absoluteAge} side="top">
                 <time
                   aria-label={`${age}, ${absoluteAge}`}
-                  className="pointer-events-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sidebar-ring"
+                  className="pointer-events-auto focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sidebar-ring"
                   dateTime={timestampDate.toISOString()}
                   tabIndex={0}
                 >
@@ -303,6 +307,7 @@ function SidebarSessionRowImpl({
         </span>
       ))}
       <SessionActionsMenu
+        archived={Boolean(session.archived)}
         onArchive={onArchive}
         onBranch={onBranch}
         onDelete={onDelete}
@@ -332,6 +337,7 @@ function SidebarSessionRowImpl({
 
   return (
     <SessionContextMenu
+      archived={Boolean(session.archived)}
       onArchive={onArchive}
       onBranch={onBranch}
       onDelete={onDelete}
@@ -367,9 +373,17 @@ function SidebarSessionRowImpl({
         // steal the other's gesture. Over the sidebar only the reorder has a
         // target (the session drop denies: side chrome hosts no main tile);
         // over the tree only the session drop does (no sortable row there).
-        // Whichever one the release lands on is the one that commits.
-        {...dragHandleProps}
+        // Whichever one the release lands on is the one that commits. Pointer
+        // activator only; the full handle stays on the grabber (see
+        // useSortableBindings).
         onPointerDown={event => {
+          // The rename dialog and the ⋯ menu portal out of this row's React
+          // subtree, so their presses land here with a target outside the row —
+          // select the title in the dialog's input and the row would lift.
+          if (!shellOwnsPress(event)) {
+            return
+          }
+
           // The grabber already carries these same listeners, and the ⋯
           // cluster keeps its own gestures.
           if ((event.target as HTMLElement).closest('[data-reorder-handle], [data-row-actions]')) {
@@ -383,12 +397,11 @@ function SidebarSessionRowImpl({
           startSessionDrag({ id: session.id, profile: session.profile || 'default', title }, event)
           dragHandleProps?.onPointerDown?.(event)
         }}
-        // Hovering a row from another profile (the all-profiles view) telegraphs
-        // a cross-profile resume — start that backend's spawn now so the click
-        // doesn't pay the full cold boot. Same-profile rows no-op inside
-        // prewarmProfileBackend.
+        // Cross-profile hover pre-warms that backend; the dwell starts on a real
+        // pointermove, not on enter — see useProfilePrewarm (#100548).
         onPointerEnter={startPrewarm}
         onPointerLeave={cancelPrewarm}
+        onPointerMove={notePointerMove}
         ref={ref}
         style={style}
         {...rest}
@@ -482,9 +495,10 @@ function SidebarSessionRowImpl({
               return (
                 <>
                   {leadNode}
+                  <SessionRowSlot area={SESSION_ROW_AREAS.leading} sessionId={sessionPinId(session)} />
                   {handoffBadge}
                   <span className="min-w-0 flex-1 self-center">
-                    <OverflowTip label={title}>
+                    <OverflowTip label={title} placement="row">
                       <SidebarRowLabel
                         className="hover-marquee block font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90"
                         onPointerEnter={armMarquee}
@@ -517,6 +531,7 @@ function SidebarSessionRowImpl({
                       </span>
                     )}
                   </span>
+                  <SessionRowSlot area={SESSION_ROW_AREAS.trailing} sessionId={sessionPinId(session)} />
                 </>
               )
             }
@@ -530,6 +545,7 @@ function SidebarSessionRowImpl({
                     entire width — nothing truncates against the kebab. */}
                 <div className="flex min-w-0 items-center gap-1.5">
                   {leadNode}
+                  <SessionRowSlot area={SESSION_ROW_AREAS.leading} sessionId={sessionPinId(session)} />
                   <span
                     className={cn(
                       'min-w-0 flex-1 truncate text-[0.6875rem] text-(--ui-text-tertiary)',
@@ -539,12 +555,13 @@ function SidebarSessionRowImpl({
                     {context}
                   </span>
                   {handoffBadge}
+                  <SessionRowSlot area={SESSION_ROW_AREAS.trailing} sessionId={sessionPinId(session)} />
                   {actionsNode}
                 </div>
                 {/* Title + preview: ONE grouped cell with its own tight
                     internal gap — it does not inherit the card's rhythm. */}
                 <div className="flex min-w-0 flex-col gap-[0.15rem]">
-                  <OverflowTip label={title}>
+                  <OverflowTip label={title} placement="row">
                     <SidebarRowLabel
                       className={cn(
                         'hover-marquee text-[0.8125rem] font-medium text-(--ui-text-primary) group-data-[working=true]:text-foreground',
