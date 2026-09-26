@@ -98,6 +98,20 @@ class TestFreeRuntime:
         assert headers["X-Title"] == "Hermes Agent"
 
 
+def test_headers_include_zen_identity_without_local_auth(monkeypatch, tmp_path):
+    # The provider requires these identity headers even for anonymous requests.
+    # Simulate a fresh profile with no OpenCode credential file.
+    monkeypatch.setenv("OPENCODE_AUTH_FILE", str(tmp_path / "missing-auth.json"))
+    headers = opencode_zen_free_headers()
+    assert headers["Authorization"] == ""
+    assert headers["x-opencode-client"] == "hermes"
+    assert headers["x-opencode-session"].startswith("ses_")
+    assert headers["x-opencode-request"].startswith("req_")
+    next_headers = opencode_zen_free_headers()
+    assert headers["x-opencode-session"] != next_headers["x-opencode-session"]
+    assert headers["x-opencode-request"] != next_headers["x-opencode-request"]
+
+
 class TestRuntimeProviderKeylessRouting:
     @pytest.fixture(autouse=True)
     def _no_opencode_creds(self, monkeypatch):
