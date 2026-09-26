@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
+=======
+import type { GatewayEventName } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+>>>>>>> upstream/main
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
@@ -43,8 +48,13 @@ function Harness() {
   return null
 }
 
+<<<<<<< HEAD
 const event = (type: string, timestamp: number, payload: Record<string, unknown> = {}) =>
   act(() => handleEvent?.({ payload: { ...payload, timestamp }, session_id: SID, type }))
+=======
+const event = (type: GatewayEventName, timestamp: number, payload: Record<string, unknown> = {}) =>
+  act(() => stream.handleEvent({ payload: { ...payload, timestamp }, session_id: SID, type }))
+>>>>>>> upstream/main
 
 describe('live transcript timeline events', () => {
   beforeEach(async () => {
@@ -104,6 +114,7 @@ describe('live transcript timeline events', () => {
     expect([assistant?.timestamp, assistant?.completedAt]).toEqual([301.875, 301.875])
   })
 
+<<<<<<< HEAD
   it('uses the gateway event time for a review summary system row', () => {
     event('review.summary', 401.625, { text: 'Review saved.' })
 
@@ -113,6 +124,8 @@ describe('live transcript timeline events', () => {
     expect(system?.parts[0].timestamp).toBe(401.625)
   })
 
+=======
+>>>>>>> upstream/main
   it('uses session.info time when it is the only stop boundary', () => {
     event('message.start', 500)
     event('tool.start', 501, { args: {}, name: 'terminal', tool_id: 'call-3' })
