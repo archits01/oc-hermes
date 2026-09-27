@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   isMessagingSource,
+  LMI_CONFIGURED_MESSAGING_SOURCE_IDS,
   MESSAGING_SESSION_SOURCE_IDS,
+  mergeMessagingSourceIds,
   sessionSourceLabel,
   sessionSourceSearchTerms
 } from './session-source'
@@ -48,5 +50,27 @@ describe('whatsapp_unipile display label', () => {
   it('still groups the Unipile adapter as its own messaging source', () => {
     expect(isMessagingSource('whatsapp_unipile')).toBe(true)
     expect(MESSAGING_SESSION_SOURCE_IDS).toContain('whatsapp_unipile')
+  })
+})
+
+describe('configured LMI messaging sections', () => {
+  it('keeps the configured channels visible without requiring a thread row', () => {
+    expect(mergeMessagingSourceIds([], LMI_CONFIGURED_MESSAGING_SOURCE_IDS)).toEqual([
+      'instagram',
+      'linkedin',
+      'telegram'
+    ])
+  })
+
+  it('merges loaded sessions without admitting local or unknown sources', () => {
+    expect(mergeMessagingSourceIds(['whatsapp_unipile', 'desktop', 'not-a-platform'], ['telegram'])).toEqual([
+      'whatsapp_unipile',
+      'telegram'
+    ])
+  })
+
+  it('uses human labels for the LMI channels', () => {
+    expect(sessionSourceLabel('instagram')).toBe('Instagram')
+    expect(sessionSourceLabel('linkedin')).toBe('LinkedIn')
   })
 })
