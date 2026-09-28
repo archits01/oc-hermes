@@ -123,7 +123,7 @@ def test_probe_uses_keyless_honest_chat_completions_wire(monkeypatch, opencode_h
 
     assert script.probe_anonymous_model("https://example.test/v1", "new-promo-free", timeout=1) == "success"
     assert captured["url"] == "https://example.test/v1/chat/completions"
-    assert captured["body"]["max_tokens"] == 1
+    assert captured["body"]["max_tokens"] == 256
     assert captured["body"]["model"] == "new-promo-free"
     from hermes_cli.models import opencode_zen_free_runtime
 
@@ -157,7 +157,7 @@ def test_probe_uses_responses_wire_for_verified_responses_models(monkeypatch, op
         "https://example.test/v1", "responses-promo-free", timeout=1
     ) == "success"
     assert captured["url"] == "https://example.test/v1/responses"
-    assert captured["body"]["max_output_tokens"] == 1
+    assert captured["body"]["max_output_tokens"] == script.RESPONSES_PROBE_MAX_OUTPUT_TOKENS
     assert "messages" not in captured["body"]
 
 
@@ -181,10 +181,89 @@ def test_probe_rejects_malformed_success_responses(monkeypatch, opencode_home, m
     monkeypatch.setattr(
         script, "_request_json", lambda *_args, **_kwargs: ("success", 200, payload)
     )
+    monkeypatch.setattr(script, "probe_responses_stream", lambda *_args, **_kwargs: "definitive")
 
     assert script.probe_anonymous_model(
         "https://example.test/v1", "candidate-free", timeout=1
     ) == "definitive"
+
+
+def test_provider_error_envelope_distinguishes_transient_and_definitive(opencode_home):
+    script = _load_refresh_script()
+    assert script._provider_error_outcome(
+        {"error": {"type": "error", "message": "Internal server error"}}
+    ) == "transient"
+    assert script._provider_error_outcome(
+        {"error": {"type": "server_error", "message": "Model is unavailable"}}
+    ) == "definitive"
+
+
+def test_reasoning_only_chat_response_is_retained(monkeypatch, opencode_home):
+    script = _load_refresh_script()
+    monkeypatch.setattr(script, "opencode_model_api_mode", lambda *_args: "chat_completions")
+    monkeypatch.setattr(
+        script,
+        "_request_json",
+        lambda *_args, **_kwargs: (
+            "success",
+            200,
+            {"choices": [{"message": {"role": "assistant", "content": None, "reasoning": "thinking"}}]},
+        ),
+    )
+    assert script.probe_anonymous_model(
+        "https://example.test/v1", "reasoning-free", timeout=1
+    ) == "transient"
+
+
+def test_incomplete_responses_stream_is_retained(monkeypatch, opencode_home):
+    script = _load_refresh_script()
+
+    class FakeResponse:
+        def __enter__(self):
+            self.lines = iter([
+                b'data: {"type":"response.incomplete","response":{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"}}}' + bytes([10]),
+                bytes([10]),
+            ])
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def readline(self, *_args):
+            return next(self.lines, b"")
+
+    monkeypatch.setattr(script.urllib.request, "urlopen", lambda *_args, **_kwargs: FakeResponse())
+    assert script.probe_responses_stream(
+        "https://example.test/v1", "reasoning-free", timeout=1
+    ) == "transient"
+
+
+
+def test_transient_probe_retries_once_before_rejecting(monkeypatch, opencode_home):
+    script = _load_refresh_script()
+    calls = []
+
+    def fake_probe(*_args, **_kwargs):
+        calls.append(True)
+        return "transient" if len(calls) == 1 else "success"
+
+    monkeypatch.setattr(script, "probe_anonymous_model", fake_probe)
+    monkeypatch.setattr(script.time, "sleep", lambda _seconds: None)
+
+    assert script.probe_candidate_with_retries(
+        "https://example.test/v1", "retry-free", timeout=1
+    ) == "success"
+    assert len(calls) == 2
+
+
+def test_responses_empty_envelope_falls_back_to_stream_probe(monkeypatch, opencode_home):
+    script = _load_refresh_script()
+    monkeypatch.setattr(script, "opencode_model_api_mode", lambda *_args: "codex_responses")
+    monkeypatch.setattr(
+        script, "_request_json", lambda *_args, **_kwargs: ("success", 200, {"id": "ok", "output": []})
+    )
+    monkeypatch.setattr(script, "probe_responses_stream", lambda *_args, **_kwargs: "success")
+    assert script.probe_anonymous_model("https://example.test/v1", "stream-promo-free", timeout=1) == "success"
 
 
 def test_anthropic_mode_promotions_fail_closed_until_runtime_is_keyless(monkeypatch, opencode_home):
@@ -262,6 +341,29 @@ def test_mixed_probe_outcomes_keep_only_rediscovered_transient_prior(monkeypatch
     payload = json.loads((opencode_home / "opencode_free_model_catalog.json").read_text())
     assert payload["verified_at"] == old_time
     assert [item["id"] for item in payload["models"]] == ["transient-free"]
+
+
+
+def test_success_plus_transient_retains_prior_item_timestamp(monkeypatch, opencode_home):
+    script = _load_refresh_script()
+    old_time = time.time() - 60
+    _write_cache(opencode_home, verified_at=old_time, models=["transient-free"])
+    monkeypatch.setattr(
+        script,
+        "fetch_open_code_models",
+        lambda *_args, **_kwargs: ("success", ["transient-free", "new-free"]),
+    )
+    monkeypatch.setattr(
+        script,
+        "probe_anonymous_model",
+        lambda _base, model, **_kwargs: "transient" if model == "transient-free" else "success",
+    )
+    result = script.refresh_catalog(timeout=1)
+    payload = json.loads((opencode_home / "opencode_free_model_catalog.json").read_text())
+    assert result == {"status": "updated", "models": 2}
+    stamps = {item["id"]: item["verified_at"] for item in payload["models"]}
+    assert stamps["transient-free"] == old_time
+    assert stamps["new-free"] > old_time
 
 
 def test_successful_refresh_writes_only_individually_verified_candidates(monkeypatch, opencode_home):

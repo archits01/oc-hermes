@@ -152,7 +152,7 @@ function sourceLabel(source: string): string {
     case "tool":
       return "Tool";
     case "hermes_flow":
-      return "OpenComputer Flow";
+      return "Open Computer Flow";
     case "vulcan_delegate":
       return "Vulcan delegate";
     case "webhook":
