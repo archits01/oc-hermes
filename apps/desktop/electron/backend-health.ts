@@ -39,7 +39,7 @@ export const REMOTE_SESSION_EXPIRED_MESSAGE =
   'Your remote gateway session has expired. Open Settings → Gateway and click "Sign in" again.'
 
 export const REMOTE_UNSIGNED_OAUTH_MESSAGE =
-  'Remote OpenComputer gateway uses OAuth, but you are not signed in. ' +
+  'Remote Open Computer gateway uses OAuth, but you are not signed in. ' +
   'Open Settings → Gateway and click "Sign in", or switch back to Local.'
 
 /**
@@ -92,7 +92,7 @@ export function isServerSideHttpError(error: unknown): {
 }
 
 /**
- * The one factory for the actionable Nous Cloud agent-is-down error, shared by
+ * The one factory for the actionable Open Computer Cloud agent-is-down error, shared by
  * both startup boundaries that can observe a server-side HTTP fault:
  *
  *  - OAuth WS-ticket mint (buildRemoteConnection → mintGatewayWsTicket), which
@@ -127,7 +127,7 @@ export function makeNousCloudBackendDownError(baseUrl: string, error: unknown): 
   const detail = error instanceof Error ? error.message : String(error ?? '')
 
   const err = new Error(
-    `Nous Cloud agent ${hostname} is down ` +
+    `Open Computer Cloud agent ${hostname} is down ` +
       `(HTTP ${serverError.statusCode}: server-side fault). ` +
       'Check https://portal.nousresearch.com for backend status, ' +
       'or switch to Local mode in Settings → Gateway. ' +
@@ -313,5 +313,5 @@ export async function waitForHermesReady(baseUrl: string, options: HermesReadyOp
     throw cloudError
   }
 
-  throw new Error(`OpenComputer backend did not become ready: ${detail}`)
+  throw new Error(`Open Computer backend did not become ready: ${detail}`)
 }

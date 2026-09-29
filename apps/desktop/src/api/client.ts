@@ -16,9 +16,9 @@ import type { HermesApiRequest } from '@/global'
 export const STARTUP_REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS = 30_000
 export const GATEWAY_ERROR_MESSAGES = {
-  closed: 'OpenComputer gateway connection closed',
-  connect: 'Could not connect to OpenComputer gateway',
-  notConnected: 'OpenComputer gateway is not connected'
+  closed: 'Open Computer gateway connection closed',
+  connect: 'Could not connect to Open Computer gateway',
+  notConnected: 'Open Computer gateway is not connected'
 } as const
 // prompt.submit is effectively fire-and-forget: turn completion is signaled by
 // stream / message.complete events, NOT by the RPC return. A long turn (MoA

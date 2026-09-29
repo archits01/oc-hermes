@@ -15,7 +15,11 @@ describe('lmi-dashboard packaged sidebar page', () => {
     expect(source).toMatch(/defaultEnabled:\s*true/)
     expect(source).toMatch(/path:\s*'\/lmi-dashboard'/)
     expect(source).toMatch(/label:\s*'LMI Dashboard'/)
-    expect(source).toMatch(/document\.createElement\('webview'\)/)
+    expect(source).toMatch(/<iframe/)
+    expect(source).toMatch(/https:\/\/lmi-dashboard-one\.vercel\.app\/dashboard['"]?/)
+    expect(source).toMatch(/sandbox=\"allow-forms allow-modals allow-popups allow-same-origin allow-scripts\"/)
+    expect(source).toMatch(/title=\"Laser Magic India Dashboard\"/)
+    expect(source).not.toMatch(/document\.createElement\('webview'\)/)
     expect(source).not.toMatch(/openExternal/)
   })
 
