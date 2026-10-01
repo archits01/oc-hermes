@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 
 import { terminalMenuHandleFor } from '@/app/right-sidebar/terminal/terminal-context-menu'
+import { openStarMapNodeMenuFor } from '@/app/starmap/context-menu-handle'
 import { toggleTargetZoneTabStrip } from '@/components/pane-shell/tree/store'
 import { Codicon } from '@/components/ui/codicon'
 import { writeClipboardText } from '@/components/ui/copy-button'
@@ -16,12 +17,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { type Translations, useI18n } from '@/i18n'
-import { hostPathLabel, normalizeExternalUrl, openExternalLink } from '@/lib/external-link'
+import { hostPathLabel, hudForcesNativeLinks, normalizeExternalUrl, openExternalLink } from '@/lib/external-link'
 import { formatCombo } from '@/lib/keybinds/combo'
 import { isRemoteGateway } from '@/lib/media'
 import { reachablePreviewUrl } from '@/lib/preview-reach'
 import { openCommandPalette } from '@/store/command-palette'
 import { openPreview } from '@/store/preview'
+import { toggleProfileRailVisible } from '@/store/profile-rail-prefs'
 import { toggleStatusbarVisible } from '@/store/statusbar-prefs'
 import { requestActiveUpdate } from '@/store/updates'
 import { canOpenNewWindow, openNewWindow } from '@/store/windows'
@@ -136,6 +138,7 @@ function domSections(open: Extract<OpenContextMenu, { kind: 'dom' }>, t: Transla
   const linkUrl = target.linkUrl ? normalizeExternalUrl(target.linkUrl) : ''
   const linkIsWeb = isWebUrl(linkUrl)
   const imageIsWeb = isWebUrl(target.imageUrl)
+  const openInApp = !hudForcesNativeLinks()
   const showResolvedCopy = linkIsWeb && isRemoteGateway() && isLoopbackUrl(linkUrl)
 
   // The edit verbs and spell-check actions act on the sender's FOCUSED
@@ -193,17 +196,12 @@ function domSections(open: Extract<OpenContextMenu, { kind: 'dom' }>, t: Transla
   if (linkUrl) {
     sections.push(
       [
-        linkIsWeb ? (
+        linkIsWeb && openInApp ? (
           <Item
             icon="globe"
             key="link-open-app"
             label={copy.link.openInApp}
-            onSelect={() =>
-              openPreview(
-                { kind: 'url', label: hostPathLabel(linkUrl), source: linkUrl, url: linkUrl },
-                'explicit-link'
-              )
-            }
+            onSelect={() => openPreview({ kind: 'url', label: hostPathLabel(linkUrl), source: linkUrl, url: linkUrl })}
           />
         ) : null,
         <Item
@@ -233,16 +231,18 @@ function domSections(open: Extract<OpenContextMenu, { kind: 'dom' }>, t: Transla
   if (target.onImage) {
     sections.push(
       [
-        imageIsWeb ? (
+        imageIsWeb && openInApp ? (
           <Item
             icon="globe"
             key="image-open-app"
             label={copy.link.openInApp}
             onSelect={() =>
-              openPreview(
-                { kind: 'url', label: hostPathLabel(target.imageUrl), source: target.imageUrl, url: target.imageUrl },
-                'explicit-link'
-              )
+              openPreview({
+                kind: 'url',
+                label: hostPathLabel(target.imageUrl),
+                source: target.imageUrl,
+                url: target.imageUrl
+              })
             }
           />
         ) : null,
@@ -306,8 +306,13 @@ function domSections(open: Extract<OpenContextMenu, { kind: 'dom' }>, t: Transla
     // SELECTION, so they need selected text — not just field content.
     // Inputs and textareas carry their selection on the element (Chrome
     // never reflects it into window.getSelection()); contenteditable uses
-    // the document selection the resolver captured. Paste needs a
-    // non-empty clipboard, select all needs the field to hold anything.
+    // the document selection the resolver captured. Select all needs the
+    // field to hold anything. Paste is intentionally NOT gated on a
+    // clipboard probe: its action is webContents.paste() in main — the
+    // same path Ctrl+V takes — which resolves the system clipboard itself,
+    // while the renderer-side readClipboard probe can report empty on
+    // Windows even when that path succeeds (#91553). Pasting with an
+    // empty clipboard is a harmless no-op, so the item fails open.
     const formField =
       target.editable instanceof HTMLInputElement || target.editable instanceof HTMLTextAreaElement
         ? target.editable
@@ -337,7 +342,6 @@ function domSections(open: Extract<OpenContextMenu, { kind: 'dom' }>, t: Transla
         shortcut={EDIT_SHORTCUTS.copy}
       />,
       <Item
-        disabled={!open.clipboardHasText}
         key="edit-paste"
         label={copy.edit.paste}
         onSelect={() => editableCommand('paste')}
@@ -377,6 +381,7 @@ function guestSections(open: Extract<OpenContextMenu, { kind: 'guest' }>, t: Tra
   const sections: ReactNode[][] = []
   const linkUrl = params.linkURL
   const imageUrl = params.srcURL
+  const openInApp = !hudForcesNativeLinks()
 
   // Same trap-timing rule as the dom side: dispatch AFTER the menu closes,
   // so the webview's focus() is not stolen back by the radix content.
@@ -388,17 +393,12 @@ function guestSections(open: Extract<OpenContextMenu, { kind: 'guest' }>, t: Tra
   if (linkUrl) {
     sections.push(
       [
-        isWebUrl(linkUrl) ? (
+        isWebUrl(linkUrl) && openInApp ? (
           <Item
             icon="globe"
             key="guest-link-open-app"
             label={copy.link.openInApp}
-            onSelect={() =>
-              openPreview(
-                { kind: 'url', label: hostPathLabel(linkUrl), source: linkUrl, url: linkUrl },
-                'explicit-link'
-              )
-            }
+            onSelect={() => openPreview({ kind: 'url', label: hostPathLabel(linkUrl), source: linkUrl, url: linkUrl })}
           />
         ) : null,
         <Item
@@ -566,6 +566,12 @@ function shellSections({ navigate, t }: ShellVerbs): ReactNode[][] {
         label={t.keybinds.actions['view.toggleStatusbar']}
         onSelect={toggleStatusbarVisible}
       />,
+      <Item
+        icon="organization"
+        key="shell-profile-rail"
+        label={t.keybinds.actions['view.toggleProfileRail']}
+        onSelect={toggleProfileRailVisible}
+      />,
       // The pointer-only way back to a hidden tab strip: right-clicking the
       // shell reaches this menu from anywhere, including a zone that has no
       // chrome left to right-click.
@@ -598,8 +604,8 @@ function shellSections({ navigate, t }: ShellVerbs): ReactNode[][] {
  *
  * Every right-click in the app resolves here first. Radix-owned surfaces
  * (session rows and other `context-menu-trigger` wrappers) keep their own
- * menus; the reaction bubble keeps plain right-clicks; terminals answer
- * through their registered xterm handles; everything else gets a menu
+ * menus; the reaction bubble keeps plain right-clicks; terminals and the
+ * Star Map answer through registered handles; everything else gets a menu
  * assembled from what the click landed on — link, image, editable,
  * selection — with the window verbs as the empty-target fallback. Replaced
  * both the native Electron menu and the shell fallback wrapper, so labels
@@ -620,6 +626,15 @@ export function AppContextMenu() {
 
       // Surfaces with their own Radix context menu keep the whole gesture.
       if (element?.closest('[data-slot="context-menu-trigger"]')) {
+        return
+      }
+
+      // The Star Map owns node hits, but empty canvas space still reaches the
+      // shell fallback below. A canvas-wide opt-out would lose that fallback.
+      if (openStarMapNodeMenuFor(element, event.clientX, event.clientY)) {
+        event.preventDefault()
+        event.stopPropagation()
+
         return
       }
 
@@ -685,6 +700,7 @@ export function AppContextMenu() {
         align="start"
         className="w-56"
         onCloseAutoFocus={event => event.preventDefault()}
+        portalContainer={open.kind === 'dom' ? open.target.dialogPortalContainer : undefined}
         side="bottom"
       >
         {sections.map((section, index) => (

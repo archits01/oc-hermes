@@ -5,6 +5,7 @@ import { DecodeText } from '@/components/ui/decode-text'
 import { cn } from '@/lib/utils'
 import { $desktopBoot } from '@/store/boot'
 import { $gatewaySwitching } from '@/store/gateway-switch'
+import { guidedOnboardingActive } from '@/store/onboarding-gate'
 import { $gatewayState } from '@/store/session'
 
 // Decode mechanics live in the shared <DecodeText> primitive
@@ -135,6 +136,15 @@ export function GatewayConnectingOverlay() {
     return null
   }
 
+  // The guided first launch has its own opening (the typed greeting in a
+  // small window). "Connecting…" over it, then "Connected to
+  // localhost", is the app's boot narrating itself in the middle of the
+  // guide's; the guide's surface stays, this one yields. Boot progress still
+  // gates the transcript underneath — nothing paints early.
+  if (!previewing && guidedOnboardingActive()) {
+    return null
+  }
+
   const leaving = phase !== 'live'
   const overlayHidden = phase === 'overlay-out' || phase === 'gone'
 
@@ -156,6 +166,7 @@ export function GatewayConnectingOverlay() {
           leaving ? 'translate-y-2 opacity-0 saturate-0' : 'translate-y-0 opacity-100 saturate-100'
         )}
         cursor
+        loop
         prefix={4}
         text={TEXT}
       />
