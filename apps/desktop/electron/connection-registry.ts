@@ -1043,7 +1043,7 @@ export function migrateV1ToRegistry(v1: unknown): ConnectionRegistry {
     }
 
     const label = uniqueLabel(
-      hostLabelFromBaseUrl(url) || (kind === 'cloud' ? 'OpenComputer Cloud' : 'Remote gateway'),
+      hostLabelFromBaseUrl(url) || (kind === 'cloud' ? 'Open Computer Cloud' : 'Remote gateway'),
       connections.map(c => c.label)
     )
 
@@ -1255,7 +1255,7 @@ export function reconcileAppliedGlobalConnection(
   const label =
     existing?.label ||
     uniqueLabel(
-      hostLabelFromBaseUrl(url) || (kind === 'cloud' ? 'OpenComputer Cloud' : 'Remote gateway'),
+      hostLabelFromBaseUrl(url) || (kind === 'cloud' ? 'Open Computer Cloud' : 'Remote gateway'),
       registry.connections.map(connection => connection.label)
     )
 
