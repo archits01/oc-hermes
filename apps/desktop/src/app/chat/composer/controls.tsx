@@ -5,16 +5,24 @@ import { Codicon } from '@/components/ui/codicon'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
+import { Ear, EarOff, iconSize, Layers3, Loader2, Square } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+<<<<<<< HEAD
 import { wakeWordAllowedForConnection } from '@/lib/wake-word-policy'
 import { $hudMode } from '@/store/hud'
 import { $connection } from '@/store/session'
+=======
+import { recordAction } from '@/store/desktop-metrics'
+import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
+>>>>>>> upstream/main
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
+import { ReasoningPill } from './reasoning-pill'
+import { StartVoiceButton } from './start-voice-button'
 import type { ChatBarState, VoiceStatus } from './types'
+import { VoiceFan } from './voice-fan'
 import { VoiceMenu } from './voice-menu'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -53,6 +61,7 @@ export function ComposerControls({
   disabled,
   foldVoice = false,
   hasComposerPayload,
+  hideModelPill = false,
   minimal = false,
   state,
   voiceStatus,
@@ -69,6 +78,7 @@ export function ComposerControls({
   disabled: boolean
   foldVoice?: boolean
   hasComposerPayload: boolean
+  hideModelPill?: boolean
   minimal?: boolean
   state: ChatBarState
   voiceStatus: VoiceStatus
@@ -92,7 +102,7 @@ export function ComposerControls({
   // Steer is just send: a payload keeps the Send affordance mid-turn. Stop
   // only when the composer is empty and a turn is running.
   const showStop = busy && !hasComposerPayload
-  const showQueueButton = busyAction !== 'stop' && hasComposerPayload
+  const showQueueButton = busy && busyAction !== 'stop' && hasComposerPayload
   // The HUD is a Spotlight bar a few hundred pixels wide, so the four separate
   // voice toggles fold into one menu there and leave the row to the input. A
   // narrow tile hits the same wall from the other direction and folds for the
@@ -113,6 +123,7 @@ export function ComposerControls({
       wakeWordAllowed={wakeWordAllowed}
     />
   ) : (
+<<<<<<< HEAD
     <>
       <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
@@ -124,8 +135,34 @@ export function ComposerControls({
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
       {minimal ? null : <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />}
       {minimal ? null : voiceControls}
+=======
+    // One mic in the row; hovering it fans the other voice toggles out of it.
+    <VoiceFan
+      autoSpeak={autoSpeak}
+      disabled={disabled}
+      onDictate={onDictate}
+      onToggleAutoSpeak={onToggleAutoSpeak}
+      state={state}
+      voiceStatus={voiceStatus}
+    />
+  )
+
+  return (
+    <div className="flex min-w-0 shrink items-center gap-(--composer-control-gap)">
+      {minimal ? null : (
+        <>
+          {hideModelPill ? null : (
+            <>
+              <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+              {compactModelPill ? null : <ReasoningPill disabled={disabled} model={state.model} />}
+            </>
+          )}
+          {voiceControls}
+        </>
+      )}
+>>>>>>> upstream/main
       {showQueueButton ? (
-        <Tip label={<TipKeybindLabel actionId="composer.queue" text={c.queueMessage} />}>
+        <Tip label={<TipKeybindLabel actionId="composer.queue" text={c.queueMessage} />} placement="control">
           <Button
             aria-label={c.queueMessage}
             className={GHOST_ICON_BTN}
@@ -140,21 +177,7 @@ export function ComposerControls({
         </Tip>
       ) : null}
       {showVoicePrimary ? (
-        <Tip label={c.startVoice}>
-          <Button
-            aria-label={c.startVoice}
-            className={PRIMARY_ICON_BTN}
-            disabled={disabled}
-            onClick={() => {
-              triggerHaptic('open')
-              conversation.onStart()
-            }}
-            size="icon"
-            type="button"
-          >
-            <AudioLines className={iconSize.sm} />
-          </Button>
-        </Tip>
+        <StartVoiceButton disabled={disabled} label={c.startVoice} onStart={conversation.onStart} />
       ) : (
         <Tip
           label={
@@ -164,11 +187,13 @@ export function ComposerControls({
               <TipKeybindLabel actionId="composer.send" text={c.send} />
             )
           }
+          placement="control"
         >
           <Button
             aria-label={showStop ? c.stop : c.send}
             className={PRIMARY_ICON_BTN}
             disabled={disabled || !canSubmit}
+            onClick={() => recordAction(showStop ? 'composer.cancel' : 'composer.send', 'click')}
             type="submit"
           >
             {showStop ? (
@@ -179,10 +204,57 @@ export function ComposerControls({
           </Button>
         </Tip>
       )}
+<<<<<<< HEAD
+=======
+      {/* The way out of HUD mode, riding the controls row rather than floating
+          above the bar. The old chip lived in a 26px transparent strip reserved
+          over the composer (--hud-chip-strip), which under glass is bare
+          untinted material with a hidden button in it — a band of chrome above
+          the surface, paid for in every state, for a control that is invisible
+          until hovered. Here it costs no reserved space and sits with the other
+          things you can press. */}
+      {hudMode ? <HudWindowButtons /> : null}
+>>>>>>> upstream/main
     </div>
   )
 }
 
+<<<<<<< HEAD
+=======
+function HudWindowButtons() {
+  const { t } = useI18n()
+
+  return (
+    <>
+      <Tip label={t.titlebar.resetHudLayout} placement="toolbar">
+        <Button
+          aria-label={t.titlebar.resetHudLayout}
+          className={cn(GHOST_ICON_BTN, 'p-0')}
+          onClick={resetHudLayout}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Codicon name="discard" size="0.875rem" />
+        </Button>
+      </Tip>
+      <Tip label={t.titlebar.exitHud} placement="toolbar">
+        <Button
+          aria-label={t.titlebar.exitHud}
+          className={cn(GHOST_ICON_BTN, 'p-0')}
+          onClick={closeHud}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Codicon name="screen-normal" size="0.875rem" />
+        </Button>
+      </Tip>
+    </>
+  )
+}
+
+>>>>>>> upstream/main
 function ConversationPill({
   disabled,
   level,
@@ -211,8 +283,15 @@ function ConversationPill({
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
+<<<<<<< HEAD
       {wakeWordAllowed ? <WakeWordButton disabled={disabled} pausedForVoice /> : null}
       <Tip label={muted ? c.unmuteMic : c.muteMic}>
+=======
+      {/* Keep the ear visible during voice chat — shown paused, since the
+          conversation holds the mic (the one time wake must not listen). */}
+      <WakeWordButton disabled={disabled} pausedForVoice />
+      <Tip label={muted ? c.unmuteMic : c.muteMic} placement="control">
+>>>>>>> upstream/main
         <Button
           aria-label={muted ? c.unmuteMic : c.muteMic}
           aria-pressed={muted}
@@ -292,6 +371,7 @@ function ConversationIndicator({
   )
 }
 
+<<<<<<< HEAD
 // Pure-TTS toggle: type normally, but have every assistant reply read aloud —
 // no dictation, no full conversation loop. Filled/accent when on, mirroring the
 // muted-mic pressed state above. Driven by (and persisted to) `voice.auto_tts`.
@@ -325,6 +405,8 @@ function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disa
   )
 }
 
+=======
+>>>>>>> upstream/main
 // "Hey Hermes" wake-word toggle. ALWAYS rendered — the ear never hides. A
 // user must always be able to click it to turn passive listening on; if the
 // backend can't start (missing STT/TTS, deps still installing, no mic
@@ -350,7 +432,7 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
   const tooltip = !pausedForVoice && wake.notice ? `${label} — ${wake.notice}` : label
 
   return (
-    <Tip label={tooltip}>
+    <Tip label={tooltip} placement="control">
       <Button
         aria-label={label}
         aria-pressed={wake.listening && !pausedForVoice}
@@ -373,6 +455,7 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
     </Tip>
   )
 }
+<<<<<<< HEAD
 
 function DictationButton({
   disabled,
@@ -425,3 +508,5 @@ function DictationButton({
     </Tip>
   )
 }
+=======
+>>>>>>> upstream/main
