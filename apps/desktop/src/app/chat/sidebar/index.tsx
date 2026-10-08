@@ -28,7 +28,12 @@ import { useI18n } from '@/i18n'
 import { comboTokens } from '@/lib/keybinds/combo'
 import { resolveProfileColor } from '@/lib/profile-color'
 import { sessionMatchesSearch } from '@/lib/session-search'
-import { normalizeSessionSource, sessionSourceLabel } from '@/lib/session-source'
+import {
+  LMI_CONFIGURED_MESSAGING_SOURCE_IDS,
+  mergeMessagingSourceIds,
+  normalizeSessionSource,
+  sessionSourceLabel
+} from '@/lib/session-source'
 import { cn } from '@/lib/utils'
 import { $activeConnectionId } from '@/store/connections'
 import { $cronJobs } from '@/store/cron'
@@ -1193,10 +1198,6 @@ export function ChatSidebar({
   // within a platform by recency. Per-platform totals (when a "load more" has
   // resolved them) drive the count + whether more remain on disk.
   const messagingGroups = useMemo<MessagingSection[]>(() => {
-    if (!visibleMessagingSessions.length) {
-      return []
-    }
-
     const bySource = new Map<string, SessionInfo[]>()
     // Rows this platform owns that the Pinned section is showing instead. The
     // backend's per-platform total counts them, so discount it or "load more"
@@ -1221,8 +1222,12 @@ export function ChatSidebar({
       bySource.set(sourceId, list)
     }
 
-    return [...bySource.entries()]
-      .map(([sourceId, list]) => {
+    return mergeMessagingSourceIds(
+      visibleMessagingSessions.map(session => session.source),
+      LMI_CONFIGURED_MESSAGING_SOURCE_IDS
+    )
+      .map(sourceId => {
+        const list = bySource.get(sourceId) ?? []
         const ordered = [...list].sort((a, b) => sessionTime(b) - sessionTime(a))
         const known = messagingPlatformTotals[messagingTotalsKey(messagingProfile, sourceId)]
         const unpinnedKnown = known == null ? null : Math.max(0, known - (pinnedBySource.get(sourceId) ?? 0))
@@ -1239,8 +1244,19 @@ export function ChatSidebar({
           total
         }
       })
-      .sort((a, b) => sessionTime(b.sessions[0]) - sessionTime(a.sessions[0]))
-  }, [visibleMessagingSessions, messagingPlatformTotals, messagingTruncated, isPinnedSession, messagingProfile])
+      .sort((a, b) => {
+        const aTime = a.sessions[0] ? sessionTime(a.sessions[0]) : 0
+        const bTime = b.sessions[0] ? sessionTime(b.sessions[0]) : 0
+
+        return bTime - aTime || a.label.localeCompare(b.label)
+      })
+  }, [
+    visibleMessagingSessions,
+    messagingPlatformTotals,
+    messagingTruncated,
+    isPinnedSession,
+    messagingProfile
+  ])
 
   // Grouping by profile: one collapsible group per profile, color on the header
   // (not on every row). Default profile floats to the top, the rest alpha.
