@@ -215,13 +215,13 @@ describe('PetSprite RAF scheduling', () => {
     expect(raf.request).toHaveBeenCalledTimes(2)
   })
 
-  it('suspends while unfocused, resumes on focus, and leaves no work after unmount', () => {
+  it('keeps animating while unfocused and leaves no work after unmount', () => {
     const raf = installRaf()
 
     render(<PetSprite info={INFO} />)
 
     act(() => window.dispatchEvent(new Event('blur')))
-    expect(raf.pending()).toBe(0)
+    expect(raf.pending()).toBe(1)
 
     act(() => window.dispatchEvent(new Event('focus')))
     expect(raf.pending()).toBe(1)
@@ -239,6 +239,7 @@ describe('PetSprite RAF scheduling', () => {
     })
     expect(raf.pending()).toBe(0)
   })
+<<<<<<< HEAD
 
   it('keeps the intentionally non-activating pop-out overlay animated while unfocused', () => {
     const raf = installRaf()
@@ -271,4 +272,6 @@ describe('PetSprite RAF scheduling', () => {
     expect(ctxMock.imageSmoothingQuality).toBe('high')
     expect(ctxMock.drawImage).toHaveBeenCalledTimes(1)
   })
+=======
+>>>>>>> upstream/main
 })
