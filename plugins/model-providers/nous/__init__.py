@@ -5,6 +5,7 @@ from typing import Any
 from agent.portal_tags import (
     get_affinity_scope,
     get_conversation_context,
+    hermes_client_tag,
     nous_portal_tags,
 )
 from agent.transports.codex import _cache_scope_from_session_id
@@ -144,6 +145,9 @@ nous = NousProfile(
     ),
     base_url="https://inference-api.nousresearch.com/v1",
     auth_type="oauth_device_code",
+    # Nous/WAF rejects generic Python/OpenAI client identities with 403/1010.
+    # Use the same Hermes client identity as the Portal tags and catalog path.
+    default_headers={"User-Agent": hermes_client_tag().replace("client=", "")},
 )
 
 register_provider(nous)
