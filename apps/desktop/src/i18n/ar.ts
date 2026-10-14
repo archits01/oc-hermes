@@ -1,28 +1,30 @@
-import { defineLocale } from './define-locale'
+import { arArtifacts } from './ar_artifacts'
+import { arAssistant } from './ar_assistant'
+import { arBoot } from './ar_boot'
+import { arCapabilities } from './ar_capabilities'
+import { arChat } from './ar_chat'
+import { arChrome } from './ar_chrome'
+import { arCommandCenter } from './ar_command_center'
+import { arCommon } from './ar_common'
+import { arConnectors } from './ar_connectors'
+import { arDiagnostics } from './ar_diagnostics'
+import { arFirstRun } from './ar_first_run'
+import { arSettings } from './ar_settings'
+import { defineLocale, type TranslationOverrides } from './define-locale'
 
-export const ar = defineLocale({
-  sendDiagnostics: {
-    title: 'إرسال التشخيصات إلى Nous',
-    privacyNotice:
-      'سيؤدي هذا إلى رفع حزمة تصحيح إلى التخزين الداخلي لدى Nous (ليست لصيقة عامة). تتضمن معلومات النظام (نظام التشغيل، الإصدارات، المزوّد، وأنواع مفاتيح API المُهيأة — وليس المفاتيح نفسها أبداً) والسجلات الكاملة للوكيل والبوابة وسطح المكتب (حتى 512 كيلوبايت لكل منها، ومن المرجح أن تحتوي على محتوى المحادثات ومخرجات الأدوات ومسارات الملفات). تُحجب الأسرار قبل الرفع. لا يمكن الاطلاع عليها إلا لموظفي Nous ومشرفي Discord المعتمدين، وتُحذف تلقائياً بعد 14 يوماً.',
-    upload: 'رفع',
-    uploading: 'جارٍ الرفع…',
-    cancel: 'إلغاء',
-    close: 'إغلاق',
-    copyLink: 'نسخ الرابط',
-    uploadIdFallback: id => `لم يتم إرجاع رابط عرض — اذكر معرّف الرفع ${id} للدعم`,
-    doneTitle: 'تم إرسال التشخيصات',
-    doneDescription: 'تم رفع الحزمة بشكل خاص. شارك الرابط أدناه في محادثة الدعم لكي يتمكن الفريق من رؤية سجلاتك.',
-    failedTitle: 'فشل الرفع',
-    failedHint:
-      'يمكنك أيضاً تشغيل `hermes debug share --nous` من الطرفية، أو `hermes debug share --local` لعرض التقرير دون رفعه.',
-    handoffLead: 'تابع النقاش في:',
-    links: {
-      github: 'GitHub Issues',
-      portal: 'دعم بوابة Nous',
-      discord: 'Discord'
+export const arOverrides = {
+  connectors: {
+    directory: {
+      suggested: 'مقترحة',
+      allApps: 'كل التطبيقات',
+      receiptConnected: apps => `متصلة: ${apps}`,
+      receiptNone: 'لم يتم ربط تطبيقات جديدة',
+      receiptTimedOut: 'أُغلقت بعد 5 دقائق',
+      finishInBrowser: 'أكمل في المتصفح',
+      signInFailed: 'تعذّر الاتصال. انقر لإعادة المحاولة'
     }
   },
+<<<<<<< HEAD
   common: {
     apply: 'تطبيق',
     back: 'رجوع',
@@ -2831,6 +2833,61 @@ export const ar = defineLocale({
       title: 'الشريط الجانبي',
       description: 'تنقل التطبيق',
       toggle: open => `${open ? 'إظهار' : 'إخفاء'} الشريط الجانبي`
+=======
+  sharedMetrics: arCommon.sharedMetrics,
+  firstRun: arFirstRun,
+  externalOpenFailed: arChrome.externalOpenFailed,
+  sessionImport: arConnectors.sessionImport,
+  sendDiagnostics: arDiagnostics.sendDiagnostics,
+  common: arCommon.common,
+  fileMenu: arChrome.fileMenu,
+  boot: arBoot.boot,
+  notifications: arDiagnostics.notifications,
+  remoteDisplayBanner: arBoot.remoteDisplayBanner,
+  butterbar: arBoot.butterbar,
+  titlebar: arChrome.titlebar,
+  keybinds: arChrome.keybinds,
+  language: arSettings.language,
+  settings: arSettings.settings,
+  skills: arCapabilities.skills,
+  agents: arCapabilities.agents,
+  commandCenter: arCommandCenter.commandCenter,
+  messaging: arCommandCenter.messaging,
+  profiles: arCommandCenter.profiles,
+  modelAssignment: arSettings.modelAssignment,
+  cron: arCommandCenter.cron,
+  artifacts: arArtifacts.artifacts,
+  artifactCard: arArtifacts.artifactCard,
+  artifactPreview: arArtifacts.artifactPreview,
+  sidebar: arChrome.sidebar,
+  composer: arChat.composer,
+  statusStack: arChat.statusStack,
+  updates: arBoot.updates,
+  install: arBoot.install,
+  onboarding: arBoot.onboarding,
+  modelPicker: arSettings.modelPicker,
+  modelVisibility: arSettings.modelVisibility,
+  shell: arChrome.shell,
+  rightSidebar: arChrome.rightSidebar,
+  preview: arArtifacts.preview,
+  interfaceMode: arSettings.interfaceMode,
+  zones: arChrome.zones,
+  contextMenu: arChrome.contextMenu,
+  assistant: arAssistant.assistant,
+  prompts: arChat.prompts,
+  desktop: arChat.desktop,
+  errors: arDiagnostics.errors,
+  tips: arChat.tips,
+  ui: arCommon.ui,
+  freeTier: {
+    offer: {
+      heading: 'واصل مع Hermes',
+      body: 'أنت تستخدم الحصة المجانية. إذا واصلت استخدام Hermes فستبدأ بمواجهة حدود الاستخدام. سجّل الدخول بحساب Nous مجاني للحصول على حصة أكبر.',
+      signIn: 'تسجيل الدخول',
+      notNow: 'ليس الآن'
+>>>>>>> upstream/main
     }
   }
-})
+} satisfies TranslationOverrides
+
+export const ar = defineLocale(arOverrides)
