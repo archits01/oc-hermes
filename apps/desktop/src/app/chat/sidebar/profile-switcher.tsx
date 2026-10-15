@@ -94,6 +94,11 @@ const RAIL_GAP = 4 // px — matches gap-1 between squares.
 // menu. Drag-reorder and long-press-recolor live only on the squares path.
 const PROFILE_DROPDOWN_THRESHOLD = 13
 
+// LMI runs the desktop as one VM-backed agent. Keep the profile store and
+// gateway APIs for compatibility, but do not expose profile creation/switching
+// controls in this operator-facing build.
+const LMI_PROFILELESS_UI = true
+
 // Neighbors reflow on RAIL_TRANSITION; the dragged square glides between
 // snapped cells on the snappier DRAG_TRANSITION. Both come from the SHARED
 // reorder primitive (lib/reorder.ts) so every reorder strip feels identical.
@@ -254,6 +259,27 @@ export function ProfileRail() {
     lastCreateRef.current = createRequest
     setCreateOpen(true)
   }, [createRequest])
+
+  if (LMI_PROFILELESS_UI) {
+    return (
+      <div aria-label="Open Computer" className="flex min-w-0 items-center gap-0.5" data-slot="profileless-rail" role="group">
+        <ProfilePill
+          active
+          glyph="home"
+          label="Open Computer"
+          onSelect={() => selectProfile(defaultProfile?.name ?? 'default')}
+        />
+        {!multipleConnections && (
+          <ProfilePill
+            active={false}
+            glyph="plug"
+            label={p.connectGateway}
+            onSelect={() => navigate(`${SETTINGS_ROUTE}?tab=gateway`)}
+          />
+        )}
+      </div>
+    )
+  }
 
   return (
     <div aria-label={p.title} className="flex min-w-0 items-center gap-0.5" data-slot="profile-rail" role="group">
