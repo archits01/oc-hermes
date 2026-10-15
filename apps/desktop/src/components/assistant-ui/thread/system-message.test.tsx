@@ -1,6 +1,15 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { AssistantRuntimeProvider, type ThreadMessage, useExternalStoreRuntime } from '@assistant-ui/react'
+<<<<<<< HEAD
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+=======
+import { cleanup, fireEvent, render } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+>>>>>>> upstream/main
 
 import { $displayTimestamps } from '@/store/display-timestamps'
 
@@ -26,13 +35,13 @@ vi.stubGlobal('CSS', { escape: (str: string) => str })
 
 Element.prototype.scrollTo = function scrollTo() {}
 
-function Harness({ text }: { text: string }) {
+function Harness({ text, asyncResult }: { text: string; asyncResult?: string }) {
   const message = {
     id: 'system-1',
     role: 'system',
     content: [{ type: 'text', text }],
     createdAt: timestamp,
-    metadata: { custom: { timelineTimestamp: timestamp.getTime() / 1000 } }
+    metadata: { custom: { timelineTimestamp: timestamp.getTime() / 1000, asyncResult } }
   } as unknown as ThreadMessage
 
   const runtime = useExternalStoreRuntime<ThreadMessage>({
@@ -57,6 +66,51 @@ function expectTimestampSeparated(container: HTMLElement, precedingText: string)
 }
 
 afterEach(cleanup)
+
+describe('background report inline code', () => {
+  // The report body is the same `aui-md prose` markdown renderer the
+  // assistant turn uses, rendered with no assistant/room slot ancestor. The
+  // real stylesheet's cascade must still reach its `<code>`, or Tailwind
+  // Typography's fixed near-black ink wins on every dark theme (#107486).
+  const stylesheet = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../styles.css'), 'utf8')
+
+  it('themes inline code in an opened report with the chat inline-code tokens', () => {
+    const { container, getByRole } = render(
+      <>
+        <style>{stylesheet}</style>
+        <Harness asyncResult="run `discover_models` first" text="1 background agent finished" />
+      </>
+    )
+
+    fireEvent.click(getByRole('button', { name: '1 background agent finished' }))
+    const code = container.querySelector('[data-role="system"] :not(pre) > code')
+    expect(code).toBeTruthy()
+    const style = getComputedStyle(code as Element)
+
+    expect(style.color).toBe('var(--ui-inline-code-foreground)')
+    expect(style.background).toBe('var(--ui-inline-code-background)')
+  })
+})
+
+describe('background report disclosure', () => {
+  it('keeps result bodies out of the transcript until opened and removes them when collapsed', () => {
+    const report = '{"blockers":[{"title":"Local-model readiness uses the wrong endpoint"}]}'
+    const { container, getByRole } = render(<Harness asyncResult={report} text="2 background agents finished" />)
+
+    expect(container.textContent).not.toContain('blockers')
+    expectTimestampSeparated(container, '2 background agents finished')
+    const toggle = getByRole('button', { name: '2 background agents finished' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(container.textContent).toContain(report)
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(container.textContent).not.toContain('blockers')
+  })
+})
 
 describe('system message timestamp text separation', () => {
   it('separates an ordinary system row timestamp in accessible and copied text', () => {
