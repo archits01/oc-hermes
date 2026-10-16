@@ -147,6 +147,7 @@ describe('useMessageStream delta flush scheduling', () => {
     expect(updateSessionState).toHaveBeenCalledTimes(updatesAfterUnmount)
     expect(window.requestAnimationFrame).not.toHaveBeenCalled()
   })
+<<<<<<< HEAD
 
   it('stretches the flush gap when the deferred commit frame is expensive', async () => {
     // The streaming-path $messages publish (React commit + Streamdown
@@ -257,6 +258,8 @@ describe('useMessageStream delta flush scheduling', () => {
 
     expect(assistantText()).toBe('abc')
   })
+=======
+>>>>>>> upstream/main
 })
 
 describe('useMessageStream composed with the real useSessionStateCache', () => {
