@@ -40,8 +40,8 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 
 export const defaultTheme: DashboardTheme = {
   name: "default",
-  label: "OpenComputer Teal",
-  description: "Classic dark teal — the canonical OpenComputer look",
+  label: "Open Computer Teal",
+  description: "Classic dark teal — the canonical Open Computer look",
   palette: {
     background: { hex: "#041c1c", alpha: 1 },
     midground: { hex: "#ffe6cb", alpha: 1 },
@@ -214,8 +214,8 @@ export const nousBlueTheme: DashboardTheme = {
  */
 export const defaultLargeTheme: DashboardTheme = {
   name: "default-large",
-  label: "OpenComputer Teal (Large)",
-  description: "OpenComputer Teal with bigger fonts and roomier spacing",
+  label: "Open Computer Teal (Large)",
+  description: "Open Computer Teal with bigger fonts and roomier spacing",
   palette: defaultTheme.palette,
   typography: {
     ...DEFAULT_TYPOGRAPHY,
