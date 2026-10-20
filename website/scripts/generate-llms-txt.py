@@ -42,7 +42,6 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str | None]]]] = [
         ("getting-started/quickstart", "Quickstart", None),
         ("getting-started/learning-path", "Learning Path", None),
         ("getting-started/updating", "Updating", None),
-        ("getting-started/termux", "Termux (Android)", None),
         ("getting-started/nix-setup", "Nix Setup", None),
     ]),
     ("Using Hermes", [
@@ -181,6 +180,62 @@ def read_frontmatter(path: Path) -> tuple[dict[str, str], str]:
     return meta, body
 
 
+<<<<<<< HEAD
+=======
+def slug_for(path: Path) -> str:
+    """URL slug for a page: `user-guide/messaging/index.md` → `user-guide/messaging`."""
+    rel = path.relative_to(DOCS).with_suffix("")
+    if rel.name == "index":
+        rel = rel.parent
+    return "" if str(rel) == "." else rel.as_posix()
+
+
+def doc_path(slug: str) -> Path | None:
+    """The file backing a slug, whether it's a page or a section landing page."""
+    for ext in DOC_EXTS:
+        for candidate in (DOCS / f"{slug}{ext}", DOCS / slug / f"index{ext}"):
+            if candidate.exists():
+                return candidate
+    return None
+
+
+def iter_docs() -> list[str]:
+    """Every indexable page, as a slug — the one enumeration of the docs tree.
+
+    llms.txt lists exactly these and llms-full.txt emits exactly these, so a
+    page on disk cannot be missing from either output.
+    """
+    slugs = set()
+    for ext in DOC_EXTS:
+        for path in DOCS.rglob(f"*{ext}"):
+            slug = slug_for(path)
+            # The docs landing page is this index's subject, not an entry in it.
+            if slug and not slug.startswith(SKILL_CATALOG):
+                slugs.add(slug)
+    return sorted(slugs)
+
+
+def section_for(slug: str) -> str:
+    for section, prefixes in ABSORB:
+        if any(slug == prefix or slug.startswith(f"{prefix}/") for prefix in prefixes):
+            return section
+    return MISC_SECTION
+
+
+def resolve_meta(slug: str) -> tuple[str, str]:
+    """(title, description) for a page, falling back to its H1 then its slug."""
+    path = doc_path(slug)
+    if path is None:
+        return slug, ""
+    meta, body = read_frontmatter(path)
+    title = meta.get("title")
+    if not title:
+        h1 = H1_RE.search(body)
+        title = h1.group(1) if h1 else slug.rsplit("/", 1)[-1].replace("-", " ").title()
+    return title, meta.get("description", "")
+
+
+>>>>>>> upstream/main
 def resolve_desc(slug: str, provided: str | None) -> str:
     """Resolve short description for llms.txt entry."""
     if provided:
@@ -212,7 +267,7 @@ def emit_llms_index() -> str:
     lines.append(
         "Install: `curl -fsSL https://raw.githubusercontent.com/NousResearch/"
         "hermes-agent/main/scripts/install.sh | bash`  "
-        "(Linux, macOS, WSL2, Termux)"
+        "(Linux, macOS, WSL2)"
     )
     lines.append("")
     lines.append("Repo: https://github.com/NousResearch/hermes-agent")
