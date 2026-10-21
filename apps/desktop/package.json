@@ -3,8 +3,8 @@
   "productName": "Open Computer",
   "private": true,
   "version": "0.17.0",
-  "description": "Native desktop shell for Hermes Agent.",
-  "author": "Nous Research",
+  "description": "Native Open Computer desktop application.",
+  "author": "Laser Magic India",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/archits01/oc-hermes.git"
@@ -296,7 +296,7 @@
     },
     "linux": {
       "category": "Development",
-      "maintainer": "Nous Research <support@nousresearch.com>",
+      "maintainer": "Laser Magic India",
       "synopsis": "Native desktop shell for Open Computer.",
       "target": [
         "AppImage",
@@ -311,7 +311,6 @@
       "shortcutName": "Open Computer",
       "uninstallDisplayName": "Open Computer",
       "warningsAsErrors": false
-    },
-    "legalTrademarks": "Open Computer"
+    }
   }
 }
