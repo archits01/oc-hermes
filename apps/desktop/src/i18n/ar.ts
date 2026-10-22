@@ -1,5 +1,18 @@
-import { defineLocale } from './define-locale'
+import { arArtifacts } from './ar_artifacts'
+import { arAssistant } from './ar_assistant'
+import { arBoot } from './ar_boot'
+import { arCapabilities } from './ar_capabilities'
+import { arChat } from './ar_chat'
+import { arChrome } from './ar_chrome'
+import { arCommandCenter } from './ar_command_center'
+import { arCommon } from './ar_common'
+import { arConnectors } from './ar_connectors'
+import { arDiagnostics } from './ar_diagnostics'
+import { arFirstRun } from './ar_first_run'
+import { arSettings } from './ar_settings'
+import { defineLocale, type TranslationOverrides } from './define-locale'
 
+<<<<<<< HEAD
 export const ar = defineLocale({
   sendDiagnostics: {
     title: 'إرسال التشخيصات إلى Nous',
@@ -2404,433 +2417,143 @@ export const ar = defineLocale({
       unreachableDescription: 'تعذّر الوصول إلى صفحة المعاينة.',
       openTarget: url => `فتح ${url}`,
       fallbackTitle: 'معاينة'
+=======
+export const arOverrides = {
+
+  catalog: {
+    add: 'إضافة',
+    added: 'تمت الإضافة',
+    discover: 'اكتشف',
+    featured: 'مميزة',
+    explorePlugins: 'استكشف الإضافات',
+    exploreSkills: 'استكشف المهارات',
+    mostStarred: 'الأكثر حصولًا على نجوم',
+    newest: 'الأحدث',
+    recentlyUpdated: 'المحدثة مؤخرًا',
+    alphabetical: 'الاسم',
+    sortBy: 'ترتيب حسب',
+    seeAll: 'عرض الكل',
+    related: 'عناصر مشابهة',
+    tags: 'الوسوم',
+    screenshots: 'لقطات الشاشة',
+    listView: 'عرض القائمة',
+    cardView: 'عرض البطاقات',
+    installTitle: (name: string) => `تثبيت «${name}»؟`,
+    installDescription: 'ستتوفر هذه المهارة في الجلسات الجديدة. ثبّت من المصادر التي تثق بها فقط.',
+    installTo: 'التثبيت في',
+    thisComputer: 'هذا الكمبيوتر',
+    installing: 'جارٍ التثبيت…',
+    installComplete: (name: string) => `تم تثبيت «${name}»`,
+    destinationChanged: 'تغيرت وجهة التثبيت. أغلق هذا الحوار وافتح رابط التثبيت مجددًا.',
+    installed: 'المثبتة',
+    searchSkills: 'البحث في المهارات',
+    searchPlugins: 'البحث في الإضافات',
+    allSources: 'كل المصادر',
+    allCategories: 'كل الفئات',
+    about: 'نبذة',
+    author: 'المؤلف',
+    source: 'المصدر',
+    category: 'الفئة',
+    version: 'الإصدار',
+    platforms: 'المنصات',
+    requires: 'المتطلبات',
+    tools: 'الأدوات',
+    hooks: 'الخطافات',
+    middleware: 'البرمجيات الوسيطة',
+    commands: 'الأوامر',
+    license: 'الترخيص',
+    addedDate: 'تاريخ الإضافة',
+    updatedDate: 'تاريخ التحديث',
+    repository: 'المستودع',
+    documentation: 'التوثيق',
+    noResults: 'لا توجد نتائج مطابقة',
+    tryAnother: 'جرّب بحثًا آخر أو امسح عوامل التصفية.',
+    clearFilters: 'مسح عوامل التصفية',
+    filters: 'عوامل التصفية',
+    loadFailed: 'تعذر تحميل الكتالوج',
+    retry: 'حاول مرة أخرى',
+    more: 'عرض المزيد',
+    pinned: 'التزام تمت مراجعته',
+    snapshotHint: 'من كتالوج Hermes. لا يتصل التصفح بمستودعات المصدر مطلقًا.',
+    installHint: 'راجع المصدر قبل التثبيت. تسري التغييرات على الجلسات الجديدة.',
+    results: (count: number) => `النتائج: ${count.toLocaleString('ar')}`,
+    back: 'العودة إلى النتائج'
+  },
+  connectors: {
+    directory: {
+      suggested: 'مقترحة',
+      allApps: 'كل التطبيقات',
+      receiptConnected: apps => `متصلة: ${apps}`,
+      receiptNone: 'لم يتم ربط تطبيقات جديدة',
+      receiptTimedOut: 'أُغلقت بعد 5 دقائق',
+      finishInBrowser: 'أكمل في المتصفح',
+      signInFailed: 'تعذّر الاتصال. انقر لإعادة المحاولة'
+>>>>>>> upstream/main
     }
   },
-  zones: {
-    showTabStrip: 'إظهار علامات التبويب',
-    hideTabStrip: 'إخفاء علامات التبويب',
-    showStripTab: title => `إظهار ${title}`,
-    hideStripTab: title => `إخفاء ${title}`,
-    lastTabKeptTitle: 'يبقى آخر تبويب',
-    lastTabKeptBody:
-      'تحتاج هذه المنطقة إلى تبويب مرئي واحد على الأقل. أظهر تبويبا آخر أولا، أو اطو الشريط الجانبي بأكمله.',
-    toggleStripTab: title => `تبديل تبويب ${title}`,
-    minimize: 'تصغير',
-    restore: 'استعادة',
-    closeRunningTitle: 'إغلاق تبويب يعمل؟',
-    closeRunningBody:
-      'هذه المحادثة ما زالت تعمل (أو تنتظر إدخالك). إغلاق التبويب يخفيها فقط — ستحتفظ الجلسة بتقدمها ويمكن إعادة فتحها من الشريط الجانبي.',
-    closeRunningConfirm: 'إغلاق التبويب',
-    reload: 'إعادة التحميل',
-    closeOthers: 'إغلاق الأخرى',
-    closeToRight: 'إغلاق ما على اليمين',
-    closeAll: 'إغلاق الكل',
-    pluginDisabled: pluginId => `الإضافة "${pluginId}" معطلة`,
-    pluginDisabledBody: 'أعد تفعيلها من الإعدادات ← الإضافات لإرجاع اللوحة.',
-    missingPane: paneId => `لوحة مفقودة: ${paneId}`,
-    editTitle: 'التخطيطات',
-    editHint: 'اختر تخطيطا، أو اسحب اللوحات بين المناطق.',
-    reset: 'إعادة ضبط',
-    templates: 'القوالب',
-    custom: 'مخصص',
-    newGridLayout: 'تخطيط شبكة جديد',
-    saveCurrentAs: 'حفظ الترتيب الحالي كقالب',
-    nameLayoutPlaceholder: 'سم هذا التخطيط...',
-    deletePreset: name => `حذف ${name}`,
-    zoneEditorTitle: 'محرر المناطق',
-    editorHintPre: 'انقر للتقسيم · ',
-    editorHintPost: ' يعكس الخط · اسحب عبر المناطق للدمج · اسحب الحواف المشتركة لتغيير الحجم',
-    templateColumns: 'أعمدة',
-    templateRows: 'صفوف',
-    templateGrid: 'شبكة',
-    templatePriority: 'أولوية',
-    zoneTag: index => `منطقة ${index}`,
-    mergeZones: count => `دمج ${count} مناطق`,
-    customZoneName: count => `مخصص من ${count} مناطق`,
-    layoutNamePlaceholder: fallback => `اسم التخطيط (${fallback})`,
-    saveApply: 'حفظ وتطبيق',
-    notExpressible: 'هذا الترتيب متشابك — لا يمكن تمثيله كتقسيمات متداخلة بعد',
-    zoneCount: count => `${count} مناطق`,
-    tabCount: count => `${count} تبويبات`
+  sharedMetrics: arCommon.sharedMetrics,
+  firstRun: arFirstRun,
+  externalOpenFailed: arChrome.externalOpenFailed,
+  sessionImport: arConnectors.sessionImport,
+  sendDiagnostics: arDiagnostics.sendDiagnostics,
+  common: arCommon.common,
+  fileMenu: arChrome.fileMenu,
+  boot: arBoot.boot,
+  notifications: arDiagnostics.notifications,
+  remoteDisplayBanner: arBoot.remoteDisplayBanner,
+  butterbar: arBoot.butterbar,
+  promptNotices: arBoot.promptNotices,
+  keepAwakeOffer: arBoot.keepAwakeOffer,
+  titlebar: arChrome.titlebar,
+  keybinds: arChrome.keybinds,
+  language: arSettings.language,
+  settings: arSettings.settings,
+  skills: arCapabilities.skills,
+  agents: arCapabilities.agents,
+  commandCenter: arCommandCenter.commandCenter,
+  messaging: arCommandCenter.messaging,
+  profiles: arCommandCenter.profiles,
+  modelAssignment: arSettings.modelAssignment,
+  cron: arCommandCenter.cron,
+  artifacts: arArtifacts.artifacts,
+  artifactCard: arArtifacts.artifactCard,
+  artifactPreview: arArtifacts.artifactPreview,
+  sidebar: arChrome.sidebar,
+  composer: {
+    ...arChat.composer,
+    redirect: 'إعادة توجيه التشغيل الحالي',
+    queueLostNote: 'فُقد الدور أثناء إعادة التشغيل',
+    restoreImageDraft: 'استعادة مسودة الصورة',
+    queueCancelFailed: 'تعذّر إزالة الدور المنتظر',
+    queueLostDiscard: 'تجاهل',
+    queueLostDiscardTip: 'أعادت البوابة التشغيل أثناء هذا الدور ولا يمكن إكماله. تجاهله لتستمر الأدوار المنتظرة خلفه.'
   },
-  contextMenu: {
-    link: {
-      openInApp: 'فتح في متصفح التطبيق',
-      openExternal: 'فتح في المتصفح الخارجي',
-      copyUrl: 'نسخ الرابط',
-      copyResolvedUrl: 'نسخ الرابط المُحلَّل'
-    },
-    image: {
-      copyImage: 'نسخ الصورة',
-      copyImageAddress: 'نسخ عنوان الصورة',
-      saveImageAs: 'حفظ الصورة باسم…'
-    },
-    edit: {
-      cut: 'قص',
-      paste: 'لصق',
-      selectAll: 'تحديد الكل',
-      addToDictionary: 'إضافة إلى القاموس'
-    },
-    page: {
-      copyPageUrl: 'نسخ رابط الصفحة',
-      inspectElement: 'فحص العنصر'
-    }
-  },
-  assistant: {
-    thread: {
-      loadingSession: 'جار تحميل الجلسة...',
-      showEarlier: 'عرض الرسائل الأقدم',
-      loadingResponse: 'جار تحميل الرد...',
-      resumeWhenBackgroundDone: count =>
-        count === 1 ? 'سيُستأنف عند انتهاء المهمة الخلفية' : `سيُستأنف عند انتهاء ${count} مهام خلفية`,
-      thinking: 'يفكر...',
-      thought: 'فكّر',
-      thoughtBriefly: 'فكّر قليلاً',
-      thoughtFor: duration => `فكّر لمدة ${duration}`,
-      turnDuration: duration => `استغرقت هذه الجولة ${duration}`,
-      today: time => `اليوم ${time}`,
-      yesterday: time => `أمس ${time}`,
-      copy: 'نسخ',
-      refresh: 'تحديث',
-      moreActions: 'إجراءات إضافية',
-      branchNewChat: 'تفريع إلى محادثة جديدة',
-      react: 'تفاعل',
-      dismissError: 'تجاهل الخطأ',
-      errorLayers: {
-        auth: 'خطأ في المصادقة',
-        billing: 'نفاد الرصيد',
-        disk: 'القرص ممتلئ',
-        endpoint: 'خطأ في نقطة النهاية المخصصة',
-        gateway: 'خطأ في البوابة',
-        generic: 'فشلت الجولة',
-        provider: 'خطأ من المزوّد',
-        runtime: 'خطأ في بيئة التشغيل المحلية',
-        streaming: 'خطأ في اتصال البث'
-      },
-      errorRetry: 'إعادة المحاولة',
-      errorSwitchProvider: 'تبديل المزوّد',
-      errorOpenLogs: 'فتح السجلات',
-      errorOpenLogsFailed: 'تعذّر فتح مجلد السجلات',
-      errorOpenDesktopLogs: 'فتح سجلات سطح المكتب',
-      errorCopyDiagnostics: 'نسخ تفاصيل الخطأ',
-      errorSendDiagnostics: 'إرسال التشخيصات',
-      filesChanged: count => `${count} ملفات تم تغييرها`,
-      reviewChanges: 'مراجعة',
-      readAloudFailed: 'فشلت القراءة بصوت عال',
-      preparingAudio: 'جار تجهيز الصوت',
-      stopReading: 'إيقاف القراءة',
-      readAloud: 'قراءة بصوت عال',
-      editMessage: 'تحرير الرسالة',
-      scrollToBottom: 'التمرير إلى الأسفل',
-      stop: 'إيقاف',
-      restorePrevious: 'استعادة السابق',
-      restoreCheckpoint: 'استعادة النقطة',
-      restoreFromHere: 'استعادة نقطة التحقق — إعادة التشغيل من هذا الموجّه',
-      restoreTitle: 'الاستعادة إلى نقطة التحقق هذه؟',
-      restoreBody: 'يُزال كل ما يلي هذا الموجّه من المحادثة، ويُعاد تشغيل الموجّه من هنا.',
-      restoreConfirm: 'استعادة وإعادة تشغيل',
-      restoreNext: 'استعادة التالي',
-      goForward: 'تقدم',
-      sendEdited: 'إرسال التعديل',
-      attachingFile: 'جار إرفاق الملف'
-    },
-    approval: {
-      gatewayDisconnected: 'البوابة غير متصلة',
-      sendFailed: 'فشل الإرسال',
-      run: 'تشغيل',
-      command: 'الأمر',
-      moreOptions: 'خيارات إضافية',
-      allowSession: 'السماح لهذه الجلسة',
-      alwaysAllowMenu: 'السماح دائما',
-      jumpToApproval: 'الموافقة مطلوبة',
-      reject: 'رفض',
-      alwaysTitle: 'السماح دائما',
-      alwaysDescription: pattern => `السماح دائما بالأوامر المطابقة لـ ${pattern}`,
-      alwaysAllow: 'السماح دائما'
-    },
-    clarify: {
-      notReady: 'غير جاهز',
-      gatewayDisconnected: 'البوابة غير متصلة',
-      sendFailed: 'فشل الإرسال',
-      loadingQuestion: 'جار تحميل السؤال...',
-      other: 'غير ذلك',
-      placeholder: 'اكتب إجابتك...',
-      skip: 'تخطي',
-      continueLabel: 'متابعة',
-      confirmAndContinueLabel: 'تأكيد ومتابعة',
-      answeredBadge: 'تمت الإجابة',
-      questionProgress: (answered, total) => `تمت الإجابة على ${answered} من ${total}`
-    },
-    tool: {
-      copyCode: 'نسخ الكود',
-      renderingImage: 'جار عرض الصورة...',
-      copyOutput: 'نسخ الإخراج',
-      copyCommand: 'نسخ الأمر',
-      copyContent: 'نسخ المحتوى',
-      copyUrl: 'نسخ الرابط',
-      copyResults: 'نسخ النتائج',
-      copyQuery: 'نسخ الاستعلام',
-      copyFile: 'نسخ الملف',
-      copyPath: 'نسخ المسار',
-      outputAlt: 'إخراج الأداة',
-      rawResponse: 'الرد الخام',
-      copyActivity: 'نسخ النشاط',
-      recoveredOne: 'تم الاسترداد',
-      recoveredMany: count => `تم استرداد ${count}`,
-      failedOne: 'فشل',
-      failedMany: count => `فشل ${count}`,
-      statusRunning: 'يعمل',
-      statusError: 'خطأ',
-      statusRecovered: 'تم الاسترداد',
-      statusDone: 'تم',
-      memoryWriteNoted: 'تم تسجيل كتابة الذاكرة',
-      actions: {
-        read: 'قراءة',
-        reading: 'جار القراءة',
-        opened: 'تم الفتح',
-        opening: 'جار الفتح',
-        searched: 'تم البحث',
-        searching: 'جار البحث',
-        ran: 'تم التشغيل',
-        running: 'جار التشغيل',
-        ranCode: 'تم تشغيل الكود',
-        runningCode: 'جار البرمجة'
-      },
-      prefixes: {
-        browser: 'المتصفح',
-        web: 'الويب'
-      },
-      titleTemplates: {
-        actionCommand: (action, command) => `${action} ${command}`,
-        actionQuoted: (action, value) => `${action} “${value}”`,
-        actionTarget: (action, target) => `${action} ${target}`,
-        prefixedDone: (prefix, action) => `${prefix} ${action}`,
-        runningPrefixedTool: (prefix, action) => `جار تشغيل ${prefix.toLowerCase()} ${action.toLowerCase()}`,
-        runningTool: action => `جار تشغيل ${action.toLowerCase()}`
-      },
-      titles: {
-        browser_click: {
-          done: 'تم النقر على عنصر الصفحة',
-          pending: 'جار النقر على عنصر الصفحة',
-          pendingAction: 'جار النقر'
-        },
-        browser_fill: {
-          done: 'تم ملء حقل النموذج',
-          pending: 'جار ملء حقل النموذج',
-          pendingAction: 'جار الملء'
-        },
-        browser_navigate: {
-          done: 'تم فتح الصفحة',
-          pending: 'جار فتح الصفحة',
-          pendingAction: 'جار الفتح'
-        },
-        browser_snapshot: {
-          done: 'تم التقاط لقطة الصفحة',
-          pending: 'جار التقاط لقطة الصفحة',
-          pendingAction: 'جار الالتقاط'
-        },
-        browser_take_screenshot: {
-          done: 'تم التقاط لقطة الشاشة',
-          pending: 'جار التقاط لقطة الشاشة',
-          pendingAction: 'جار الالتقاط'
-        },
-        browser_type: {
-          done: 'تمت الكتابة على الصفحة',
-          pending: 'جار الكتابة على الصفحة',
-          pendingAction: 'جار الكتابة'
-        },
-        clarify: {
-          done: 'تم طرح سؤال',
-          pending: 'جار طرح سؤال',
-          pendingAction: 'جار السؤال'
-        },
-        cronjob: {
-          done: 'مهمة مجدولة',
-          pending: 'جار جدولة المهمة',
-          pendingAction: 'جار الجدولة'
-        },
-        edit_file: {
-          done: 'تم تحرير الملف',
-          pending: 'جار تحرير الملف',
-          pendingAction: 'جار التحرير'
-        },
-        execute_code: {
-          done: 'تم تشغيل الكود',
-          pending: 'جار البرمجة',
-          pendingAction: 'جار البرمجة'
-        },
-        image_generate: {
-          done: 'تم إنشاء الصورة',
-          pending: 'جار إنشاء الصورة',
-          pendingAction: 'جار الإنشاء'
-        },
-        list_files: {
-          done: 'تم سرد الملفات',
-          pending: 'جار سرد الملفات',
-          pendingAction: 'جار السرد'
-        },
-        memory: {
-          done: 'تم الحفظ في الذاكرة',
-          pending: 'جار الحفظ في الذاكرة',
-          pendingAction: 'جار الحفظ'
-        },
-        patch: {
-          done: 'تم تصحيح الملف',
-          pending: 'جار تصحيح الملف',
-          pendingAction: 'جار التصحيح'
-        },
-        read_file: {
-          done: 'تمت قراءة الملف',
-          pending: 'جار قراءة الملف',
-          pendingAction: 'جار القراءة'
-        },
-        search_files: {
-          done: 'تم البحث في الملفات',
-          pending: 'جار البحث في الملفات',
-          pendingAction: 'جار البحث'
-        },
-        session_search_recall: {
-          done: 'تم البحث في سجل الجلسة',
-          pending: 'جار البحث في سجل الجلسة',
-          pendingAction: 'جار البحث'
-        },
-        terminal: {
-          done: 'تم تشغيل الأمر',
-          pending: 'جار تشغيل الأمر',
-          pendingAction: 'جار التشغيل'
-        },
-        todo: {
-          done: 'تم تحديث المهام',
-          pending: 'جار تحديث المهام',
-          pendingAction: 'جار التحديث'
-        },
-        vision_analyze: {
-          done: 'تم تحليل الصورة',
-          pending: 'جار تحليل الصورة',
-          pendingAction: 'جار التحليل'
-        },
-        web_extract: {
-          done: 'تمت قراءة صفحة الويب',
-          pending: 'جار قراءة صفحة الويب',
-          pendingAction: 'جار القراءة'
-        },
-        web_search: {
-          done: 'تم البحث في الويب',
-          pending: 'جار البحث في الويب',
-          pendingAction: 'جار البحث'
-        },
-        write_file: {
-          done: 'تم تحرير الملف',
-          pending: 'جار تحرير الملف',
-          pendingAction: 'جار التحرير'
-        }
-      }
-    }
-  },
-  prompts: {
-    gatewayDisconnected: 'البوابة غير متصلة',
-    sudoSendFailed: 'فشل إرسال كلمة مرور sudo',
-    secretSendFailed: 'فشل إرسال السر',
-    sudoTitle: 'مطلوب sudo',
-    sudoDesc: 'أدخل كلمة المرور لمتابعة الأمر.',
-    sudoPlaceholder: 'كلمة المرور',
-    secretTitle: 'مطلوب سر',
-    secretDesc: 'أدخل القيمة المطلوبة لمتابعة المهمة.',
-    secretPlaceholder: 'القيمة السرية'
-  },
-  desktop: {
-    audioReadFailed: 'فشلت قراءة الصوت',
-    sessionUnavailable: 'الجلسة غير متاحة',
-    createSessionFailed: 'فشل إنشاء الجلسة',
-    promptFailed: 'فشل إرسال الرسالة',
-    providerCredentialRequired: 'مطلوب اعتماد المزود',
-    emptySlashCommand: 'أمر slash فارغ',
-    desktopCommands: 'أوامر سطح المكتب',
-    skillCommandsAvailable: count => `${count} أمر مهارة متاح`,
-    warningLine: message => `تحذير: ${message}`,
-    yoloArmed: 'YOLO مفعل',
-    yoloOff: 'YOLO معطل',
-    yoloSystem: active => (active ? 'YOLO مفعل للنظام' : 'YOLO معطل للنظام'),
-    yoloTitle: 'وضع YOLO',
-    yoloToggleFailed: 'فشل تبديل YOLO',
-    profileStatus: current => `الملف الحالي: ${current}`,
-    unknownProfile: 'ملف شخصي غير معروف',
-    noProfileNamed: (target, available) => `لا يوجد ملف باسم ${target}. المتاح: ${available}`,
-    newChatsProfile: name => `المحادثات الجديدة تستخدم ${name}`,
-    setProfileFailed: 'فشل ضبط الملف الشخصي',
-    sttDisabled: 'تحويل الكلام إلى نص معطل',
-    stopFailed: 'فشل الإيقاف',
-    regenerateFailed: 'فشلت إعادة التوليد',
-    editFailed: 'فشل التحرير',
-    editTurnUnavailable: 'هذه الجولة لم تعد في سجل الخادم (ربما أزيلت بالضغط).',
-    resumeFailed: 'فشل الاستئناف',
-    resumeStrandedTitle: 'تعذّر تحميل هذه الجلسة',
-    resumeStrandedBody:
-      'فشل الاتصال بهذه الجلسة وتوقفت إعادة المحاولة التلقائية. تأكد من تشغيل البوابة، ثم حاول مجددا.',
-    resumeRetry: 'إعادة المحاولة',
-    nothingToBranch: 'لا يوجد ما يمكن تفريعه',
-    branchNeedsChat: 'يحتاج التفريع إلى محادثة',
-    sessionBusy: 'الجلسة مشغولة',
-    branchStopCurrent: 'أوقف الدور الحالي قبل التفريع',
-    branchNoText: 'لا يوجد نص للتفريع',
-    branchTitle: n => `مسودة: تفريع #${n}`,
-    branchFailed: 'فشل التفريع',
-    deleteFailed: 'فشل الحذف',
-    archived: 'تمت الأرشفة',
-    archiveFailed: 'فشلت الأرشفة',
-    cwdChangeFailed: 'فشل تغيير مجلد العمل',
-    cwdStagedTitle: 'تم تجهيز مجلد العمل',
-    cwdStagedMessage: 'سيطبق مجلد العمل على الرسالة التالية.',
-    modelSwitchFailed: 'فشل تبديل النموذج',
-    sessionExported: 'تم تصدير الجلسة',
-    sessionExportFailed: 'فشل تصدير الجلسة',
-    imageSaved: 'تم حفظ الصورة',
-    downloadStarted: 'بدأ التنزيل',
-    restartToUseSaveImage: 'أعد التشغيل لاستخدام حفظ الصور',
-    restartToSaveImages: 'أعد التشغيل لحفظ الصور',
-    imageDownloadFailed: 'فشل تنزيل الصورة',
-    openImage: 'فتح الصورة',
-    downloadImage: 'تنزيل الصورة',
-    savingImage: 'جار حفظ الصورة',
-    imagePreviewFailed: 'فشلت معاينة الصورة',
-    imageAttach: 'إرفاق الصورة',
-    imageWriteFailed: 'فشل كتابة الصورة',
-    imageAttachFailed: 'فشل إرفاق الصورة',
-    attachImages: 'إرفاق الصور',
-    clipboard: 'الحافظة',
-    noClipboardImage: 'لا توجد صورة في الحافظة',
-    clipboardPasteFailed: 'فشل اللصق من الحافظة',
-    dropFiles: 'أفلت الملفات هنا',
-    handoff: {
-      pickPlatform: 'اختر وجهة',
-      success: platform => `تم التسليم إلى ${platform}. استأنف هنا في أي وقت.`,
-      systemNote: platform => `↻ تم التسليم إلى ${platform} — استأنف هنا في أي وقت.`,
-      failed: error => `فشل التسليم: ${error}`,
-      timedOut: 'انتهت المهلة في انتظار البوابة. هل `hermes gateway` قيد التشغيل؟'
-    }
-  },
-  errors: {
-    genericFailure: 'حدث خطأ',
-    boundaryTitle: 'تعطل جزء من الواجهة',
-    boundaryDesc: 'يمكنك إعادة تحميل النافذة أو فتح السجلات لمعرفة التفاصيل.',
-    reloadWindow: 'إعادة تحميل النافذة',
-    openLogs: 'فتح السجلات'
-  },
-  ui: {
-    search: {
-      clear: 'مسح البحث'
-    },
-    pagination: {
-      label: 'ترقيم الصفحات',
-      previous: 'السابق',
-      previousAria: 'الصفحة السابقة',
-      next: 'التالي',
-      nextAria: 'الصفحة التالية'
-    },
-    sidebar: {
-      title: 'الشريط الجانبي',
-      description: 'تنقل التطبيق',
-      toggle: open => `${open ? 'إظهار' : 'إخفاء'} الشريط الجانبي`
+  statusStack: arChat.statusStack,
+  updates: arBoot.updates,
+  install: arBoot.install,
+  onboarding: arBoot.onboarding,
+  modelPicker: arSettings.modelPicker,
+  modelVisibility: arSettings.modelVisibility,
+  shell: arChrome.shell,
+  rightSidebar: arChrome.rightSidebar,
+  preview: arArtifacts.preview,
+  interfaceMode: arSettings.interfaceMode,
+  zones: arChrome.zones,
+  contextMenu: arChrome.contextMenu,
+  assistant: arAssistant.assistant,
+  prompts: arChat.prompts,
+  desktop: arChat.desktop,
+  errors: arDiagnostics.errors,
+  tips: arChat.tips,
+  ui: arCommon.ui,
+  freeTier: {
+    offer: {
+      heading: 'واصل مع Hermes',
+      body: 'أنت تستخدم الحصة المجانية. إذا واصلت استخدام Hermes فستبدأ بمواجهة حدود الاستخدام. سجّل الدخول بحساب Nous مجاني للحصول على حصة أكبر.',
+      signIn: 'تسجيل الدخول',
+      notNow: 'ليس الآن'
     }
   }
-})
+} satisfies TranslationOverrides
+
+export const ar = defineLocale(arOverrides)
