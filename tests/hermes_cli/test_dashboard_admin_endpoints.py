@@ -46,6 +46,30 @@ class TestMcpEndpoints:
         srv = self.client.get("/api/mcp/servers").json()["servers"][0]
         assert srv["env"]["API_KEY"] != "sk-secret-1234567890"
 
+    def test_resolved_mcp_env_is_preserved_as_reference_on_config_read(
+        self, _isolate_hermes_home, monkeypatch
+    ):
+        import json
+
+        from hermes_cli.config import load_config, save_config
+
+        secret = "sk-test-mcp-secret-value"
+        monkeypatch.setenv("TEST_MCP_SECRET", secret)
+        cfg = load_config()
+        cfg.setdefault("mcp_servers", {})["env-server"] = {
+            "command": "npx",
+            "args": ["-y", "pkg"],
+            "env": {"API_KEY": "${TEST_MCP_SECRET}"},
+        }
+        save_config(cfg)
+
+        response = self.client.get("/api/config")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["mcp_servers"]["env-server"]["env"]["API_KEY"] == "${TEST_MCP_SECRET}"
+        assert secret not in json.dumps(payload)
+
+
     def test_http_bearer_auth_separates_secret_from_config(
         self, _isolate_hermes_home
     ):
