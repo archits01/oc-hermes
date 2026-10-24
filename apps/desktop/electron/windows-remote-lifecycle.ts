@@ -34,10 +34,10 @@ async function probeWindowsRemote(ssh, explicitHermesPath = '') {
     '$candidates+=(Join-Path $hermesHome "hermes-agent\\venv\\Scripts\\hermes.exe")',
     '$candidates+=(Join-Path $HOME "hermes-agent\\.venv\\Scripts\\hermes.exe")',
     '$hermes=$candidates|Where-Object{Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1',
-    'if(-not $hermes){throw "Hermes is not installed on the remote Windows host."}',
-    'if($explicit -and $hermes -ne $explicit){throw "The configured Hermes path is not an executable file."}',
+    'if(-not $hermes){throw "Open Computer is not installed on the remote Windows host."}',
+    'if($explicit -and $hermes -ne $explicit){throw "The configured Open Computer path is not an executable file."}',
     '$python=Join-Path (Split-Path $hermes) "python.exe"',
-    'if(-not (Test-Path -LiteralPath $python -PathType Leaf)){throw "The remote Hermes Python runtime was not found."}',
+    'if(-not (Test-Path -LiteralPath $python -PathType Leaf)){throw "The remote Open Computer Python runtime was not found."}',
     '[ordered]@{os="Windows";arch=$env:PROCESSOR_ARCHITECTURE;hermesHome=$hermesHome;hermesPath=$hermes;python=$python}|ConvertTo-Json -Compress'
   ].join(';')
 
@@ -291,7 +291,7 @@ async function connectWindowsRemote(deps) {
   const inspection = await helper(ssh, runtime, 'inspect', [runtime.hermesPath])
 
   if (!inspection.supported) {
-    const error: any = new Error('Update Hermes on the remote Windows host before connecting with Desktop SSH.')
+    const error: any = new Error('Update Open Computer on the remote Windows host before connecting with Desktop SSH.')
     error.kind = 'update-required'
     throw error
   }
@@ -442,7 +442,7 @@ function buildWindowsInteractiveCommand(remoteCwd = '') {
     )
   }
 
-  script.push('$host.UI.RawUI.WindowTitle="Hermes SSH"', 'powershell.exe -NoLogo')
+  script.push('$host.UI.RawUI.WindowTitle="Open Computer SSH"', 'powershell.exe -NoLogo')
 
   return powerShellCommand(script.join(';'))
 }
