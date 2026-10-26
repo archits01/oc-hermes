@@ -11,7 +11,7 @@ def test_native_whatsapp_is_blocked_when_unipile_is_configured():
     }
     message = _whatsapp_transport_conflict("whatsapp", True, env)
     assert message is not None
-    assert "WhatsApp Unipile" in message
+    assert "WhatsApp (LMI)" in message
 
 
 def test_unipile_is_blocked_when_native_whatsapp_is_enabled():
@@ -19,7 +19,7 @@ def test_unipile_is_blocked_when_native_whatsapp_is_enabled():
         "whatsapp_unipile", True, {"WHATSAPP_ENABLED": "true"}
     )
     assert message is not None
-    assert "native WhatsApp" in message
+    assert "WhatsApp (QR bridge)" in message
 
 
 def test_separate_transports_are_not_blocked_when_only_one_is_selected():
