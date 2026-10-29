@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
+<<<<<<< HEAD
 import {
   isMessagingSource,
   MESSAGING_SESSION_SOURCE_IDS,
   sessionSourceLabel,
   sessionSourceSearchTerms
 } from './session-source'
+=======
+import { isMessagingSource, sessionSourceSearchTerms } from './session-source'
+>>>>>>> upstream/main
 
 // Regression guard for #46761 / PR #47395: Photon (iMessage) must keep its own
 // sidebar section. refreshMessagingSessions() filters rows through
@@ -26,10 +30,6 @@ describe('photon messaging source registration', () => {
     const terms = sessionSourceSearchTerms('photon')
     expect(terms).toContain('imessage')
     expect(terms).toContain('messages')
-  })
-
-  it('is registered in the messaging source id list', () => {
-    expect(MESSAGING_SESSION_SOURCE_IDS).toContain('photon')
   })
 
   it('does not flag local/CLI-ish sources as messaging (guard sanity)', () => {
