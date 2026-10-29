@@ -52,22 +52,18 @@ def _is_meta_contributor(model_lower: str, provider_lower: str) -> bool:
 _META_CONTRIBUTOR_MESSAGE = (
     "!!! CONTRIBUTOR TIER — TRAINS ON YOUR DATA !!!\n"
     "\n"
-    "muse-spark-1.2-contributor is Meta's contributor tier: heavily discounted\n"
-    "token pricing in exchange for permission to use your prompts and completions\n"
-    "to train future Meta models.\n"
+    "This selected model is a Meta contributor-tier model. Its discounted\n"
+    "pricing is offered in exchange for permission to use prompts and completions\n"
+    "to train future Meta models. The exact model-specific pricing may change.\n"
     "\n"
-    "  Price per 1M tokens:  input $0.10  |  output $0.20  |  cached input $0.002\n"
-    "  (vs. standard muse-spark-1.2:  input $1.25  |  output $4.25  |  cached $0.15)\n"
-    "\n"
-    "It lowers the barrier to entry for prototyping, testing integrations, and\n"
-    "scaling experiments where training on your data is acceptable. Do NOT use it\n"
-    "for confidential, proprietary, personal, or otherwise sensitive data. For the\n"
-    "same model at standard pricing with no training on your data, select the\n"
-    "standard variant, muse-spark-1.2.\n"
+    "Do NOT use it for confidential, proprietary, personal, or otherwise sensitive\n"
+    "data unless you explicitly accept that data-use policy. For a no-training\n"
+    "alternative, choose the standard Muse Spark variant when available.\n"
     "\n"
     "Source: https://dev.meta.ai/docs/pricing-rate-limits/\n"
     "Confirm only if training on your prompts and completions is acceptable."
 )
+
 
 
 # (predicate, message) pairs, evaluated in order; first match wins.

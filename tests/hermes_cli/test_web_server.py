@@ -1261,6 +1261,56 @@ class TestWebServerEndpoints:
         assert data["action_id"] == action_id
         assert f"=== hermes-update completed {action_id} ===" in data["lines"]
 
+    def test_update_status_receipt_overrides_legacy_success_marker_on_failure(self, monkeypatch, tmp_path):
+        import hermes_cli.web_server as web_server
+
+        action_id = "d" * 32
+        (tmp_path / "update.log").write_text(
+            "=== hermes update started 2026-09-08T12:50:00 ===\n"
+            f"=== hermes-update completed {action_id} ===\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            web_server,
+            "_latest_update_receipt_summary",
+            lambda: {"outcome": "failed", "finished_at": "2026-09-08T12:51:00+00:00"},
+        )
+        monkeypatch.setattr(web_server, "_ACTION_LOG_DIR", tmp_path)
+        monkeypatch.setattr(web_server, "_ACTION_PROCS", {})
+        monkeypatch.setattr(web_server, "_ACTION_RESULTS", {})
+        monkeypatch.setattr(web_server, "_ACTION_COMMANDS", {})
+        monkeypatch.setattr(web_server, "_ACTION_IDS", {})
+
+        status = self.client.get("/api/actions/hermes-update/status?lines=2000")
+
+        assert status.status_code == 200
+        data = status.json()
+        assert data["exit_code"] == 1
+        assert data["receipt"]["outcome"] == "failed"
+
+    def test_update_status_failed_receipt_is_terminal_without_marker(self, monkeypatch, tmp_path):
+        import hermes_cli.web_server as web_server
+
+        (tmp_path / "update.log").write_text("", encoding="utf-8")
+        monkeypatch.setattr(
+            web_server,
+            "_latest_update_receipt_summary",
+            lambda: {"outcome": "failed", "finished_at": "2026-09-08T12:51:00+00:00"},
+        )
+        monkeypatch.setattr(web_server, "_ACTION_LOG_DIR", tmp_path)
+        monkeypatch.setattr(web_server, "_ACTION_PROCS", {})
+        monkeypatch.setattr(web_server, "_ACTION_RESULTS", {})
+        monkeypatch.setattr(web_server, "_ACTION_COMMANDS", {})
+        monkeypatch.setattr(web_server, "_ACTION_IDS", {})
+
+        status = self.client.get("/api/actions/hermes-update/status?lines=2000")
+
+        assert status.status_code == 200
+        data = status.json()
+        assert data["running"] is False
+        assert data["exit_code"] == 1
+        assert data["receipt"]["outcome"] == "failed"
+
     def test_update_hermes_spawns_with_action_id(self, monkeypatch):
         import hermes_cli.web_server as web_server
 
