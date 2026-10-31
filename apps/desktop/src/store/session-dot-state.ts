@@ -28,7 +28,12 @@ import { computed } from 'nanostores'
 import { stableArray, stableRecord } from '@/lib/stable-array'
 
 import { $backgroundRunningSessionIds } from './composer-status'
+<<<<<<< HEAD
 import { $sessions, $unreadFinishedSessionIds, lineageAliases } from './session'
+=======
+import { $pausedQueueSessionIds } from './owner-queue-reconcile'
+import { $messagingSessions, $sessions, $unreadFinishedSessionIds, lineageAliases } from './session'
+>>>>>>> upstream/main
 import {
   $attentionSessionIds,
   $draftSessionIds,
@@ -109,9 +114,10 @@ export const $sessionDotStateById = computed(
     $unreadFinishedSessionIds,
     $draftSessionIds,
     $sessions,
-    $unreadWriteGuard
+    $unreadWriteGuard,
+    $pausedQueueSessionIds
   ],
-  (attention, working, stalled, background, delegating, unread, draft, sessions, unreadWriteGuard) => {
+  (attention, working, stalled, background, delegating, unread, draft, sessions, unreadWriteGuard, paused) => {
     const next: Record<string, SessionDotState> = {}
 
     const claim = (ids: readonly string[], state: SessionDotState) => {
@@ -163,6 +169,9 @@ export const $sessionDotStateById = computed(
     // claim as background processes — and it yields to `working` below the
     // moment the parent turn itself is live (synchronous orchestrator children).
     claim(delegating, 'background')
+    // A queue paused behind a turn lost in a restart waits on the user's Discard, and a turn that
+    // never finished must not read as finished-unread. A turn actually running speaks over it.
+    claim(paused, 'needs-input')
     claim(working, 'working')
 
     // Stalled REFINES working rather than rivalling it — the turn is still
@@ -182,3 +191,35 @@ export const $sessionDotStateById = computed(
     return (dotStates = stableRecord(dotStates, next))
   }
 )
+<<<<<<< HEAD
+=======
+
+/** Listed, non-archived rows whose resolved status is unread. Alias keys in
+ *  `$sessionDotStateById` are ignored unless they are themselves a listed row. */
+export function unreadSessionCount(
+  byId: Readonly<Record<string, SessionDotState>>,
+  ...lists: Array<readonly { archived?: boolean; id: string }[]>
+): number {
+  let n = 0
+
+  for (const rows of lists) {
+    for (const row of rows) {
+      if (!row.archived && byId[row.id] === 'unread') {
+        n++
+      }
+    }
+  }
+
+  return n
+}
+
+/** The titlebar badge. Cron sessions are deliberately EXCLUDED: cron runs
+ *  finish unwatched by design, so counting them turns the badge into a cron
+ *  run counter that is permanently lit (#93552). Their unread state stays
+ *  visible where it belongs — the sidebar's cron section rows — and
+ *  "mark all as read" still acks them (ackAllSessionsRead iterates cron rows). */
+export const $unreadSessionCount = computed(
+  [$sessionDotStateById, $sessions, $messagingSessions],
+  (byId, sessions, messaging) => unreadSessionCount(byId, sessions, messaging)
+)
+>>>>>>> upstream/main
