@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/context-menu'
 import { translateNow, useI18n } from '@/i18n'
 import { isDesktopFsRemoteMode } from '@/lib/desktop-fs'
+import { isSubmitEnter } from '@/lib/ime'
 import { IS_MAC } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
 import {
@@ -187,7 +188,7 @@ export function InlineRenameInput({ className, name, path }: InlineRenameInputPr
       onKeyDown={event => {
         event.stopPropagation()
 
-        if (event.key === 'Enter') {
+        if (isSubmitEnter(event)) {
           event.preventDefault()
           void finish(true)
         } else if (event.key === 'Escape') {
