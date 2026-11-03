@@ -97,7 +97,7 @@ export function configurePackagedAppUpdater(options: PackagedAppUpdaterOptions):
 
   updater.on('update-available', payload => {
     const version = typeof payload === 'object' && payload && 'version' in payload ? payload.version : undefined
-    log(`[packaged-updater] signed OpenComputer update available${version ? `: ${version}` : ''}; downloading`)
+    log(`[packaged-updater] signed Open Computer update available${version ? `: ${version}` : ''}; downloading`)
   })
 
   updater.on('update-not-available', payload => {
@@ -110,8 +110,8 @@ export function configurePackagedAppUpdater(options: PackagedAppUpdaterOptions):
         buttons: ['OK'],
         cancelId: 0,
         defaultId: 0,
-        detail: 'This OpenComputer desktop app is already on the latest hosted release.',
-        message: 'OpenComputer is up to date',
+        detail: 'This Open Computer desktop app is already on the latest hosted release.',
+        message: 'Open Computer is up to date',
         type: 'info'
       })
     }
@@ -128,7 +128,7 @@ export function configurePackagedAppUpdater(options: PackagedAppUpdaterOptions):
         cancelId: 0,
         defaultId: 0,
         detail: 'No desktop update was installed. Please try again later or download a signed release manually.',
-        message: 'OpenComputer could not check for updates',
+        message: 'Open Computer could not check for updates',
         type: 'error'
       })
     }
@@ -149,8 +149,8 @@ export function configurePackagedAppUpdater(options: PackagedAppUpdaterOptions):
         cancelId: 1,
         defaultId: 0,
         detail:
-          'The signed desktop update has downloaded. Restarting closes OpenComputer; it will install the update and reopen.',
-        message: version ? `OpenComputer ${version} is ready` : 'An OpenComputer update is ready',
+          'The signed desktop update has downloaded. Restarting closes Open Computer; it will install the update and reopen.',
+        message: version ? `Open Computer ${version} is ready` : 'An Open Computer update is ready',
         type: 'info'
       })
       .then(({ response }) => {
@@ -189,7 +189,7 @@ export function configurePackagedAppUpdater(options: PackagedAppUpdaterOptions):
               cancelId: 0,
               defaultId: 0,
               detail: 'No desktop update was installed. Please try again later or download a signed release manually.',
-              message: 'OpenComputer could not check for updates',
+              message: 'Open Computer could not check for updates',
               type: 'error'
             })
           }
