@@ -82,6 +82,7 @@ describe('session.info does not clobber composer model selection', () => {
     expect($currentModel.get()).toBe('deepseek-v4-flash')
     expect($currentProvider.get()).toBe('deepseek')
   })
+<<<<<<< HEAD
 
   it('keeps the composer pick when an unscoped session.info arrives with no live session', async () => {
     await mountStream(null)
@@ -96,4 +97,6 @@ describe('session.info does not clobber composer model selection', () => {
     expect($currentModel.get()).toBe('deepseek-v4-flash')
     expect($currentProvider.get()).toBe('deepseek')
   })
+=======
+>>>>>>> upstream/main
 })
