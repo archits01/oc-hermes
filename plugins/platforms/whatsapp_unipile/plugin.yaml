@@ -1,0 +1,35 @@
+name: whatsapp-unipile-platform
+label: WhatsApp Unipile
+kind: platform
+version: 1.0.0
+description: >
+  WhatsApp messaging adapter for Hermes gateway. Routes inbound WhatsApp
+  messages through Unipile's unified API into isolated Hermes sessions per
+  sender. Registers whatsapp-tools toolset for WA-specific actions.
+author: LMI
+requires_env:
+  - name: WHATSAPP_UNIPILE_DSN
+    description: "Unipile DSN (e.g. api41.unipile.com:17178)"
+    prompt: "Unipile DSN"
+    password: false
+  - name: WHATSAPP_UNIPILE_API_KEY
+    description: "Unipile API key"
+    prompt: "Unipile API key"
+    password: true
+  - name: WHATSAPP_ACCOUNT_ID
+    description: "Unipile account ID for WhatsApp"
+    prompt: "WhatsApp account ID"
+    password: false
+optional_env:
+  - name: WHATSAPP_WEBHOOK_PORT
+    description: "Webhook listener port (default 8646)"
+    prompt: "WhatsApp webhook port"
+    password: false
+  - name: WHATSAPP_ALLOWED_USERS
+    description: "Comma-separated WhatsApp phone numbers (allowlist)"
+    prompt: "Allowed WhatsApp numbers"
+    password: false
+  - name: WHATSAPP_ALLOW_ALL_USERS
+    description: "Set to 'true' to allow all inbound messages"
+    prompt: "Allow all users?"
+    password: false
