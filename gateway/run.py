@@ -18700,6 +18700,29 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         except Exception:
             logger.debug("Failed to restore one-turn model override", exc_info=True)
 
+    @staticmethod
+    def _strip_ephemeral_channel_context(
+        message_text: str, channel_context: Optional[str]
+    ) -> str:
+        """Keep backfilled context in the live turn, never in durable user text.
+
+        Platform adapters attach an exact-chat history block to the current
+        model input. That block is ephemeral: the authoritative transcript and
+        sales-action memory already store the history. Persisting it again makes
+        every subsequent session row contain another copy, which degrades both
+        latency and intent resolution. Remove only the exact generated marker;
+        leave the current message, sender/attachment notes, and any untrusted
+        customer wording untouched.
+        """
+        text = str(message_text or "")
+        context = str(channel_context or "")
+        if not text or not context:
+            return text
+        marker = f"{context}\n\n[New message]\n"
+        if marker not in text:
+            return text
+        return text.replace(marker, "", 1)
+
     async def _prepare_inbound_message_text(
         self,
         *,
@@ -20723,7 +20746,12 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             if message_text and isinstance(message_text, str):
                 _clean_message_text, _embedded_ts = _strip_msg_ts(
                     message_text, tz=_evt_tz)
-                persist_user_message = _clean_message_text
+                # channel_context is an ephemeral backfill block for this model
+                # turn. Never persist it inside the durable user row, or the
+                # next turn will replay every prior history block recursively.
+                persist_user_message = self._strip_ephemeral_channel_context(
+                    _clean_message_text, getattr(event, "channel_context", None)
+                )
                 _event_epoch = _coerce_msg_ts(_evt_ts, tz=_evt_tz)
                 persist_user_timestamp = (
                     _event_epoch if _event_epoch is not None else _embedded_ts
