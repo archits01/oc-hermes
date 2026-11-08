@@ -66,6 +66,7 @@ describe('$sessionColorById', () => {
     expect(b.id in map).toBe(false)
   })
 
+<<<<<<< HEAD
   it('omits a session whose project has no color', () => {
     const a = makeSession('/www/app', { git_repo_root: '/www/app' })
 
@@ -75,6 +76,8 @@ describe('$sessionColorById', () => {
     expect(a.id in $sessionColorById.get()).toBe(false)
   })
 
+=======
+>>>>>>> upstream/main
   it('recomputes when the projects list changes (color applied later)', () => {
     const a = makeSession('/www/app', { git_repo_root: '/www/app' })
 
