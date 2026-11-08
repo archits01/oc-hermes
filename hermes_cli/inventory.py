@@ -207,8 +207,11 @@ def build_models_payload(
         probe_current_custom_provider=probe_current_custom_provider,
         for_picker=for_picker,
         excluded_providers=ctx.excluded_providers or [],
-        included_providers=ctx.included_providers or [],
-        free_only_providers=ctx.free_only_providers or [],
+        # Apply managed provider/free-model policy once below, after the raw
+        # rows exist. This lets the desktop payload retain disabled discovery
+        # rows without widening the executable model list used by the CLI/TUI.
+        included_providers=[],
+        free_only_providers=[],
     )
 
     moa_row = _moa_provider_row(ctx.current_provider)
@@ -350,8 +353,17 @@ def _append_nous_free_discovery_row(
     except Exception:
         nous_models, openrouter_models = [], []
     existing = {str(row.get("slug") or "").lower() for row in rows}
+    # Once the real authenticated provider row has a selectable model list,
+    # its discovery-only duplicate is misleading and must not render as
+    # "NOT VERIFIED" beside the usable rows. Keep discovery rows only for
+    # providers that are genuinely unconfigured or have no selectable models.
+    selectable_provider_slugs = {
+        str(row.get("slug") or "").lower()
+        for row in rows
+        if bool(row.get("models"))
+    }
     additions: list[dict] = []
-    if nous_models and "nous-free-catalog" not in existing:
+    if nous_models and "nous-free-catalog" not in existing and "nous" not in selectable_provider_slugs:
         additions.append({
             "authenticated": False,
             "discovered_models": nous_models,
@@ -365,7 +377,7 @@ def _append_nous_free_discovery_row(
             "source": "nous-catalog",
             "total_models": 0,
         })
-    if openrouter_models and "openrouter-free-catalog" not in existing:
+    if openrouter_models and "openrouter-free-catalog" not in existing and "openrouter" not in selectable_provider_slugs:
         additions.append({
             "authenticated": False,
             "discovered_models": openrouter_models,
@@ -1127,8 +1139,14 @@ def _apply_picker_hints(rows: list[dict]) -> None:
 
 
 def _reorder_canonical(rows: list[dict]) -> list[dict]:
-    """Canonical slugs in ``CANONICAL_PROVIDERS`` declaration order;
-    truly-custom rows last.
+    """Return the picker order without changing provider identity.
+
+    The desktop picker has two deliberate anchors: the authenticated xAI
+    OAuth row is first and the VM-backed OpenComputer row is second. Free
+    catalogs/discovery rows belong at the tail so paid/canonical providers do
+    not get visually mixed with rows that are disabled or probe-gated.
+    Remaining canonical rows retain their declaration order and truly-custom
+    rows retain their relative order.
 
     Keys on slug membership, NOT ``is_user_defined`` — section 3 of
     ``list_authenticated_providers`` sets ``is_user_defined=True`` on
@@ -1139,13 +1157,34 @@ def _reorder_canonical(rows: list[dict]) -> list[dict]:
     from hermes_cli.models import CANONICAL_PROVIDERS
 
     order = {e.slug: i for i, e in enumerate(CANONICAL_PROVIDERS)}
-    canon = sorted(
-        (r for r in rows if r["slug"] in order),
-        key=lambda r: order[r["slug"]],
-    )
-    extras = [r for r in rows if r["slug"] not in order]
-    return canon + extras
+    free_discovery_slugs = {
+        "opencode-free",
+        "nous-free-catalog",
+        "openrouter-free-catalog",
+    }
 
+    def is_free_or_discovery(row: dict) -> bool:
+        slug = str(row.get("slug") or "").strip().lower()
+        if slug in free_discovery_slugs or slug.endswith("-free"):
+            return True
+        # Discovery-only rows carry advertised IDs but no executable models.
+        return bool(row.get("discovered_models")) and not row.get("models")
+
+    def sort_key(item: tuple[int, dict]) -> tuple[int, int]:
+        original_index, row = item
+        slug = str(row.get("slug") or "").strip().lower()
+        if slug == "xai-oauth":
+            return (0, 0)
+        if slug == "tryopencomputer":
+            return (1, 0)
+        if is_free_or_discovery(row):
+            # Keep the free/discovery subset stable at the bottom.
+            return (3, original_index)
+        # Canonical providers lead truly-custom rows, while preserving the
+        # canonical declaration order used by the CLI/TUI.
+        return (2, order.get(slug, len(order) + original_index))
+
+    return [row for _index, row in sorted(enumerate(rows), key=sort_key)]
 
 def _apply_pricing(
     rows: list[dict],
