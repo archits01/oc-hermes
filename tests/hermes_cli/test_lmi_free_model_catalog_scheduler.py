@@ -16,7 +16,7 @@ def test_scheduler_render_is_one_exact_locked_daily_job_without_credentials():
         capture_output=True,
     ).stdout.strip()
     assert rendered.count("\n") == 0
-    assert rendered.startswith("17 3 * * * HERMES_HOME=/opt/opencomputer-v2-data ")
+    assert rendered.startswith("0 4 * * * HERMES_HOME=/opt/opencomputer-v2-data ")
     assert "flock -n /opt/opencomputer-v2-data/locks/lmi-free-model-catalog-refresh.lock" in rendered
     assert "/opt/opencomputer-v2/venv/bin/python /opt/opencomputer-v2/scripts/ops/lmi_free_model_catalog_refresh.py" in rendered
     assert ">> /opt/opencomputer-v2-data/logs/lmi-free-model-catalog-refresh.log 2>&1" in rendered
