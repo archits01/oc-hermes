@@ -1,7 +1,9 @@
+import { messages } from '../i18n/runtime.js'
 import type { PanelSection } from '../types.js'
 
-export const SETUP_REQUIRED_TITLE = 'Setup Required'
+export const setupRequiredTitle = (): string => messages().content.setup.title
 
+<<<<<<< HEAD
 export const buildSetupRequiredSections = (): PanelSection[] => [
   {
     text: 'OpenComputer needs a model provider before the TUI can start a session.'
@@ -15,3 +17,25 @@ export const buildSetupRequiredSections = (): PanelSection[] => [
     title: 'Actions'
   }
 ]
+=======
+export const buildSetupRequiredSections = (): PanelSection[] => {
+  const s = messages().content.setup
+
+  return [
+    {
+      text: s.intro
+    },
+    {
+      rows: [
+        ['/setup', s.setupRow],
+        ['/model', s.modelRow],
+        ['Ctrl+C', s.exitRow]
+      ],
+      title: s.actions
+    },
+    {
+      text: s.footer
+    }
+  ]
+}
+>>>>>>> upstream/main

@@ -103,6 +103,7 @@ import {
   type MouseTrackingMode,
   SHOW_CURSOR
 } from './termio/dec.js'
+import { isDashboardHosted } from './termio/host.js'
 import {
   CLEAR_ITERM2_PROGRESS,
   CLEAR_TAB_STATUS,
@@ -610,14 +611,54 @@ export default class Ink {
     // if we continue with the pre-blur virtual cursor/backbuffer, only the
     // next small dirty region may repaint and stale status/progress rows can
     // remain visible. Defer one tick so TerminalFocusProvider subscribers
+<<<<<<< HEAD
     // observe the new focus state first, then do the same recovery as /redraw.
+=======
+    // observe the new focus state first, then reset the virtual frames and
+    // repaint from scratch.
+    //
+    // The clear is required (a row that is BLANK in the new frame is skipped
+    // by the diff, so a stale row survives a buffer-only reset), but it is
+    // queued via needsEraseBeforePaint rather than written directly: that
+    // folds it into this frame's patch list so clear+paint reach the terminal
+    // in ONE write. forceRedraw()'s separate stdout.write(ERASE_SCREEN) is
+    // what makes an ordinary tab switch flash a blank screen.
+    //
+    // Modes are re-asserted too: an emulator that dropped DEC mouse tracking
+    // while the pane was hidden would otherwise stay dead until the DECRQM
+    // watchdog's next 2s probe. reassertTerminalModes(false) is the
+    // non-destructive form — extended keys + mouse preset, no alt-screen
+    // re-entry, no erase — so it costs a few idempotent bytes and no flicker.
+    //
+    // Under the dashboard the emulator is xterm.js over a WebSocket: it never
+    // drops hidden-tab writes, so the clear+repaint is only a flash on every
+    // OS app-switch. Re-assert modes and stop; the focus report still reaches
+    // TerminalFocusProvider.
+>>>>>>> upstream/main
     queueMicrotask(() => {
       if (this.isUnmounted || this.isPaused || !this.options.stdout.isTTY || this.currentNode === null) {
         return
       }
 
       this.reassertTerminalModes(false)
+<<<<<<< HEAD
       this.forceRedraw()
+=======
+
+      if (isDashboardHosted()) {
+        return
+      }
+
+      if (this.altScreenActive) {
+        this.resetFramesForAltScreen()
+      } else {
+        this.repaint()
+        this.invalidatePrevFrame()
+      }
+
+      this.needsEraseBeforePaint = true
+      this.onRender()
+>>>>>>> upstream/main
     })
   }
 
@@ -1031,6 +1072,26 @@ export default class Ink {
       }
 
       optimized.push(this.altScreenParkPatch)
+<<<<<<< HEAD
+=======
+    } else if (this.needsEraseBeforePaint) {
+      // Main screen (INLINE_MODE). Same atomicity contract as the
+      // alt-screen branch above: fold the clear into this frame's patch list
+      // so clear+paint land in one write instead of a bare
+      // stdout.write(ERASE_SCREEN) followed by the frame. No cursor park —
+      // main-screen cursor position is meaningful (it's the prompt row) and
+      // log-update already restores it. No CSI 3J: scrollback is the user's
+      // history here, not a resize artifact.
+      //
+      // Always consume the flag, but only emit the clear when this frame
+      // actually repaints: a queued erase riding a later incremental frame
+      // (spinner tick) would wipe content that frame doesn't redraw.
+      this.needsEraseBeforePaint = false
+
+      if (hasDiff) {
+        optimized.unshift(ERASE_THEN_HOME_PATCH)
+      }
+>>>>>>> upstream/main
     }
 
     // Native cursor positioning: park the terminal cursor at the declared
