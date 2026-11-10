@@ -6,7 +6,9 @@ export interface RemoteAuthProviderShape {
 }
 
 function providerDisplayName(provider: DesktopAuthProvider): string {
-  return provider.displayName || provider.name
+  const raw = provider.displayName || provider.name
+
+  return /\b(?:nous|hermes(?:\s+agent)?)\b/i.test(raw) ? 'Open Computer Account' : raw
 }
 
 export function deriveRemoteAuthProviderShape(

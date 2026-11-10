@@ -395,7 +395,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
     setConnectionState("connecting");
     setConsoleProfile(profile || "current");
     hasReadyFrameRef.current = false;
-    writeLine(term, "\x1b[2mConnecting to OpenComputer Console...\x1b[0m");
+    writeLine(term, "\x1b[2mConnecting to Open Computer Console...\x1b[0m");
 
     void (async () => {
       try {
@@ -507,7 +507,7 @@ export function HermesConsoleModal({ open, onClose }: HermesConsoleModalProps) {
               id="hermes-console-title"
               className="font-mondwest text-display text-base tracking-wider"
             >
-              OpenComputer Console
+              Open Computer Console
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge tone={statusTone}>{connectionState}</Badge>

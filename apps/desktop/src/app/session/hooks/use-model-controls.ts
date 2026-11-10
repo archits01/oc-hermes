@@ -5,6 +5,7 @@ import type { ModelSelection } from '@/app/shell/model-menu-panel'
 import { getGlobalModelInfo } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { isBusySessionModelSwitch } from '@/lib/gateway-rpc'
+import { surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
 import { manualPickRemoved, modelOptionsQueryKey } from '@/lib/model-options'
 import { notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -190,26 +191,52 @@ export function useModelControls({ queryClient, requestGateway }: ModelControlsO
       const prevSource = getCurrentModelSource()
       const liveGatewayProfile = $activeGatewayProfile.get()
 
-      if (touchesPrimary) {
-        setCurrentModel(selection.model)
-        setCurrentProvider(selection.provider)
-        markComposerSelectionManual()
-      } else if (liveSessionId) {
-        // Optimistic tile paint — session.info will confirm; rollback on error.
-        sessionTileDelegate()?.updateSession(liveSessionId, state => ({
-          ...state,
-          model: selection.model,
-          provider: selection.provider
-        }))
+      const applyOptimisticSelection = () => {
+        if (touchesPrimary) {
+          setCurrentModel(selection.model)
+          setCurrentProvider(selection.provider)
+          markComposerSelectionManual()
+        } else if (liveSessionId) {
+          // Optimistic tile paint — session.info will confirm; rollback on error.
+          sessionTileDelegate()?.updateSession(liveSessionId, state => ({
+            ...state,
+            model: selection.model,
+            provider: selection.provider
+          }))
+        }
+
+        updateModelOptionsCache(
+          liveSessionId,
+          selection.provider,
+          selection.model,
+          touchesPrimary && !liveSessionId,
+          liveGatewayProfile
+        )
       }
 
-      updateModelOptionsCache(
-        liveSessionId,
-        selection.provider,
-        selection.model,
-        touchesPrimary && !liveSessionId,
-        liveGatewayProfile
-      )
+      const rollbackSelection = () => {
+        if (touchesPrimary) {
+          setCurrentModel(prevModel)
+          setCurrentProvider(prevProvider)
+          setCurrentModelSource(prevSource)
+        } else if (liveSessionId) {
+          sessionTileDelegate()?.updateSession(liveSessionId, state => ({
+            ...state,
+            model: prevModel,
+            provider: prevProvider
+          }))
+        }
+
+        updateModelOptionsCache(
+          liveSessionId,
+          prevProvider,
+          prevModel,
+          touchesPrimary && !liveSessionId,
+          liveGatewayProfile
+        )
+      }
+
+      applyOptimisticSelection()
 
       // No live session yet: the pick is pure UI state. session.create reads
       // $currentModel/$currentProvider and applies it as that session's override.
@@ -224,11 +251,45 @@ export function useModelControls({ queryClient, requestGateway }: ModelControlsO
         // gateway session. Global defaults belong to Settings → Model.
         const scope = '--session'
 
-        const result = await requestGateway<{ deferred?: boolean }>('config.set', {
-          session_id: liveSessionId,
-          key: 'model',
-          value: `${selection.model} --provider ${selection.provider} ${scope}`
-        })
+        const requestSelection = (confirm_expensive_model = false) =>
+          requestGateway<{
+            confirm_message?: string
+            confirm_required?: boolean
+            deferred?: boolean
+          }>('config.set', {
+            session_id: liveSessionId,
+            key: 'model',
+            value: `${selection.model} --provider ${selection.provider} ${scope}`,
+            ...(confirm_expensive_model ? { confirm_expensive_model: true } : {})
+          })
+
+        const result = await requestSelection()
+
+        // The gateway deliberately refuses guarded models (for example Meta's
+        // contributor tier) until the user confirms the data policy. Do not
+        // leave the optimistic picker state painted as though the switch
+        // succeeded; route the existing shared confirmation flow instead.
+        if (result?.confirm_required) {
+          rollbackSelection()
+          surfaceModelSwitchConfirm({
+            confirmLabel: 'Confirm',
+            confirmMessage: result.confirm_message,
+            failureMessage: copy.modelSwitchFailed,
+            isStale: () =>
+              touchesPrimary && ($currentModel.get() !== prevModel || $currentProvider.get() !== prevProvider),
+            repaint: applyOptimisticSelection,
+            rollback: rollbackSelection,
+            requestConfirmed: () => requestSelection(true),
+            finish: confirmed => {
+              if (!confirmed?.deferred) {
+                void queryClient.invalidateQueries({
+                  queryKey: modelOptionsQueryKey(liveGatewayProfile, liveSessionId)
+                })
+              }
+            }
+          })
+          return false
+        }
 
         // A pick made DURING a turn is queued by the gateway and applied at the
         // next turn start (`deferred`). Re-fetching now would answer with the
@@ -250,25 +311,7 @@ export function useModelControls({ queryClient, requestGateway }: ModelControlsO
           return true
         }
 
-        if (touchesPrimary) {
-          setCurrentModel(prevModel)
-          setCurrentProvider(prevProvider)
-          setCurrentModelSource(prevSource)
-        } else if (liveSessionId) {
-          sessionTileDelegate()?.updateSession(liveSessionId, state => ({
-            ...state,
-            model: prevModel,
-            provider: prevProvider
-          }))
-        }
-
-        updateModelOptionsCache(
-          liveSessionId,
-          prevProvider,
-          prevModel,
-          touchesPrimary && !liveSessionId,
-          liveGatewayProfile
-        )
+        rollbackSelection()
         notifyError(err, copy.modelSwitchFailed)
 
         return false
