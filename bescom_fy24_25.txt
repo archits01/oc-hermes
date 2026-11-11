@@ -1,0 +1,1972 @@
+Bangalore Electricity Supply Company Limited
+
+
+   Details of Annual Report for FY 2024-25
+INDEPENDENT AUDITORS’ REPORT
+
+To the Members of Bangalore Electricity Supply Company Limited
+
+Report on the Audit of the Financial Statements
+
+Adverse Opinion
+
+We have audited the accompanying financial statements of Bangalore Electricity Supply Company
+Limited (‘the Company’), which comprise the Balance Sheet as at 31 March 2025, the Statement of
+Profit and Loss (including Other Comprehensive Income), the Statement of Cash Flows and the
+Statement of Changes in Equity for the year then ended and notes to the financial statements, including
+a summary of the Material Accounting Policies and other explanatory information for the year ended
+on that date (hereinafter referred to as ‘financial statements’).
+
+In our opinion and to the best of our information and according to the explanations given to us, because
+of the significance of the matters described in the Basis for Adverse Opinion section of our report, the
+aforesaid financial statements do not give the information required by the Companies Act, 2013 (‘the
+Act’) in the manner so required and do not give a true and fair view in conformity with the Indian
+Accounting Standards prescribed under Section 133 of the Act read with the Companies (Indian
+Accounting Standards) Rules, 2015, as amended, (‘Ind AS’) and other accounting principles generally
+accepted in India, of the state of affairs of the Company as at 31 March 2025 and its loss (including
+other comprehensive income), its cash flows and changes in equity for the year ended on that date.
+
+Basis for Adverse Opinion
+
+i.       Attention is drawn to material accounting policy no. 1 of the Company, wherein certain assets
+         released from active use for repairs and maintenance are valued at Written Down Value
+         (WDV). The released assets are brought back to the main block of assets when re-deployed
+         again for active use, and depreciated on the straight-line method as applicable to other normal
+         assets as if there was a fresh installation and revised useful life is not assessed at that stage.
+         Consequently, the released assets are depreciated over a longer period as compared to the
+         main block of assets. Also, the Company does not estimate the cost of dismantling and
+         removing the item and restoring the site for arriving at the cost of capitalisation as required.
+         Some of the assets capitalised during the year include assets that have been completed and
+         commissioned in prior years and prior year depreciation of such assets are charged during
+         the current year. The same is not in accordance with Ind AS 16 ‘Property, Plant and
+         Equipment’. Consequent impact is not readily quantifiable in the absence of proper details.
+         Our opinion on the financial statements for the year ended 31 March 2024 was also modified
+         in respect of this matter.
+
+         Further, as per Ind AS 16 and material accounting policy no. 1, costs directly attributable to
+         bringing an asset to the location and condition necessary for it to be capable of operating in
+         the manner intended by management shall be recognised as part of the cost of such asset.
+         However, the Company is not completely recognising such directly attributable cost in the
+         capital work-in-progress (CWIP) balances and subsequently in the cost of property, plant and
+         equipment. Consequently, this has resulted in understatement of CWIP / property, plant and
+         equipment in the balance sheet and depreciation expense in profit or loss and overstatement
+         of expenses otherwise directly recognised in profit or loss.
+
+
+
+                                                 1 of 49
+       Further, as observed in some of the divisions, appropriate identification of different classes
+       of property, plant and equipment and allocation of total contract consideration (purchase
+       price) to such classes of property, plant and equipment are not accurate. Consequently, part
+       of contract consideration has been incorrectly allocated to the asset category ‘miscellaneous
+       equipment’ (GL 10.685 and GL 10.599) instead of the appropriate asset class impacting the
+       carrying amount of different classes of assets and depreciation recognised on such assets.
+       Resulting impact is not quantifiable.
+
+ii.    Attention is drawn to material accounting policy no. 8 of the Company wherein inventories
+       are valued at Scheduled Standard Rates and the difference between purchase cost and
+       Scheduled Standard Rate is recognised in Statement of Profit & Loss through Material Cost
+       Variance account. However, the Company is not ascertaining net realisable value for items of
+       inventory for the purpose of valuation. The same is not in accordance with Ind AS 2
+       ‘Inventories’ which requires the inventories to be valued at lower of cost and net realisable
+       value. Consequent impact of the same on accounts is not ascertainable. Our opinion on the
+       financial statements for the year ended 31 March 2024 was also modified in respect of this
+       matter.
+
+iii.   Attention is drawn to material accounting policy no. 15.4 wherein provision for earned leave
+       encashment including Half-Pay Leave (HPL) is made on the basis of estimates and not on the
+       basis of actuarial valuation. The same is not in accordance with Ind AS 19 ‘Employee Benefits’
+       and effect of the same on the accounts is not ascertainable. Our opinion on the financial
+       statements for the year ended 31 March 2024 was also modified in respect of this matter.
+
+iv.    Attention is drawn to material accounting policy no. 15.5 wherein the Company has not
+       carried out actuarial valuation and accounted for expense / liability under ‘Family Benefit
+       Fund’. The same is not in accordance with Ind AS 19 and effect of the same on the accounts
+       is not ascertainable. Our opinion on the financial statements for the year ended 31 March
+       2024 was also modified in respect of this matter.
+
+v.     The Company contributes to KPTCL & ESCOMs Pension and Gratuity Trust (‘KEPGT’) towards
+       gratuity & pension liability of its employees who have joined service on or before 31 March
+       2006 and to KPTCL & ESCOMs Newly Defined Contributory Pension Scheme Family Pension
+       & Gratuity Trust (‘KENFPGT’) towards gratuity and family pension in respect of employees
+       who have joined the service on or after 1 April 2006, which are defined benefit schemes.
+       Actuarial valuations are got done by the trusts at the end of each financial year. KEPGT /
+       KENFPGT arrives at a percentage for contribution for the subsequent financial year based on
+       actuarial valuation as at the end of March for the previous financial year, which is contributed
+       to the trust by the Company. However, the contributions were based on actuarial valuation as
+       on 31 March 2024 and liability based on actuarial valuation as on 31 March 2025 has not been
+       ascertained and provided for in the financial statements for the year ended 31 March 2025
+       (contributions were based on actuarial valuation as on 31 March 2023 and liability based on
+       actuarial valuation as on 31 March 2024 has not been ascertained and provided for in the
+       financial statements for the year ended 31 March 2024). To that extent the expenses and
+       liability towards employee benefits are understated. Also, the disclosures required under Ind
+       AS 19 ‘Employee Benefits’ have not been made. The same is not in accordance with Ind AS
+       19 ‘Employee Benefits’ and consequent impact on the accounts is not ascertainable. Our
+       opinion on the financial statements for the year ended 31 March 2024 was also modified in
+       respect of this matter.
+
+
+
+                                              2 of 49
+vi.     The Company has not identified and accounted for lease contracts entered by it as a lessee
+        within the meaning of Ind AS 116 ‘Leases’ and has expensed off rent payable to the Statement
+        of Profit and Loss as per contractual terms. Consequently, the Company has not adopted the
+        principles of recognition, measurement and disclosure as per Ind AS 116 and the impact on
+        the accounts is not quantifiable. Our opinion on the financial statements for the year ended
+        31 March 2024 was also modified in respect of this matter.
+
+vii.    The Company has not provided any documentation as to the evaluation carried out to test for
+        any impairment of assets in compliance with Ind AS 36 ‘Impairment of Assets’. Consequent
+        impact on accounts is not ascertainable. Our opinion on the financial statements for the year
+        ended 31 March 2024 was also modified in respect of this matter.
+
+viii.   Attention is drawn to material accounting policy no. 9 of the Company, wherein grants and
+        subsidies received from the government towards capital expenditure, consumer contribution
+        and deposit contribution works are recognised as deferred income under non-current
+        liabilities and subsequently recognised in profit or loss at the proportion equivalent to percent
+        of depreciation charged for plant & machinery / line & cables. However, the Company has
+        been recognising such deferred income in profit or loss at 5.28% of the deferred income in
+        respect of property, plant and equipment commissioned on or before 31 March 2024, but not
+        at the proportion equivalent to depreciation recognised. Our opinion on the financial
+        statements for the year ended 31 March 2024 was modified because of the possible effect of
+        this matter. Further, the Company has been recognising such deferred income in profit or loss
+        at 4.22% of deferred income in respect of property, plant and equipment commissioned on or
+        after 1 April 2024, but not at the proportion equivalent to depreciation recognised. Consequent
+        impact on the financial statements is not ascertainable in the absence of proper workings.
+        Our opinion on the financial statements for the year ended 31 March 2025 is also modified
+        because of the possible effect of this matter.
+
+ix.     The Company has not carried-out any fair valuation as required by Ind AS 109 ‘Financial
+        Instruments’ in respect of all non-current financial assets and liabilities which are receivable
+        / payable beyond a period of 12 months from the date of initial recognition for the purposes
+        of determination of amortised costs and amortisation / recognition of income of the
+        differential between amortised cost and contractual amounts payable / receivable or
+        differential fair value between initial recognition and subsequent recognition. Consequent
+        impact on accounts is not ascertainable. Our opinion on the financial statements for the year
+        ended 31 March 2024 was also modified in respect of this matter.
+
+x.      The Company has recognised Expected Credit Loss (ECL) at some percentage in respect of
+        its trade and other receivables vide its material accounting policy no. 18. However, the
+        Company has not provided any documentation regarding assessment of credit risk or testing
+        of impairment under life time expected credit loss model as required under Ind AS 109
+        ‘Financial Instruments’. Consequential impact on the accounts is not ascertainable. Also, one
+        to one correlation could not be established between Revenue Registration Number (RR) wise
+        trade receivables outstanding and security deposits collected. Hence, we are unable to
+        comment on the classification of trade receivables as secured or unsecured. Our opinion on
+        the financial statements for the year ended 31 March 2024 was also modified in respect of
+        this matter.
+
+
+
+
+                                               3 of 49
+xi.     Attention is drawn to Note no. 14 wherein an amount of Rs. 1,316.90 crore as at 31 March
+        2025 (Rs. 1,077.89 crore as at 31 March 2024) are outstanding under ‘Other Current Financial
+        Assets’ being amounts spent by the Company over and above Rs. 50,000 / Rs. 75,000 ceiling
+        fixed by Govt. of Karnataka for providing infrastructure under Ganga Kalyana Drinking Water
+        Supply Scheme and recoverable from various Corporations controlled by the Govt. of
+        Karnataka. In the absence of confirmations / reconciliation of balances, we are unable to
+        comment on their recoverability / expected credit loss provision, if any, that may be required
+        on the outstanding dues. Our opinion on the financial statements for the year ended 31 March
+        2024 was also modified in respect of this matter.
+
+xii.    Attention is drawn to material accounting policy no. 12 of the Company, wherein revenue from
+        operations includes Fuel & Power Purchase Cost Adjustment (FPPCA) as per the applicable
+        orders from KERC and unbilled revenue is accounted on accrual basis for the last month of
+        the reporting period. However, in the financial statements for the year ended 31 March 2024,
+        the Company has not recognised unbilled revenue that has accrued towards FPPCA charges
+        for the month of March 2024, and also, the revenue from operations for April 2023 includes
+        FPPCA charges for March 2023. Our opinion on those financial statements was modified
+        because of the possible effect of this matter on revenue from operations. FPPCA charges
+        that were accrued during March 2024 are recognised during April 2024 of current year. Our
+        opinion on current year financial statements is also modified because of possible effect of
+        this matter on revenue from operations and on the comparability of current year’s figures and
+        corresponding figures.
+
+xiii.   Attention is drawn to material accounting policy no. 16 of the Company, wherein the
+        borrowing costs directly attributable to the acquisition, construction or production of an asset
+        that necessarily takes substantial period of time to get ready for its intended use or sale, are
+        capitalised as part of the cost of such assets. A balance of Rs. 558.17 crore are disclosed
+        under CWIP (including intangible assets under development) as at 31 March 2025 (Rs. 702.47
+        crore as at 31 March 2024). However, the Company has not considered the balance under
+        CWIP other than intangible asset under development and hardware component of ‘Integrated
+        Power Development – IT Phase II’ for calculating the borrowing costs to be capitalised as part
+        of cost of such asset. The same is not in accordance with Ind AS 23 ‘Borrowing Cost’ and
+        consequential impact is not readily ascertainable in the absence of required details. Our
+        opinion on the financial statements for the year ended 31 March 2024 was also modified in
+        respect of this matter. Further, borrowing cost has been allocated to GL code 14.193 (CWIP
+        – Expenditure incurred under Integrated Power Development – IT Phase II) which consists of
+        both hardware and software components. However, in the financial statements, the entire
+        borrowing cost has been disclosed as part of ‘Capital Work in Progress’ (Note No.4) and
+        borrowing cost pertaining to software is not disclosed under ‘Intangible assets under
+        Development’ (Note No. 5). Consequently, the intangible assets under development of Rs.
+        69.03 crore as at 31 March 2025 (Rs. 52.26 crore as at 31 March 2024) does not include
+        borrowing costs allocated to them. Accordingly, intangible assets under development are
+        understated to the extent of Rs. 5.81 crore as at 31 March 2025 (Rs. 1.93 crore as at 31 March
+        2024) and Capital Work-in-Progress are overstated to that extent.
+
+xiv.    The Company has obtained loan from Asian Development Bank (ADB) for implementing
+        Bengaluru Smart Energy Efficient Power Distribution Project. As per clause 1 of the indenture
+        agreement between GOK and the Company, the Company shall repay such loan to the GOK to
+        enable the State Government to repay the same to ADB through GOI as the loan would be
+        passed on to the state on back-to-back arrangements from GOI and from GOK to the
+
+
+
+                                               4 of 49
+        Company. Further, as per clause 3 of the indenture agreement, the Company shall be liable to
+        bear the exchange rate fluctuation and any other charges like commitment charges etc. if
+        levied in future date by the GOI / ADB before the completion of the project and payable by the
+        State Government to GOI / ADB. The Company has not recognised foreign exchange
+        differences on translation of forex liability in the financial statements up to the financial years
+        ended 31 March 2024. Our opinion on the financial statements for the year ended 31 March
+        2024 was modified because of the possible effect of this matter. Further, as disclosed in Note
+        no. 39.19, the cumulative foreign exchange differences of Rs. 57.67 crore up to the financial
+        years ended 31 March 2025 have been recognised during the financial year ended 31 March
+        2025. Cumulative foreign exchange differences up to financial year ended 31 March 2024
+        have not been retrospectively recognised by restating the financial statements of prior years
+        as required by Ind AS 8 ‘Accounting Policies, Changes in Accounting Estimates and Errors’.
+        Our opinion on the current year’s financial statements is modified because of possible effect
+        of such departure from Ind AS 8. Further, the entire exchange difference has been classified
+        as finance cost, instead of classifying only those exchange differences arising from foreign
+        currency borrowings to the extent they are regarded as an adjustment to interest costs.
+        Consequential effect of the same is not readily quantifiable in the absence of relevant
+        workings.
+
+xv.     Attention is drawn to Note no. 39.33(M) of General Notes to Financial Statements, wherein it
+        is stated that the Company has RECs worth 15,34,967 MWh as at 31 March 2025 (25,00,793
+        as at 31 March 2024) and the quantum of RECs approved by NLDC during May 2025 for FY
+        2021-22 and 2022-23 is 18,73,202 MWh and 9,13,215 MWh respectively and to material
+        accounting policy no. 12 wherein RECs are not valued in books and accounted as income on
+        realisation. Impact of the same on the accounts is not ascertainable in the absence of any
+        valuation methodology framed by the Company. Our opinion on the financial statements for
+        the year ended 31 March 2024 was also modified in respect of this matter.
+
+xvi.    Attention is drawn to material accounting policy no. 24 of the Company, wherein the material
+        prior period errors or omissions above the threshold limit of 1% of turnover of the Company
+        for the year are corrected by retrospective restatement. However, prior period errors or
+        omissions accounted during the financial year are above the threshold limit of 1% of turnover
+        of the Company but the Company has not carried out retrospective restatement but carried
+        out the adjustments in the current financial statements. The same is not in accordance with
+        the accounting policy of the Company and Ind AS 8. Our opinion on the financial statements
+        for the year ended 31 March 2024 was also modified in respect of this matter.
+
+xvii.   Attention is drawn to Note no. 39.9(a) of the ‘General Notes to Financial Statements’ wherein
+        the Company has accounted a part of power purchase cost pertaining to prior years as
+        expenditure for the financial year 2023-24 amounting to Rs. 1,021.83 crore and had deferred
+        the expenditure amounting to Rs. 2,043.65 crore to future years vide GOK order dated 03-09-
+        2024 and grouped under ‘Other Current Assets’. Also, the interest on delayed payments
+        amounting to Rs. 1,869.76 crore pertaining to years before 2023-24 in respect of Karnataka
+        Power Corporation Limited (KPCL) had been deferred to future years for accounting from
+        financial year 2024-25 in three equal instalments as stated in the GOK order and not
+        recognised in the financial statements for the year ended 31 March 2024. Under provisions
+        of Companies Act, 2013, only the Central Government has authority to issue guidelines or
+        notifications or exempt any Class(es) of Company from complying with any requirements or
+        rules of the Companies Act, 2013. As the expenditure deferred pertain to prior years and there
+        is no future economic benefit by deferring such expenditures, the accounting treatment
+
+
+
+                                                5 of 49
+         followed is not in accordance with the Indian Accounting Standards or Generally Accepted
+         Accounting Principles in India. Consequently, accumulated deficit under other equity and
+         trade payables as at 1 April 2023 are understated by Rs. 4,935.24 crore, expenses and losses
+         for the year ended 31 March 2024 are overstated by Rs. 1,021.83 crore, consequently
+         accumulated deficit as at 31 March 2024 are understated by Rs. 3,913.41 crore, ‘Other Current
+         Assets’ as at 31 March 2024 are overstated by Rs. 2,043.65 crore and ‘Trade Payables’ are
+         understated by Rs. 1,869.76 crore. Our opinion on the financial statements for the year ended
+         31 March 2024 was modified in respect of this matter. Further, the Company has recognised
+         Rs. 1,645.09 crore (Rs. 1,021.83 crore towards power charges and Rs. 623.26 crore towards
+         interest) as expenses for the current financial year instead of retrospectively restating the
+         prior years’ financial statements as required by Ind AS 8. Consequently, current year expenses
+         and losses are overstated by Rs. 1,645.09 crore, ‘Other Current Assets’ are overstated by Rs.
+         2,268.32 crore (Rs. 1,021.82 crore towards power charges and Rs. 1,246.50 crore towards
+         interest) and accumulated deficit is understated by Rs. 2,268.32 crore as at 31 March 2025.
+         Our opinion on the current year’s financial statements is also modified because of the effect
+         of this matter due to departure from the requirements of Ind AS 8.
+
+xviii.   Attention is drawn to Note 39.9(b) of the General Notes to Financial Statements wherein the
+         Company has accounted only a part of power purchase cost pertaining to financial years
+         2020-21 to 2023-24 as expenses for the financial year ended 31 March 2025 amounting to
+         Rs. 250.68 crore and has deferred the recognition of Rs. 501.38 crore to future years vide GOK
+         order dated 28-08-2025. Also, interest on delayed payments amounting to Rs. 1,494.44 crore
+         pertaining to previous years in respect of KPCL have been deferred to future years as stated
+         in the GOK order and have not been recognised in the financial statements. Under provisions
+         of Companies Act, 2013, only Central Government has authority to issue guidelines or
+         notifications or exempt any Class(es) of Company from complying with any requirements or
+         rules of the Companies Act, 2013. As the expenditure deferred pertain to prior years and there
+         is no future economic benefit by deferring such expenditures, the accounting treatment
+         followed is not in accordance with the Indian Accounting Standards or Generally Accepted
+         Accounting Principles in India. The Company has accounted Rs. 250.68 crore as expenditure
+         for the current financial year instead of retrospectively restating the prior years’ financial
+         statements as required by Ind AS 8. Consequently, trade payables and accumulated deficit
+         under ‘Other Equity’ as at and power purchase cost for the year ended 31 March 2024 is
+         understated by Rs. 2,246.50 crore. Current year expenses and losses are overstated by Rs.
+         250.68 crore, ‘Other Current Assets’ are overstated by Rs. 501.38 crore as at 31 March 2025
+         ‘Trade Payables’ are understated by Rs. 1,494.44 crore and accumulated deficit under ‘Other
+         Equity’ is understated by Rs. 1,995.82 crore. As the Company has not provided year-wise
+         breakup of amounts for the financial years 2020-21 to 2023-24, we are unable to ascertain
+         the effect on financial statements as at 1 April 2023.
+
+xix.     Attention is drawn to Note no. 39.9(c) of the General Notes to Financial Statements wherein
+         the Company has accounted for difference between the actual station heat-rate and station
+         heat-rate as per norms for the financial year 2024-25 amounting to Rs. 451.72 crore (KPCL -
+         Rs. 357.47 crore and RPCL - Rs. 94.25 crore) as an expense for the year though final order in
+         true-up petition filed by KPCL / RPCL before KERC is pending. As the true-up petition with
+         KERC is still pending and since the Company should account for station heat rate claim as
+         per power purchase agreements and has not produced any additional evidence that present
+         obligation exists as at 31 March 2025 for the same, the amount should have been disclosed
+         as contingent liability in accordance with Ind AS 37 ‘Provisions, Contingent Liabilities and
+         Contingent Assets’ and should not have been provided for. To the extent of Rs. 451.72 crore,
+
+
+
+                                               6 of 49
+       expenses and losses for the year ended and trade payables and accumulated deficit as at 31
+       March 2025 are overstated.
+
+       Further, the Company has not disclosed the fact that true-up petition filed with KERC by KPCL
+       / RPCL for the prior years is also pending for a claim of Rs. 757.75 crore (KPCL – Rs. 483.14
+       crore and RPCL – Rs. 274.61 crore). Further, Rs. 757.75 crore were disclosed as contingent
+       liability in the financial statements for the year ended 31 March 2024. During the current
+       financial year, Rs. 483.14 crore have been recognised as trade payables as at 31 March 2025
+       (Rs. 161.05 crore have been recognised as expenses and Rs. 322.09 crore have been deferred
+       to future years). Furthermore, during the current financial year, Rs. 274.61 crore have been
+       recognised as expense and trade payables during the year ended 31 March 2025. As the true-
+       up petition with KERC is still pending and since the Company should account for station heat
+       rate claim as per power purchase agreements and has not produced any additional evidence
+       that present obligation exists as at 31 March 2025 for the same, the amount should have been
+       disclosed as contingent liability in accordance with Ind AS 37 and should not have been
+       provided for. The financial effect of this matter in respect of claim of KPCL is already included
+       in paragraph xviii and the financial effect in respect of claim of RPCL is overstatement of
+       expenses for the year ended and trade payables and accumulated deficit as at 31 March 2025
+       and non-disclosure of a contingent liability by Rs. 274.61 crore for the current financial year.
+
+xx.    Attention is drawn to Note no. 39.10 of the ‘General Notes to Financial Statements’ wherein
+       the Government vide GO No. Energy/123/PSR/2022 Bangalore, dated 14-03-2022, had
+       assured extension of financial support subject to condition of writing-off of RE subsidy dues
+       of Rs. 1,938.04 crore pertaining to 2002-03 to 2015-16 after obtaining approval from the
+       Board. Accordingly, the Board of Directors passed a resolution during March 2024 to write-
+       off the dues in a phased manner from the financial year 2023-24. Consequently, the Company
+       has considered for write-off only 50% of the dues amounting to Rs. 969.02 crore and not the
+       entire amount of Rs. 1,938.04 crore. Also, the write-off has been considered as an expense
+       for the financial year ended 31 March 2024 instead of adjusting in the opening accumulated
+       deficit as required under Ind AS 8 as the GOK order was issued during March 2022 and there
+       was reasonable certainty that the write-off will be carried out. Consequently, ‘Trade
+       Receivables’ are overstated and accumulated deficit under ‘Other Equity’ are understated as
+       at 1 April 2023 by Rs. 1,938.04 crore and expenses for the financial year ended 31 March 2024
+       are overstated by Rs. 969.02 crore, accumulated deficit as at 31 March 2024 is understated
+       by Rs. 969.02 crore, trade receivables as at 31 March 2024 are overstated by Rs. 969.02 crore.
+       Our opinion on the financial statements for the year ended 31 March 2024 was modified
+       because of the effect of this matter. Further, Rs. 581.41 crore have been written-off during the
+       financial year ended 31 March 2025 instead of retrospectively restating the financial
+       statements of prior years as required by Ind AS 8. Consequently, current year expenses and
+       losses are overstated by Rs. 581.41 crore, trade receivables as at 31 March 2025 are
+       overstated by Rs. 387.61 crore and accumulated deficit as at that date is understated by Rs.
+       387.61 crore.
+
+xxi.   In the financial statements for the financial year ended 31 March 2024, the Company had not
+       recognised interest on power purchase dues to KPCL and RPCL subject to reconciliation. Our
+       opinion on the financial statements for the year ended 31 March 2024 was modified because
+       of the possible effect of this matter. Further, during the financial year ended 31 March 2025,
+       the Company has recognised Rs. 100.87 crore cumulatively without retrospectively restating
+       the financial statements of prior years in respect of amounts allocable to financial years
+       ended until 31 March 2024, which constitutes a departure from Ind AS 8. To the extent of Rs.
+
+
+
+                                              7 of 49
+         100.87 crore, current year power purchase cost and losses are overstated. Our opinion on the
+         current year financial statements is also modified because of the effect of this matter.
+
+xxii.    As per the KERC O&M order dated 28-12-2023 (OP no’s 56, 57, 58, 59 & 60/2020), the
+         Company is liable to pay for the wage revision claim of KPCL amounting to Rs. 1,039.84 crore
+         in 12 equal instalments starting from January 2024 and only Rs. 259.95 crore have been
+         recognised as expense during the financial year ended 31 March 2024. To the extent of Rs.
+         779.89 crore, expenses for the year ended 31 March 2024 and current liabilities and
+         accumulated deficit as at that date are understated. Our opinion on the financial statements
+         for the year ended 31 March 2024 was modified because of the effect of this matter. Further,
+         Rs. 779.89 crore have been recognised as expense during the current year instead of
+         retrospectively restating the financial statements for the year ended 31 March 2024 as
+         required by Ind AS 8. To that extent, current year expenses and losses are overstated.
+
+xxiii.   As per the GOK order dated 30-03-2024 the Company has not written-off the receivable
+         (outstanding interest amount) from Gram Panchayat amounting to Rs. 790.03 crore in the
+         financial statements for the year ended 31 March 2024. To that extent, expenses for that year
+         and accumulated deficit as at 31 March 2024 are understated and trade receivables are
+         overstated. Our opinion on those financial statements was modified in respect of this matter.
+         Further, the Company has written-off the amount in the financial statements for the year
+         ended 31 March 2025 instead of retrospectively restating the financial statements as required
+         by Ind AS 8. Consequently, current year expenses and losses are overstated by Rs. 790.03
+         crore.
+
+xxiv.    Power Company of Karnataka Limited (PCKL) had entered into power swapping / power
+         banking arrangement with Uttar Pradesh (UPPCL) and Punjab (PSPCL) on behalf of the
+         Company. The power drawn by the Company is again returned to that entities @ 105% after
+         certain period.
+
+         The details of the banking arrangements for the previous years are as below:
+
+          Particulars                       Financial    Energy in KWH    State           Amount
+                                            Year                          average rate    (Rs. in
+                                                                          per unit        crore)
+                                                                          (in Rs.)
+          Jan 2023 – Mar 2023 (Drawn)         2022-23      37,89,51,974         5.47594      207.51
+          Addl. 5% returnable on energy
+                                                            1,89,47,599         5.47594       10.38
+          drawn as above
+          Total                                           39,78,99,573                       217.89
+
+          April 2023 (Drawn)                  2023-24      35,31,84,987           5.523      195.06
+          Addl. 5% returnable on energy
+                                                            1,76,59,249           5.523        9.75
+          drawn as above
+          Total                                           37,08,44,236                       204.81
+
+          June 2023 – Sep 2023 (Energy
+          drawn during Jan 2023 –                          39,78,99,573         5.47594      217.89
+          March 2023 returned @105%)
+
+
+
+
+                                               8 of 49
+        June 2023 – Sep 2023 (Energy
+        drawn during April 2023                           37,08,44,236           5.523      204.81
+        returned @105%)
+
+        Oct 2023 – Mar 2024 (Drawn)         2023-24       73,68,76,336           5.523      406.98
+        Addl. 5% returnable on energy
+                                                           3,68,43,817           5.523       20.35
+        drawn as above
+        Total                                            77,37,20,153                       427.33
+
+
+       The details of the banking arrangement for the FY 2024-25 are as below:
+
+        Particulars                                    Energy in KWH     State average   Amount
+                                                                         rate per unit   (Rs. in
+                                                                         (in Rs.)        crore)
+        Energy drawn during the FY 2024-25               54,48,18,241            6.304      343.45
+        Addl. 5% returnable on energy drawn as
+                                                          2,72,40,912            6.304       17.17
+        above
+        Total                                           57,20,59,153                        360.62
+
+        Energy drawn during Oct 2023 – Mar 2024
+                                                         77,37,20,153            5.523      427.33
+        returned at 105% during FY 2024-25
+        Energy drawn during the FY 2024-25
+                                                         49,93,82,868            6.304      314.81
+        partly returned
+
+       As per the matching concept under generally accepted accounting principles, the related
+       revenue should be matched with the corresponding expenditure for earning that revenue in a
+       particular period. However, the Company does not have an accounting policy for recognising
+       the power banking arrangement. Consequently, the Company has not given effect for
+       recognising the cost of power purchase when such banked power is sold to customers nor
+       reversing the power purchase cost when such energy is returned. During the financial years
+       ended 31 March 2023, 2024 and 2025, the Company has drawn / returned power from / to
+       UPPCL & PSPCL as mentioned in the table above, which are not recognised in the financial
+       statements for those years. Our opinion on the financial statements for the year ended 31
+       March 2024 was modified because of the effect of this matter. In the absence of accounting
+       policy, considering the state average, net impact on account of the above transactions is
+       understatement of accumulated deficit and current liabilities as at 1 April 2023 by Rs. 217.89
+       crore; understatement of current liabilities and accumulated deficit as at 31 March 2024 by
+       Rs. 427.33 crore, understatement of net power purchase cost for the year ended 31 March
+       2024 by Rs. 209.44 crore. For the financial year 2024-25, the cost of power purchase would
+       amount to Rs. 360.62 crore and reversal of power purchase cost on return of banked power
+       would amount to Rs. 742.14 crore. Net impact is overstatement of net power purchase cost
+       for the year ended 31 March 2025 by Rs. 381.52 crore, understatement of current liabilities
+       and accumulated deficit as at 31 March 2025 by Rs. 45.81 crore. The amounts arrived at state
+       average rate are indicative impact as assessed by us in the absence of an accounting policy
+       framed by the Company.
+
+xxv.   Attention is drawn to Note no.’s 39.4.4 & 39.4.5 of ‘General Notes to Financial Statements’
+       wherein the Company is still in the process of ascertaining the details of location, situation
+
+
+                                             9 of 49
+          extent of transfer of titles etc., of certain movable and immovable assets including leased
+          assets transferred from Govt. of Karnataka / Karnataka Power Transmission Corporation
+          Limited (KPTCL) and pending registration of title deeds relating to land & building (including
+          lease hold) assigned to the Company through transfer order and capitalised in the books of
+          the Company and also no provision having been made for the related costs that the Company
+          may incur. Consequential impact on the accounts is not ascertainable. Our opinion on the
+          financial statements for the year ended 31 March 2024 was also modified in respect of this
+          matter.
+
+xxvi.     Attention is drawn to Note no. 39.33(G) of the ‘General Notes to Financial Statements’ wherein
+          interest has not been charged (not ascertained) on inter ESCOM’s receivables for an
+          outstanding balance of Rs. 1,441.72 crore as at 31 March 2025 (Rs. 2,754.36 crore as at 31
+          March 2024). Our opinion on the financial statements for the year ended 31 March 2024 was
+          also modified in respect of this matter.
+
+xxvii.    Attention is drawn to Note no. 39.8.7 of the ‘General Notes to Financial Statements’ wherein
+          interest including penal interest of Rs. 117.83 crore as at 31 March 2025 (Rs. 99.03 crore as
+          at 31 March 2024) have not been provided for Part – B borrowing under ‘Restructured
+          Accelerated Power Development and Reforms Program’ (RAPDRP) pending request for
+          conversion of the same in to grant including waiver of accrued grant. However, we are unable
+          to comment whether the same will be converted into grant in the absence of requisite
+          approvals. Our opinion on the financial statements for the year ended 31 March 2024 was
+          also modified in respect of this matter.
+
+xxviii.   Attention is drawn to Note no. 39.8.11 of the ‘General Notes to Financial Statements’ wherein
+          the refund / adjustments are not revised to net basis against excess electricity tax collected
+          from consumers who have availed ‘Time of Day’ metering pending reconciliation.
+
+xxix.     Attention is drawn to Note no. 39.12 of the ‘General Notes to Financial Statements’ wherein
+          inter unit accounts are subject to reconciliation / adjustments to the extent of Rs. 41.03 crore
+          [credit] as at 31 March 2025 (Rs. 40.62 crore [credit] as at 31 March 2024). Consequent
+          impact of the same on the accounts is not ascertainable. Our opinion on the financial
+          statements for the year ended 31 March 2024 was also modified in respect of this matter.
+
+xxx.      Attention is drawn to Note no. 39.16 of the ‘General Notes to Financial Statements’ wherein
+          income tax TDS has not been reconciled with Form 26AS / AIS of the Income Tax Department
+          and consequential effect on the income or other transactions is not ascertainable. Our opinion
+          on the financial statements for the year ended 31 March 2024 was also modified in respect
+          of this matter.
+
+xxxi.     Attention is drawn to Note no. 8 and note no. 39.16 wherein deferred tax liabilities amounting
+          to Rs. 167.71 crore have been reversed as at 31 March 2024 and their carrying amount as at
+          that date after the reversal is Rs. 263.22 crore. However, certain discrepancies were observed
+          in the calculation of deferred taxes. It is observed that the released assets intended for re-use
+          are considered as deletions for income tax depreciation purpose even though such assets
+          have not been sold as for income tax purposes, only realised values on sale of assets can be
+          reduced from the block of fixed assets. This has resulted in considering incorrect written
+          down value of assets under Income Tax Act for deferred tax calculations. Further, the carry
+          forward unused tax losses had not been considered correctly for the purpose of calculating
+          deferred tax asset. In the absence of proper workings, we are unable to comment on the
+
+
+
+                                                 10 of 49
+          correctness of deferred tax accounted for that year and recognised as at 31 March 2024. Our
+          opinion on the financial statements for the financial year ended 31 March 2024 was modified
+          accordingly. Our opinion on the current year financial statements is modified because of the
+          possible effect of this matter on the comparability of the current year’s figures and the
+          corresponding figures.
+
+xxxii.    The carrying amount towards provision for income tax of Rs. 152.09 crore under current tax
+          liabilities (note no. 27) are unadjusted and without proper details for a long period. In the
+          absence of sufficient details, we are unable to determine the impact of the same on the
+          financial statements.
+
+xxxiii.   Attention is drawn to Note no. 39.17 of the ‘General Notes to Financial Statements’ wherein
+          various account balances including balances of trade creditors, receivables including Govt.
+          dues, balances / dues of ESCOMs, KPTCL, KPCL, RPCL, PCKL, Deposits to / from suppliers,
+          Contractors, Govt. Authorities, Other payables, employee dues etc., are subject to
+          confirmation / reconciliation of the respective parties. The ageing provided in respect of trade
+          receivables and trade payables does not flow from the books of account of the Company and
+          has been prepared based on some estimates. Also, some of the amounts are lying
+          outstanding for a very long period without proper details. In the absence of requisite details /
+          documents we are unable to assess and comment on the consequential adjustments /
+          provisions, if any, required on the balances as disclosed in the financial statements. Our
+          opinion on the financial statements for the year ended 31 March 2024 was also modified in
+          respect of this matter.
+
+xxxiv.    The Company did not have proper system to track the progress of various capital works under
+          execution in respect of expected date of completion, estimated cost to be incurred for
+          completion and other relevant details. The Capital Work-in-Progress (CWIP) include amounts
+          outstanding for a long period without proper details with regard to status of work being
+          executed. The details of ageing provided in the financials does not flow from the books of
+          account maintained by the Company but based on some estimates. Also, the Company has
+          not provided CWIP and Intangible Assets under Development Completion Schedule in respect
+          of CWIP / Intangible Assets under Development whose completion is overdue or has
+          exceeded its cost when compared to the original plan. CWIP balance also include ready for
+          intended use assets such as vehicles, furniture & fixtures, office equipment that have not been
+          capitalised and depreciated. The same is not in accordance with Ind AS 16 ‘Property, Plant
+          and Equipment’. The CWIP balances also include tools and tackles that are not recognised
+          and measured as inventories in accordance with Ind AS 2 ‘Inventories’. The Company did not
+          have a system to ascertain and capitalise assets in a timely manner. Consequent impact of
+          the same on accounts including impairment / depreciation is not ascertainable in the absence
+          of relevant details. Our opinion on the financial statements for the year ended 31 March 2024
+          was also modified in respect of this matter. Further, as per Ind AS 16, for each class of
+          property, plant and equipment, the Company shall disclose a reconciliation of the carrying
+          amount at the beginning and end of the year. As CWIP meet the definition of property, plant
+          and equipment per Ind AS 16, the above requirement of Ind AS 16 shall apply to the CWIP.
+          However, the company has not presented such reconciliation in the notes to financial
+          statements for the current year and previous year.
+
+          Capital works amounting to Rs. 11.54 crore relating to construction of some assets like
+          Compound wall, transformer platform, service connections, HVDS, 11 Kv lines, OH lines,
+          transformers, Supply & Installation of Communication Antenna & Support accessories for new
+
+
+
+                                                11 of 49
+         SCADA sites etc., which were ready for their intended use as on 31 March 2025 at some of
+         the divisions have not been categorised. To the extent of Rs. 11.54 crore there is
+         understatement of Property, Plant & Equipment and overstatement of CWIP. Consequent
+         impact of the same on depreciation is not readily quantifiable in the absence of relevant
+         details.
+
+         Also, the Company has wrongly categorised building under construction amounting to Rs.
+         0.82 crore at one of the divisions even though the asset is not ready for its intended use. To
+         that extent, Capital Work-in-Progress is understated and Property, Plant & Equipment are
+         overstated. Consequent effect on net block of property, plant and equipment, depreciation
+         and accumulated deficit is not readily ascertainable.
+
+         Further, Property, Plant and Equipment does not include Self-execution / Consumer
+         Contribution works amounting to Rs. 1.03 crore completed during the financial year ended 31
+         March 2025. To that extent, Property, Plant and Equipment and Deferred Income are
+         understated. Consequent effect on net block of property, plant and equipment, depreciation,
+         net deferred income, amortisation of deferred income, and accumulated deficit is not readily
+         quantifiable.
+
+         Furthermore, certain assets amounting to Rs. 4.68 crore pertaining to RAPDRP Part A – Data
+         Centre were declared as obsolete and were ordered to be scrapped by an expert committee
+         on 15 June 2023. However, such assets were not derecognised from Property, Plant and
+         Equipment and classified as scrapped assets as at 31 March 2024 and 31 March 2025 and
+         the Company has not ceased recognising depreciation on such assets for the financial years
+         ended 31 March 2024 and 2025. Consequently, gross block of Property, Plant and Equipment
+         are overstated by Rs. 4.68 crore, and also value of scrapped assets under current assets are
+         understated, depreciation expense is overstated. The financial effect on net block of property,
+         plant and equipment, depreciation and accumulated deficit is not readily quantifiable in the
+         absence of details.
+
+         Also, the Company has wrongly categorised software amounting to Rs. 8.32 crore even
+         though the software is not fully developed and available for intended use. To that extent,
+         ‘Intangible Assets Under Development’ is understated, and ‘Other Intangible Assets’ is
+         overstated. Consequent effect on net block of ‘Other Intangible Assets’, amortisation
+         expenses, and accumulated deficit is not readily quantifiable.
+
+xxxv.    Attention is drawn to Basis of Preparation for Financial Statements wherein Government
+         grants and subsidies in respect of capital assets are recognised on actual receipt of funds by
+         the Company. The same is not in accordance with Ind AS 20 ‘Accounting for Government
+         Grants and Disclosure of Government Assistance’ which requires government grants to be
+         recognised when there is a reasonable assurance that the entity will comply with the
+         conditions attaching to them and the grant will be received. The consequent effect of the
+         same on the accounts is not ascertainable. Our opinion on the financial statements for the
+         year ended 31 March 2024 was also modified in respect of this matter.
+
+xxxvi.   ‘Advance to Suppliers’ under Note no. 9 ‘Other Non-current Assets’ include ‘Advance to
+         Suppliers - Interest bearing’ as at 31 March 2025 amounting to Rs. 1.18 crore (Rs. 1.18 crore
+         as at 31 March 2024) that pertain to a work which, as informed to us, has been halted.
+         However, the Company is neither collecting the interest nor is recognising the accrued interest
+         in the books. Further, ‘Other Non-current Assets’ also include ‘Advance to Suppliers – Interest
+
+
+
+                                               12 of 49
+           Free’ amounting to Rs. 0.70 crore which is outstanding for a long period from previous years.
+           In the absence of required details, we are unable to comment on the recoverability of such
+           amounts and consequential impact on the accounts is not ascertainable. Our opinion on the
+           financial statements for the year ended 31 March 2024 was also modified in respect of this
+           matter.
+
+           Further, Other Non-current Financial Assets include deposits of Rs. 27.96 crore paid by the
+           Company to Ultra Mega Power Projects as its share for establishing ultra mega power plants.
+           The projects have not been started and the amounts are outstanding for a long period and
+           may not be recoverable. However, the Company has not recognised expected credit loss on
+           the same resulting in overstatement of other non-current financial assets, understatement of
+           expenses for the year and accumulated deficit as at 31 March 2025 by Rs. 27.96 crores.
+
+xxxvii.    Certain unidentified credits amounting to Rs. 200.15 crore as at 31 March 2025 (Rs. 175.78
+           crore as at 31 March 2024) pertaining to E&S section of the Company have been grouped
+           under ‘Deposit Contribution Work’ under ‘Non-current liabilities’ and Rs. 28.63 crore of
+           unidentified credits are adjusted from ‘Trade Receivables – Unsecured and considered good’
+           in the financial statements. Further, ‘Other Receivables’ include unidentified debits by banks
+           pending reconciliation amounting to Rs. 0.88 crore as at 31 March 2025 (Rs. 0.88 crore as at
+           31 March 2024) and ‘Other Current Liabilities’ include unidentified credits of Rs. 0.54 crore as
+           at 31 March 2025 (Rs. 0.52 crore as at 31 March 2024) pending reconciliation / rectification.
+           Consequential impact on the accounts is not ascertainable in the absence of relevant details.
+           Our opinion on the financial statements for the year ended 31 March 2024 was also modified
+           in respect of this matter.
+
+xxxviii.   Other income for the year ended 31 March 2024 (Note no. 30) includes interest subsidy
+           received under NEF Scheme of Rs. 39.69 crore, which was accrued during the financial year
+           ended 31 March 2023 vide REC approval letter dated 07-03-2023. The Company recognised
+           the entire amount during the financial year ended 31 March 2024 instead of retrospectively
+           restating the financial statements as required by Ind AS 8. Our opinion on the financial
+           statements for the year ended 31 March 2024 was modified because of the effect of this
+           matter. Our opinion on the current year financial statements is also modified because of the
+           effect of this matter on the comparability of current year’s figures and corresponding figures.
+
+xxxix.     We were provided with Bank Reconciliation Statements (BRS) prepared by some of the
+           accounting units visited by us in respect of which the concerned bank account has not been
+           reflected in the books of account. Such BRSs disclose as reconciliation items, ‘Cheques
+           remitted to the bank in prior period but not yet credited’. However, as per the BRS, the balance
+           as per bank statement is shown as ‘Nil’. We were not provided with proper details / bank
+           statements/ account closure certificates from banks. In the absence of requisite details, we
+           are unable to ascertain the impact of the same on the accounts. Our opinion on the financial
+           statements for the year ended 31 March 2024 was also modified in respect of this matter.
+
+xl.        As informed to us, the accounting units of the Company operate bank accounts in the name
+           of the respective Exec. Engineers for release of pension and remittance of statutory
+           deductions like Income tax TDS of the pensioners / family pensioners. However, it is observed
+           that the accounting units have not disclosed such bank accounts in the books and neither
+           account the pension amounts released from the KEPGT / KENFPGT to the units nor payment
+           of pension amounts to the retired employees / family pensioners. Also, the Income tax TDS
+           deducted are remitted by the accounting units but not accounted in the books. However, the
+
+
+
+                                                 13 of 49
+         TDS remittances are disclosed in the quarterly e-TDS returns filed. To that extent, the funds
+         inflow and outflow are not getting reflected in the books of account of the Company and the
+         e-TDS data captured in the quarterly returns will not match with the books of account of the
+         Company. The initial deposits made with the Banks at the time of account opening are
+         reflected under ‘Deposits with Others’ under ‘Other Non-Current Assets’ instead of ‘Cash &
+         Cash Equivalents’. To the extent of bank balances available as at the end of the year, ‘Cash &
+         Cash Equivalents’ are understated. Also, to the extent of unpaid pensions / TDS, the current
+         liabilities are understated. In the absence of complete details, the effect of the same on the
+         accounts could not be readily ascertained. Our opinion on the financial statements for the
+         year ended 31 March 2024 was also modified in respect of this matter.
+
+xli.     Vide Note no. 39.8 of the ‘General Notes to Financial Statements’, the Company has disclosed
+         the details of contingent liabilities to the extent ascertained. However, in the absence of full
+         list with comprehensive details / present status with testing for the probability of the
+         devolvement of such liabilities with appropriate legal advices, we are unable to ascertain the
+         completeness of such contingent liabilities as disclosed and any provision that may be
+         required in this regard. Our opinion on the financial statements for the year ended 31 March
+         2024 was also modified in respect of this matter.
+
+xlii.    The Company was liable to reimburse Rs. 3.70 crore to G.S Management Services Pvt Ltd
+         towards additional ESI expenses vide writ petition no. 15958/2023 dated 11-01-2024. In
+         accordance with DWA amendment dated 22-11-2024, the liability was arrived at Rs. 3.85
+         crore. However, the entire amount of Rs. 3.85 crore were disclosed as a contingent liability
+         instead of being recognised as a current liability in the financial statements for the year ended
+         31 March 2024. To that extent, expenses and current financial liabilities and accumulated
+         deficit for that year are understated. Our opinion on the financial statements for that year was
+         modified because of this matter. Further, the Company recognised entire amount during the
+         current year instead of retrospectively restating the financial statements as required by Ind
+         AS 8. To the extent of Rs. 3.85 crore, current year expenses and losses are overstated.
+
+xliii.   As per material accounting policy 11, regulatory deferral account balances are recognised
+         when it is probable that the future economic benefits associated with them will flow the
+         Company as a result of actual or expected actions of the regulator (KERC) and the amount
+         can be measured reliably. However, as disclosed in note 39.33(O), the Company has not
+         recognised any regulatory deferral account balances for the reasons stated therein. The same
+         is not in compliance with accounting policy of the Company and Ind AS 114 ‘Regulatory
+         Deferral Accounts’ resulting in understatement of regulatory deferral asset as at 31 March
+         2025 and net movement in regulatory deferral account balances for the year ended as of that
+         date by Rs. 506.30 crore and overstatement of accumulated deficit as at 31 March 2025 to
+         that extent.
+
+xliv.    As per Ind AS 7 ‘Statement of Cash Flows’, the Company shall disclose a statement that
+         enable users of financial statements to evaluate changes in liabilities arising from financing
+         activities, including both changes arising from cash flows and non-cash changes and other
+         disclosures like the amount of undrawn borrowing facilities that may be available for future
+         operating activities and to settle capital commitments (indicating any restrictions on the use
+         of these facilities), the aggregate amount of cash flows arising from the operating capacity
+         separately from those cash flows that are required to maintain operating capacity. However,
+         the Company has not disclosed such information as required by Ind AS 7. Further, the
+         Company shall also report major classes of gross cash receipts and gross cash payments
+
+
+
+                                                14 of 49
+         arising from investing and financing activities. However, the Company has reported cash
+         inflows from borrowings made and cash outflows from borrowings repaid on net basis.
+         Furthermore, under the cash flows from financing activities, the Company has reported cash
+         inflow as a result of increase in contributions from consumer assets (deferred income in the
+         balance sheet). However, such cash inflows also include increase in deferred income due to
+         non-cash transactions, which should have been offset with ‘Capital Expenditures on Property,
+         Plant & Equipment & Intangible Assets [Net of disposals / adjustments]’ under cash flows
+         from investing activities. Consequently, net cash from investing activities and net cash from
+         financing activities are not correctly reported the amount of which is not readily quantifiable.
+
+xlv.     As per Ind AS 1 and accrual system of accounting, a Company shall prepare its financial
+         statements, except for cash flow information, using the accrual basis of accounting. However,
+         as observed during the audit of few divisions, certain expenses such as building rent,
+         remuneration to contract agencies that had accrued during the current financial year have not
+         been provided for at the end of that financial year and such expenses pertaining to previous
+         financial year have been accounted during this financial year.
+
+         As identified in some of the divisions, service charges towards total revenue management
+         software amounting to Rs. 7.20 crore payable to IDEA Infinity IT Solutions Pvt Ltd. for February
+         2025 and March 2025 have not been recognised. To that extent, current liabilities as at and
+         other expenses for the year ended 31 March 2025 are understated. Also, amount of Rs. 0.44
+         crore payable to Apco Worldwide (India) Pvt Ltd for engaging a Public Relation Agency has not
+         been recognised. To that extent, current liabilities and expenses are understated. Further, the
+         Company has not recognised claims payable to Bharthi Airtel Ltd. and Reliance
+         Communications Ltd. towards primary and secondary network bandwidth service, the amount
+         of which could not be quantified in the absence of necessary details. Furthermore, the
+         Company has not recognised Rs. 0.69 crore payable to Sun Edison Solar Power India Pvt Ltd.
+         towards repairs and maintenance of irrigation pump sets. To that extent, trade payables as at
+         31 March 2025 and ‘Other Operating Expenses’ for the year ended as on that date and
+         accumulated deficit as at that date are understated.
+
+xlvi.    The liability for payment of interest on consumer security deposits as at 31 March 2025 is Rs.
+         312.52 crore. However, the interest expense recognised during the financial year ended 31
+         March 2025 is Rs. 367.93 crore. Accordingly, Rs. 55.41 crore of interest of previous year is
+         recognised during the current financial year without retrospectively restating the financial
+         statements of previous year as required by Ind AS 8. Consequently, to the extent of Rs. 55.41
+         crore, liability for such interest and accumulated deficit as at 31 March 2024 and interest
+         expense for the year ended as of that date are understated, interest expense for the year
+         ended 31 March 2025 are overstated.
+
+xlvii.   As per clause 3.2 of the KERC (Interest on Security Deposit) Regulations 2005, the accrued
+         interest on security deposit for each financial year shall be credited to the consumer’s account
+         during the first quarter of the subsequent financial year and be adjusted against the
+         consumption charges. As Ind AS 32, a financial asset and a financial liability shall be offset
+         and the net amount presented in the balance sheet when, and only when an entity currently
+         has a legally enforceable right to set off the recognised amounts, and intends either to settle
+         on a net basis, or to realise the asset and settle the liability simultaneously. As the Company
+         settles such interest payable on consumer deposits on net basis by reducing it from the
+         consumer charges, the interest payable on consumer security deposit should have been
+         offset with trade receivables in the balance sheet. However, the Company has not offset such
+
+
+
+                                               15 of 49
+          amounts, but has separately classified such interest as other current liabilities in the balance
+          sheet. Consequently, to the extent of Rs. 312.52 crore as at 31 March 2025 (Rs. 319.95 as at
+          31 March 2024 after considering the effect of our modification in paragraph xlvi), other
+          current liabilities and trade receivables are overstated.
+
+xlviii.   As per clause ‘FA’ of General Instructions for Preparation of Balance Sheet under Division II
+          of Schedule III, the Company shall disclose following information relating to micro, small, and
+          medium enterprises (MSME) in the notes: (a) the principal amount and the interest due thereon
+          (to be shown separately) remaining unpaid to any supplier at the end of each accounting year;
+          (b) the amount of interest paid by the buyer in terms of section 16 of the Micro, Small and
+          Medium Enterprises Development Act, 2006 (27 of 2006), along with the amount of the payment
+          made to the supplier beyond the appointed day during each accounting year; (c) the amount of
+          interest due and payable for the period of delay in making payment (which has been paid but
+          beyond the appointed day during the year) but without adding the interest specified under the
+          Micro, Small and Medium Enterprises Development Act, 2006; (d) the amount of interest accrued
+          and remaining unpaid at the end of each accounting year; and (e) the amount of further interest
+          remaining due and payable even in the succeeding years, until such date when the interest dues
+          above are actually paid to the small enterprise, for the purpose of disallowance of a deductible
+          expenditure under section 23 of the Micro, Small and Medium Enterprises Development Act,
+          2006. However, the Company has not disclosed this information. Further, in the absence of
+          sufficient details, we are unable to comment on the accuracy of classification of dues to
+          MSME and other than MSME in the balance sheet.
+
+xlix.     During the current financial year, the Company had reclassified an item of Land amounting to
+          Rs. 0.53 crore as Land & Rights. However, such reclassification is made only in the current
+          year’s financial statements and not retrospectively in the previous year’s financial statements,
+          which is not in accordance with Ind AS 8. Consequently, this has impacted the comparison of
+          current year and corresponding figures to that extent in Note no. 2.
+
+l.        The Company has not recognised power purchase cost amounting to Rs. 27.73 crore from
+          Udupi Power Corporation Ltd. in respect of revised compensation towards partial loading for
+          the financial year ended 31 March 2025 even though the invoice was received before the
+          financial statements for the that financial year were approved for issue. The Company has
+          not adjusted the financial statements for this amount as required under Ind AS 10 ‘Events
+          after the Reporting Period’. To the extent of Rs. 27.73 crore, power purchase cost for the year
+          ended 31 March 2025 and current trade payables and accumulated deficit as at that date are
+          understated.
+
+li.       Billing data captured at consumer-level are pushed to centralised database under Total
+          Revenue Management (TRM) system. ‘Demand, Collection and Balance’ (DCB) Reports are
+          generated from the TRM system. Trade receivables, revenue and other adjustments are
+          recognised in the books of account based on such MIS DCB Reports. However, arithmetical
+          discrepancies during the generation of MIS DCB Reports have resulted in differences between
+          carrying amounts of trade receivables as per the MIS DCB Reports and the books. Vide note
+          no. 39.33(C), an amount of Rs. 80.64 crore [debit] as at 31 March 2025 (Rs. 78.21 crore [debit]
+          as at 31 March 2024) is identified and accounted under GL Code 23.898 (Pending for
+          reconciliation of Sundry Debtors – Revenue) pending reconciliation for the reasons stated
+          therein. In the absence of corroborating evidence, we are unable to verify the assertion made
+          by the management and its effect on the financial statements.
+
+
+
+
+                                                16 of 49
+lii.    As per Company’s material accounting policy no. 18, the Company calculates expected credit
+        losses at 3% in respect of receivables other than trade receivables. However, while calculating
+        the expected credit losses, the Company has considered incorrect other receivables balances
+        resulting in recognition of excess expected credit loss of Rs. 19.94 crore. Consequently,
+        expenses and losses for the year are overstated to that extent. Further, the impairment
+        allowance for expected credit losses of other receivables as at 31 March 2025 and as at 31
+        March 2024 are entirely reduced from ‘Other Current Receivables’ in Note 14, and the
+        receivables and account balances in respect of which such allowance was calculated and
+        recognised are presented in different notes without netting-off of impairment losses.
+
+liii.   During the financial year ended 31 March 2025, the Company has accounted as income being
+        reversal of write-off of receivable on account of theft of power accounted in prior year
+        amounting to Rs. 8.00 crore. However, in the absence of virtual certainty of the recoverability
+        of the amount, the accounting of the same as income for the year is not appropriate.
+        Consequently, trade receivables under current asset and revenue from operations are
+        overstated to that extent.
+
+liv.    Trade Receivables (Note no. 11) includes Rs. 1.61 crore receivable from Bruhat Bengaluru
+        Mahanagara Palike (BBMP) towards expenses incurred by the Company for establishing and
+        operating a COVID-19 Helpline facility on behalf of BBMP during 2021. Despite repeated
+        correspondences, BBMP has not reimbursed the amount and has informed that the
+        expenditure may be met by BESCOM out of their funds. Hence, the amount may not be
+        recoverable and should have been fully provided for. However, the Company has not
+        recognised expected credit loss on the same resulting in overstatement of trade receivables,
+        understatement of other expenses for the year ended and accumulated deficit as at 31 March
+        2025 to the extent of Rs.1.61 crore.
+
+lv.     ‘Other Current Financial Assets’ (Note 14) include Rs. 21.87 crore interest subsidy receivable
+        from National Electricity Fund. However, the Company has already received the amount
+        through adjustment of interest payable during the financial year ended 31 March 2018. Non-
+        recognition of interest so adjusted has resulted in overstatement of other current financial
+        assets and understatement of accumulated deficit as at 31 March 2025, 31 March 2024, and
+        1 April 2023 respectively to that extent.
+
+lvi.    The Company has not recognised Rs. 1.26 crore recoverable from Idea Infinity IT Solutions
+        Pvt. Ltd. towards 10% Liquidated damages and 10% penalty (Rs. 0.84 crore) and non-supply
+        of licensed antivirus and Microsoft 365 software (Rs. 0.42 crore). To that extent, ‘Other
+        Current Financial Assets’ as at 31 March 2025 and income for the year ended as on that date
+        are understated and accumulated deficit is overstated.
+
+lvii.   The Company awarded a Detailed Work Award to Innovari Technologies Private Limited during
+        February 2016 for implementing 5 MW Automated Demand Side Management (ADSM) at a
+        contract price of Rs. 18.40 crore. However, the contractor failed to execute the project and
+        the project was short closed. Accordingly, the Company derecognised the capital work in
+        progress as at 31 March 2024. Further, the Company has encashed the bank guarantee
+        amounting to Rs. 1.57 crore, which has been classified as a liability, and has retained the
+        security deposit of Rs. 0.27 crore, which is not refundable to the contractor. However, while
+        derecognising the capital work in progress, the bank guarantee and security deposit were not
+        adjusted. Consequently, ‘Other Non-current Liabilities’ (Note 23) is overstated by Rs. 1.57
+
+
+
+
+                                              17 of 49
+         crore, ‘Other Current Financial Liabilities’ (Note 25) is overstated by Rs. 0.27 crore, and
+         accumulated deficit is overstated by Rs. 1.84 crore as at 31 March 2025.
+
+lviii.   The Company has not, in accordance with Ind AS 37 ‘Provisions, Contingent Liabilities and
+         Contingents Assets’, estimated and accounted for revisions that may arise to power purchase
+         bills after the end of the financial year but pertaining to the financial year 2024-25. Subsequent
+         to 31 March 2025, the Company has received additional demands from KPCL / RPCL
+         amounting to Rs. 59.11 crore, credit notes amounting to Rs. 1.69 crore and Rs. 66.72 crore in
+         respect of power purchased during the financial year 2024-25. Consequently, trade payables
+         as at the end of financial year and power purchase cost for the financial year and accumulated
+         deficit as at 31 March 2025 are overstated to the extent of Rs. 9.30 crores.
+
+lix.     In accordance with GOK order Energy 140 PSR 2024 Bengaluru dated 21-03-2025, the
+         Company has an obligation to pay guarantee commission of Rs. 30.61 crore on loans
+         borrowed by PCKL. However, the Company has not recognised such guarantee commission
+         payable and expenses during the financial year ended 31 March 2025. To that extent, ‘Finance
+         Cost’ for the year ended 31 March 2025 are understated. Further, in accordance with GOK
+         order EN3 PSR 2016/ P3 dated 31-03-2017, the Company has an obligation to pay guarantee
+         commission in respect of loans borrowed by PCKL in earlier years which has not been
+         provided for. To the extent of Rs. 9.23 crore, ‘Finance Cost’ for the year ended 31 March 2024
+         is understated. Further, guarantee commission to the extent of Rs. 34.57 crore pertaining to
+         the financial years 2017-18, 2019-20, and 2022-23 have not been provided for resulting in
+         understatement of Guarantee commission payable and accumulated deficit as at 1 April
+         2023. Cumulatively, guarantee commission payable is understated by Rs. 74.41 crore as at
+         31 March 2025 (Rs. 43.80 crore as at 31 March 2024), and accumulated deficit is also
+         understated to that extent. Further, in the absence of sufficient details, guarantee commission
+         payable in respect of financial years 2018-19, 2020-21, and 2021-22 could not be quantified.
+
+lx.      During the year, the Ministry of Power has issued Electricity Distribution (Accounts and
+         Additional Disclosure) Rules 2024 ('the Rules’). These Rules lay down the minimum
+         provisioning requirement for trade receivables excluding Government Consumers. However,
+         the Company has not disclosed the applicability of such rules to them and whether the ECL
+         on trade receivables comply with the minimum prescribed provisioning requirements as per
+         the rules.
+
+Consequential net effect of our modifications mentioned above, wherever quantified (negative
+amounts represent overstatement, which should be reduced from the respective line item presented in
+the financial statements and positive amounts represent understatement, which should be added to
+the respective line item presented in the financial statements):
+
+ Line item                                         Financial      As at or for the    As at or for the
+                                                   statement      year ended 31       year ended 31
+                                                                  March 2025          March 2024
+                                                                  (Rs. in crore)      (Rs. in crore)
+ Gross Property, Plant and Equipment                                           7.07                      -
+ Capital Work-in-Progress                                                   (16.53)                (1.93)
+                                                   Balance
+ Gross Other Intangible Assets                                               (8.32)                      -
+                                                   sheet
+ Intangible Assets under Development                                          14.13                 1.93
+ Other Non-current Financial Assets                                         (27.96)                      -
+
+
+                                                18 of 49
+ Trade Receivables                                                        (709.74)           (2,079.00)
+ Other Current Financial Assets                                            (20.61)              (21.87)
+ Other Current Assets                                                   (2,765.02)           (2,043.65)
+ Regulatory Deferral Account Debit Balance                                 506.30                      -
+ Other Equity (Accumulated Deficit)                                      3,622.44             9,351.98
+ Gross Deferred Income                                                        1.03                     -
+ Other Non-current Liabilities                                              (1.57)                     -
+ Trade Payables                                                            787.23             4,997.02
+ Other Current Financial Liabilities                                         74.14               47.65
+ Other Current Liabilities                                                (259.07)              162.79
+ Revenue from Operations                                                    (8.00)                     -
+ Other Income                                                                 3.10              (39.69)
+ Purchase of Power                                                      (3,242.69)              820.43
+ Other Operating Expenses                         Statement                   0.69                     -
+ Finance Costs                                    of Profit                (24.80)               64.64
+                                                  and Loss
+ Other Expenses                                                           (589.90)            1,498.29
+ Exceptional Items                                                      (1,371.44)            (178.99)
+ Net Movement in Regulatory Deferral
+                                                                           506.30                      -
+ Account Balances related to Profit or Loss
+
+We conducted our audit in accordance with Standards on Auditing (SAs) specified under section
+143(10) of the Companies Act, 2013. Our responsibilities under those standards are further described
+in the auditor’s responsibilities for the audit of the financial statements section of our report. We are
+independent of the Company in accordance with the code of ethics issued by the Institute of Chartered
+Accountants of India (ICAI) together with ethical requirements that are relevant to our audit of the
+financial statements under the provisions of the Companies Act, 2013 and rules there under, and we
+have fulfilled our other ethical responsibilities in accordance with these requirements and the ICAI’s
+code of ethics. We believe that the audit evidence we have obtained is sufficient and appropriate to
+provide a basis for our adverse opinion.
+
+Material Uncertainty related to Going Concern
+
+We draw attention to Note no. 39.11 of the ‘General Notes to Financial Statements’ which indicates that
+the Company has accumulated losses eroding its net worth as on 31 March 2025, the Company’s
+current liabilities exceeded its current assets. These conditions, along with other matters as set forth
+in the said note, indicate the existence of a material uncertainty which may cast significant doubt about
+the Company’s ability to continue as a going concern. For the reasons stated therein by the
+management, the financial statements have been prepared on going concern basis.
+
+Our opinion is not modified in respect of the above matter.
+
+Emphasis of Matter
+
+We draw attention to the following matters in the notes to the financial statements:
+
+
+
+
+                                                19 of 49
+i.       Attention is drawn to note no. 39.4.9 wherein property, plant and equipment commissioned
+         on or after 1 April 2024 are depreciated at revised rates prescribed under the CERC order L-
+         1/268/2022/CERC dated 15-03-2024 (in respect of new projects), and the property, plant and
+         equipment commissioned on or before 31 March 2024 are depreciated at rates adopted on
+         and before 31 March 2024.
+
+ii.      Attention is drawn to note no. 39.34, wherein it is stated that though the Company holds 20%
+         of Equity Shareholding in Power Company of Karnataka (PCKL), in the absence of
+         participation by the Company in financial and operating policy decisions of PCKL, the
+         Company does not have significant influence on PCKL and hence not considered an associate
+         of the Company in accordance with Ind AS 28 ‘Investments in Associates and Joint Ventures’.
+
+Our opinion is not modified in respect of the above matters.
+
+Other Matter
+
+This report supersedes our audit report dated 15 October 2025 on the financial statements of the
+Company dated 28 August, 2025 for the financial year ended 31 March 2025 pursuant to observations
+made by the Comptroller & Auditor General of India during their supplementary audit under section
+143(6)(b) of the Act. The Company has expressed its inability to revise the financial statements for the
+financial year ended 31 March 2025 approved by the Board of Directors on 28 August 2025 and this
+report is issued to incorporate the modifications and comments as required.
+
+However, our adverse opinion expressed earlier on the financial statements of the Company for the
+financial year 2024-25 in our report dated 15 October 2025 remains unchanged.
+
+Information Other than the Financial Statements and Auditor’s Report Thereon
+
+The Company’s management and Board of Directors are responsible for the preparation of other
+information. The other information comprises the Director’s Report including Annexures, Management
+Discussion and Analysis, Progress Report of Projects and other company-related information, but does
+not include the financial statements and our auditor’s report thereon, which are expected to be made
+available to us after the date of this auditor’s report.
+
+Our opinion on the financial statements does not cover the other information and we do not express
+any form of assurance conclusion thereon.
+
+In connection with our audit of the financial statements, our responsibility is to read the other
+information identified above and, in doing so, consider whether the other information is materially
+inconsistent with the financial statements or our knowledge obtained during the course of our audit or
+otherwise appears to be materially misstated.
+
+When we read the other information, if, we conclude that there is a material misstatement of this other
+information, we are required to report that fact to those charged with governance and take necessary
+actions, as applicable under the relevant laws and regulations.
+
+Responsibilities of Management and Those Charged with Governance for the Financial Statements
+
+The Company’s Board of Directors is responsible for the matters stated in section 134(5) of the Act
+with respect to the preparation of these financial statements that give a true and fair view of the
+
+
+
+                                               20 of 49
+financial position, financial performance, total comprehensive income, changes in equity and cash
+flows of the Company in accordance with the accounting principles generally accepted in India,
+including the Indian Accounting Standards (Ind AS) specified under Section 133 of the Act, read with
+the Companies (Indian Accounting Standards) Rules, 2015 as amended. This responsibility also
+includes maintenance of adequate accounting records in accordance with the provisions of the Act for
+safeguarding the assets of the Company and for preventing and detecting frauds and other
+irregularities; selection and application of appropriate accounting policies; making judgments and
+estimates that are reasonable and prudent and design, implementation and maintenance of adequate
+internal financial controls, that were operating effectively for ensuring the accuracy and completeness
+of the accounting records, relevant to the preparation and presentation of the financial statements that
+give a true and fair view and are free from material misstatement, whether due to fraud or error.
+
+In preparing the financial statements, management is responsible for assessing the Company’s ability
+to continue as a going concern, disclosing, as applicable, matters related to going concern and using
+the going concern basis of accounting unless management either intends to liquidate the Company or
+to cease operations or has no realistic alternative but to do so.
+
+The Board of Directors is also responsible for overseeing the Company’s financial reporting process.
+
+Auditor's Responsibilities for the Audit of the Financial Statements
+
+Our objectives are to obtain reasonable assurance about whether the financial statements as a whole
+are free from material misstatement, whether due to fraud or error, and to issue an auditor’s report that
+includes our opinion. Reasonable assurance is a high level of assurance but is not a guarantee that an
+audit conducted in accordance with SAs will always detect a material misstatement when it exists.
+Misstatements can arise from fraud or error and are considered material if, individually or in aggregate,
+they could reasonably be expected to influence the economic decisions of users taken on the basis of
+these financial statements.
+
+As part of an audit in accordance with SAs, we exercise professional judgment and maintain
+professional scepticism throughout the audit. We also:
+
+•   Identify and assess the risks of material misstatement of the financial statements, whether due to
+    fraud or error, design and perform audit procedures responsive to those risks and obtain audit
+    evidence that is sufficient and appropriate to provide a basis for our opinion. The risk of not
+    detecting a material misstatement resulting from fraud is higher than for one resulting from error,
+    as fraud may involve collusion, forgery, intentional omissions, misrepresentations, or the override
+    of internal control.
+
+•   Obtain an understanding of internal control relevant to the audit in order to design audit procedures
+    that are appropriate in the circumstances. Under section 143(3)(i) of the Act, we are also
+    responsible for expressing our opinion on whether the Company has adequate internal financial
+    controls system in place and the operating effectiveness of such controls.
+
+•   Evaluate the appropriateness of accounting policies used and the reasonableness of accounting
+    estimates and related disclosures made by management.
+
+•   Conclude on the appropriateness of management’s use of the going concern basis of accounting
+    and based on the audit evidence obtained, whether a material uncertainty exists related to events
+    or conditions that may cast significant doubt on the Company’s ability to continue as a going
+
+
+
+                                                21 of 49
+    concern. If we conclude that a material uncertainty exists, we are required to draw attention in our
+    auditor’s report to the related disclosures in the financial statements or if such disclosures are
+    inadequate, to modify our opinion. Our conclusions are based on the audit evidence obtained up to
+    the date of our auditor’s report. However, future events or conditions may cause the Company to
+    cease to continue as a going concern.
+
+•   Evaluate the overall presentation, structure and content of the financial statements, including the
+    disclosures and whether the financial statements represent the underlying transactions and events
+    in a manner that achieves fair presentation.
+
+We communicate with those charged with governance regarding, among other matters, the planned
+scope and timing of the audit and significant audit findings, including any significant deficiencies in
+internal control that we identify during our audit.
+
+We also provide those charged with governance with a statement that we have complied with relevant
+ethical requirements regarding independence, and to communicate with them all relationships and
+other matters that may reasonably be thought to bear on our independence, and where applicable,
+related safeguards.
+
+Report on Other Legal and Regulatory Requirements
+
+1. As required by the Companies (Auditor’s Report) Order, 2020 (‘the Order’) issued by the Central
+   Government of India in terms of sub-section (11) of section 143 of the Companies Act, 2013 we
+   give in the Annexure 1 a statement on the matters specified in the paragraph 3 and 4 of the said
+   Order, to the extent applicable.
+
+2. As required under Section 143(5) of the Act, based on such checks of the books and records of the
+   Company as we considered appropriate and according to the information and explanations given
+   to us, we give in Annexure 2, a statement on the directions issued by the Comptroller & Auditor
+   General of India.
+
+3. As required by Section 143(3) of the Act, we report, to the extent applicable, that:
+
+    a.   We have sought and obtained all the information and explanations except for the effects /
+         possible effects of the matters described in the Basis for Adverse Opinion section above, which
+         to the best of our knowledge and belief were necessary for the purpose of our audit;
+
+    b. In our opinion, proper books of account as required by law have been kept by the Company so
+       far as it appears from our examination of those books except for the matter stated in paragraph
+       3(i)(vi) below on reporting under Rule 11(g) of the Companies (Audit and Auditors) Rules, 2014
+       (as amended).
+
+    c.   The Balance Sheet, the Statement of Profit and Loss (including Other Comprehensive Income),
+         the Statement of Changes in Equity and the Statement of Cash Flows dealt with by this report
+         are in agreement with the books of account;
+
+    d. Except for the effects / possible effects of the matters described in the Basis for Adverse
+       Opinion section, in our opinion, the aforesaid financial statements dealt with by this report
+       comply with the Indian Accounting Standards specified under section 133 of the Act, read with
+       the Companies (Indian Accounting Standards) Rules, 2015 as amended;
+
+
+
+                                                22 of 49
+e.   The Company being a Government Company, the provision of Section 164(2) of the Act,
+     regarding disqualification of Directors does not apply in terms of Notification G.S.R. 463 (E)
+     dated 5th June, 2015.
+
+f.   The adverse remarks relating to the maintenance of accounts and other matters connected
+     therewith are as stated in the Basis for Adverse Opinion section above and refer to our
+     comment in paragraph 3(i)(vi).
+
+g. With respect to the adequacy of the internal financial controls with reference to financial
+   statements the Company and the operating effectiveness of such controls, refer to our
+   separate report in Annexure A.
+
+h. As per Notification No. GSR 463(E) dated 5 June 2015 issued by the Ministry of Corporate
+   Affairs, Government of India, section 197 of the Act is not applicable to the Government
+   companies. Accordingly, reporting in accordance with requirement of provisions of Section
+   197(16) of the Act is not applicable on the Company.
+
+i.   With respect to other matters to be included in the Auditors Report in accordance with Rule 11
+     of the Companies (Audit and Auditors) Rule 2014, as amended, in our opinion and to the best
+     of our information and according to explanations given to us:
+
+     i.    The Company has disclosed the impact of pending litigation on its financial position (to the
+           extent ascertained) in its financial statements (refer note no. 39.8 of the ‘General Notes to
+           Financial Statements’);
+
+     ii.   Except for the matter described in the Basis for Adverse Opinion section, the Company has
+           made provision as required under the applicable law or accounting standards, for material
+           foreseeable losses, if any, on long-term contracts including derivative contracts, if any.
+
+     iii. As per books of accounts and based on information and explanation provided to us, there
+          were no amounts which were required to be transferred to Investor’s Education and
+          Protection Fund by the Company and hence commenting on delay in transferring amounts
+          required to be transferred to the Investors Education & Protection Fund does not arise.
+
+     iv.
+           a.   The management has represented that, to the best of its knowledge and belief, other
+                than as disclosed in the notes to the accounts, no funds have been advanced or loaned
+                or invested (either from borrowed funds or share premium or any other sources or kind
+                of funds) by the Company to or in any other person(s) or entity(ies), including foreign
+                entities (“Intermediaries”), with the understanding, whether recorded in writing or
+                otherwise, that the Intermediary shall, whether, directly or indirectly, lend or invest in
+                other persons or entities identified in any manner whatsoever by or on behalf of the
+                Company (“Ultimate Beneficiaries”) or provide any guarantee, security or the like on
+                behalf of the Ultimate Beneficiaries (refer note no. 39.36(14)(a) of ‘General Notes to
+                Financial Statements);
+
+           b. The management has represented that, to the best of its knowledge and belief, no
+              funds have been received by the Company from any person(s) or entity(ies), including
+              foreign entities (“Funding Parties”), with the understanding, whether recorded in writing
+
+
+
+                                                23 of 49
+                or otherwise, that the Company shall, whether, directly or indirectly, lend or invest in
+                other persons or entities identified in any manner whatsoever by or on behalf of the
+                Funding Party (“Ultimate Beneficiaries”) or provide any guarantee, security or the like
+                on behalf of the Ultimate Beneficiaries (refer note no. 39.36(14)(b) of ‘General Notes
+                to Financial Statements’); and
+
+           c.   Based on such audit procedures that we considered reasonable and appropriate in the
+                circumstances, nothing has come to our notice that has caused us to believe that the
+                representations under sub-clause (a) and (b) contain any material misstatement.
+
+   v.   The Company has not declared or paid any dividend during the year and hence the provisions
+        of section 123 of the Companies Act, 2013 are not applicable.
+
+   vi. Based on our examination which included test checks, the Company has used accounting
+       software systems for maintaining its books of account which did not have a feature of
+       recording audit trail (edit log) that cannot be disabled as required under proviso to Rule 3(1) of
+       the Companies (Accounts) Rules, 2014 and commenting on whether the audit trail is enabled
+       throughout the year does not arise.
+
+        In the absence of feature of recording audit trail that cannot be disabled, the question of
+        commenting whether audit trail had been tampered with or the audit trail has been preserved
+        by the Company as per the statutory requirements for record retention does not arise.
+
+                                                                                     For Manian & Rao
+                                                                               Chartered Accountants
+                                                                        Firm Registration No: 001983S
+
+
+
+                                                                                        Srikanth R.
+                                                                                            Partner
+                                                                             Membership No: 203138
+                                                                         UDIN: 25203138BMOJID3060
+Place: Bengaluru
+Date: 18 December 2025
+
+
+
+
+                                               24 of 49
+ANNEXURE ‘A’ TO THE INDEPENDENT AUDITORS’ REPORT
+
+Referred to in paragraph 3(g) under Report on Other Legal and Regulatory Requirements section of our
+report of even date to the members of Bangalore Electricity Supply Company Limited on the financial
+statements for the year ended 31 March 2025.
+
+Report on the Internal Financial Controls with reference to Financial Statements under Clause (i) of Sub-
+section 3 of Section 143 of the Companies Act, 2013 (‘the Act’)
+
+We have audited the internal financial controls with reference to financial statements of Bangalore
+Electricity Supply Company Limited (‘the Company’) as of 31 March 2025 in conjunction with our audit of
+the financial statements of the Company for the year ended on that date.
+
+Management’s Responsibility for Internal Financial Controls
+
+The Company’s management is responsible for establishing and maintaining internal financial controls
+based on the criteria for internal financial control with reference to financial statements established by the
+Company considering the essential components of internal control stated in the Guidance Note on Audit of
+Internal Financial Controls Over Financial Reporting (the “Guidance Note”) issued by the Institute of
+Chartered Accountants of India (ICAI). These responsibilities include the design, implementation and
+maintenance of adequate internal financial controls that were operating effectively for ensuring the orderly
+and efficient conduct of its business, including adherence to company’s policies, the safeguarding of its
+assets, the prevention and detection of frauds and errors, the accuracy and completeness of the accounting
+records, and the timely preparation of reliable financial information, as required under the Companies Act,
+2013.
+
+Auditors’ Responsibility
+
+Our responsibility is to express an opinion on the Company's internal financial controls with reference to
+financial statements based on our audit. We conducted our audit in accordance with the Guidance Note
+and the Standards on Auditing issued by the ICAI and deemed to be prescribed under section 143(10) of
+the Companies Act, 2013, to the extent applicable to an audit of internal financial controls and, both issued
+by the ICAI. Those Standards and the Guidance Note require that we comply with ethical requirements and
+plan and perform the audit to obtain reasonable assurance about whether adequate internal financial
+controls with reference to financial statements was established and maintained and if such controls
+operated effectively in all material respects.
+
+Our audit involves performing procedures to obtain audit evidence about the adequacy of the internal
+financial controls with reference to financial statements and their operating effectiveness. Our audit of
+internal financial controls with reference to financial statements included obtaining an understanding of
+internal financial controls with reference to financial statements assessing the risk that a material
+weakness exists, and testing and evaluating the design and operating effectiveness of internal control
+based on the assessed risk. The procedures selected depend on the auditor’s judgment, including the
+assessment of the risks of material misstatement of the financial statements, whether due to fraud or error.
+
+We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our
+
+
+                                                  25 of 49
+adverse audit opinion on the Company’s internal financial control with reference to financial statements.
+
+Meaning of Internal Financial Controls with reference to Financial Statements
+
+A company's internal financial control with reference to financial statements is a process designed to
+provide reasonable assurance regarding the reliability of financial reporting and the preparation of financial
+statements for external purposes in accordance with generally accepted accounting principles. A
+company's internal financial controls with reference to financial statements includes those policies and
+procedures that (1) pertain to the maintenance of records that, in reasonable detail, accurately and fairly
+reflect the transactions and dispositions of the assets of the company; (2) provide reasonable assurance
+that transactions are recorded as necessary to permit preparation of financial statements in accordance
+with generally accepted accounting principles, and that receipts and expenditures of the company are being
+made only in accordance with authorisations’ of management and directors of the company; and (3)
+provide reasonable assurance regarding prevention or timely detection of unauthorized acquisition, use, or
+disposition of the company's assets that could have a material effect on the financial statements.
+
+Inherent Limitations of Internal Financial Controls with reference to Financial Statements
+
+Because of the inherent limitations of internal financial controls with reference to financial statements,
+including the possibility of collusion or improper management override of controls, material misstatements
+due to error or fraud may occur and not be detected. Also, projections of any evaluation of the internal
+financial controls with reference to financial statements to future periods are subject to the risk that the
+internal financial controls with reference to financial statements may become inadequate because of
+changes in conditions, or that the degree of compliance with the policies or procedures may deteriorate.
+
+Adverse Opinion
+
+In our opinion and according to the information and explanations given to us and based on our audit, the
+following material weaknesses have been identified in the adequacy and operative effectiveness of the
+company’s internal financial controls with reference to financial statements as at 31 March 2025:
+
+i.       The Company does not have an appropriate system for testing / assessing the operating
+         effectiveness of internal financial controls and taking timely corrective measures to ensure strict
+         adherence to the Company’s policies and procedures, prevention and detection of fraud or errors,
+         accuracy and completeness of accounting records and timely preparation of reliable financial
+         information.
+
+ii.      The Company does not have appropriate internal control mechanism for obtaining balance
+         confirmation and reconciliation in respect of various receivables, payables including payable on
+         account of power purchases, advances, deposits including deposits made with various regulatory
+         authorities, amounts due from / to Government and Government Agencies / Companies & other
+         sundry liabilities. This could result in the Company materially misstating the balances of assets or
+         liabilities and income or expenses in the financial statements.
+
+
+
+
+                                                  26 of 49
+iii.    There was no regular programme for physical verification of tangible assets other than assets like
+        office equipment, furniture & fixtures etc., which could potentially result in the Company materially
+        misstating the value of tangible assets in the financial statements.
+
+iv.     The Company did not have a system of tracking the progress of various capital works with details
+        like their expected date of completion, additional cost required to complete the work and other
+        related details. Also, the Company did not have a system to ascertain and capitalise the works in
+        a timely manner. This could result in the Company materially misstating the value of CWIP,
+        Property, Plant & Equipment and depreciation.
+
+v.      The system of appropriate identification of different classes of property, plant and equipment and
+        allocation of total contract consideration to such classes of property, plant and equipment are not
+        operating effectively. Consequently, part of contract consideration has been incorrectly allocated
+        to ‘miscellaneous equipment’ instead of the appropriate asset class.
+
+vi.     The Company does not have appropriate internal controls for identifying impairment of assets
+        which could potentially result in the Company materially misstating the carrying amount of
+        property, plant and equipment in the financial statements of the Company.
+
+vii.    Register for Property, Plant and Equipment in the proper format by including details like sufficient
+        description of assets, situation of assets, month of commissioning etc., have not been maintained
+        which could potentially result in the Company materially misstating the carrying amount of its
+        property, plant and equipment in the financial statements. An effective procedure and internal
+        financial control may be evolved to ensure that the Register for Property, Plant and Equipment is
+        being maintained and updated regularly for each individual asset.
+
+viii.   The Company does not have an effective system for monitoring and timely adjustment of capital
+        and other advances and there are many long outstanding advances as at the end of the year which
+        may potentially result in misstatement in the financial statements.
+
+ix.     The system of obtaining periodic confirmations in respect of the Bank accounts operated by the
+        Company to ensure correctness of the bank balances was not operating in the Company.
+
+x.      Certain unidentified credits amounting to Rs. 200.15 crores as at 31 March 2025 have been
+        grouped under ‘Deposit Contribution Work’ under ‘Non-current liabilities’ and Rs. 28.63 crores of
+        unidentified credits are adjusted from ‘Trade Receivables – Unsecured and considered good’ in
+        the financial statements. Further, ‘Other Receivables’ include unidentified debits by banks pending
+        reconciliation amounting to Rs. 0.88 crores & ‘Other Current Liabilities’ include unidentified credits
+        of Rs. 0.54 crores by banks pending reconciliation / rectification. Non-identification of the nature
+        of receipt / payment and unreconciled items in bank accounts could potentially result in
+        misstatement of assets & liabilities, income & expenses & Bank balances. The system of bank
+        reconciliation is carried out manually and not through the accounting software used. Hence, we
+        are unable to comment or confirm whether the reconciliations have been carried out properly
+        considering all the bank entries.
+
+
+
+
+                                                 27 of 49
+xi.      The system of timely reversal of stale cheques and declined NEFT payments was not operating
+         effectively which may potentially misstate the bank balances and payables.
+
+xii.     The system of reconciling Income tax TDS as per books with that of reflected in Income tax form
+         26AS / Annual Information Statement (AIS) was not operating in the Company which may
+         potentially misstate the TDS receivable / income for the financial year.
+
+xiii.    The system of reconciling the entries towards inter unit adjustment / transactions between the
+         accounting units at regular intervals and as at the end of the financial year was not operating
+         effectively which has resulted in misstating the inter unit balances and concerned asset or liability
+         and income or expense.
+
+xiv.     The Company has an in-house Internal Audit department to carry out internal audit functions. In
+         our opinion, the scope and coverage of internal audit is not commensurate with the size and nature
+         of the Company’s business as the internal audit department is not adequately manned with
+         professionally qualified persons and the scope of the internal audit continues to be limited and
+         not sufficiently risk-focused. It is also observed that the scope of the internal audit had not been
+         defined / vetted by the Audit Committee of the Board (ACB). Further, the internal audit system
+         does not review and comment on the financial accounts, IT systems, risk management practices
+         or governance processes of the Company. The internal audit head reports to the Managing
+         Director of the Company, which may affect the independence of the function. The deficiencies
+         discussed above impact the effectiveness of financial oversight and internal controls, leading to
+         potential inaccuracies or misstatements in financial records and financial reporting.
+
+xv.      The Company did not have a proper system to ensure that all active connections are being billed
+         as we had observed from the DCB Reports on test check basis, some installations though under
+         ‘Active’ state, the demand for such connections are shown as ‘Zero’ potentially impacting the trade
+         receivables and operating revenues of the Company.
+
+xvi.     Internal controls relating to the accuracy and reliability of TRM system-generated reports, and their
+         reconciliation with the accounting records, were not operating effectively as arithmetical
+         discrepancies during the generation of MIS DCB Reports have resulted in differences between the
+         carrying amounts of trade receivables as per the MIS DCB Reports and the books.
+
+xvii.    Closing balance of previous year is not carried forward to current financial year automatically in
+         the accounting software resulting in Company recording a journal entry to account for the same
+         in the current financial year. The manual process may potentially lead to mistakes affecting the
+         opening balances of assets and liabilities being brought forward.
+
+xviii.   The Company is operating an accounting software ‘Be Quick Accounts’ for recording the
+         accounting transactions. Master data is created in the software for suppliers, employees & other
+         vendors. Schedules are created in the software for all transactions relating to the entries made
+         and are recorded in the concerned control ledger account like Receivables, Salary Payable,
+         Contractors Control Account, etc. However, it is observed that underlying schedules are not being
+         updated properly like identifying the correct vendor’s name with income tax PAN resulting in such
+         schedules showing incorrect balances including adverse balances for some vendors when such
+
+
+
+                                                  28 of 49
+        is not the case. As informed to us, during migration of account balances from manual system to
+        computerized system during financial year 2017-18, some of the ledgers having incorrect or
+        adverse balances were captured as it is in the computerized system and carried forward. Hence,
+        the underlying schedules extracted from the Software does not disclose correct balances and not
+        reliable. This potentially misstates the closing balance of such schedules like Contractor Control
+        A/c, Salary Payable etc., It was also observed that many users (makers of accounting entries) are
+        operating through single login user ID which is not a correct practice. Also, the accounting
+        software does not have audit trail feature. Hence, tracing a particular accounting entry to the
+        maker of that entry is not possible. Also, ageing of balances cannot be extracted from the software
+        which is an inherent limitation of the accounting software.
+
+xix.    The Company follows a system of recording journal entries (JEs) by clubbing multiple transactions
+        while accounting in the software instead of recording separate JEs for each and every transaction.
+        This potentially leads to difficulty in identifying and verifying any particular transaction. Also, the
+        Company follows a system of accounting multiple accounts / borrowings pertaining to a single
+        Bank / Lender under one GL head resulting in individual account / loan balances not getting
+        identified separately in the books of account or trial balance. This may potentially lead to mistakes
+        or omissions in a particular loan / bank account that may not get identified.
+
+xx.     All payments of Rs. 5 lakhs and above are made by Cash Management Section (CMS) directly to
+        contractors / parties, but CMS and accounting units account for the same as fund transferred to
+        accounting units and funds received from CMS respectively. Further, accounting units pass bank
+        entries for payment to contractor / creditor though payments are done from the Bank account of
+        CMS. These entries are also reflected in cash books and Bank Reconciliation Statements (BRS) of
+        the accounting units. This system of accounting creates notional bank entries in at accounting
+        units-level and not an accepted practice of accounting.
+
+xxi.    As per the Company’s internal policy, all payments above Rs. 5 lakhs must be made at the CMS to
+        ensure appropriate oversight over those payments. However, few vendors / suppliers have been
+        submitting multiple invoices just below Rs. 5 lakhs in respect of a distinctly identifiable service or
+        transaction, which in aggregate, exceed the policy threshold. These multiple invoices are
+        processed at the accounting unit-level even though, when aggregated, are to be processed at the
+        CMS. This practice effectively circumvents the internal control policy for payments above Rs. 5
+        lakhs.
+
+xxii.   It is observed that the accounting units have not disclosed bank accounts used for pension &
+        NDCPS payments in the books and accounted neither the pension amounts released from the
+        KEPGT / KENFPGT to the units nor payment of pension amounts to the retired employees / family
+        pensioners even though such bank accounts are operated by the respective accounting units. The
+        initial deposits made with the Banks at the time of account opening are reflected under ‘Deposits
+        with Others’ under ‘Other Non-Current Assets’ instead of ‘Cash & Cash Equivalents’. Also, the Bank
+        accounts used for statutory tax payments are not disclosed in the financial statements. The
+        procedure followed by the Company potentially misstates the bank balances, liability for unpaid
+        pension and statutory dues at year end.
+
+
+
+
+                                                  29 of 49
+xxiii.    Some of the material accounting policies selected by the Company are not applied — non-
+          ascertainment of fair values for financial instruments, non-recognition of right-of-use assets
+          (leases), non-recognition of regulatory deferral account balances, not retrospectively restating the
+          financial statements, are not in compliance with applicable Ind AS and may potentially result in
+          misstatement in the financial statements. Also, the Company does not have an accounting policy
+          for recognising power banking / swapping arrangements carried with power supply entities in
+          other states.
+
+xxiv.     The system of accounting for imprest balances is inappropriate as amounts utilised out of imprest
+          balances are being recognised in disbursement bank account ledgers rather than adjusting
+          through imprest ledgers. Also, recoupment of imprest balances is not being adjusted through
+          imprest ledgers.
+
+xxv.      Certain items of small sizes that require individual or batch counting are kept in loose quantities
+          at stores of the Company. This makes the counting of such items difficult during the annual stock
+          count and may result in recording inaccurate physical count results and consequently may affect
+          the valuation of materials.
+
+xxvi.     ‘Delegation of Powers’ is not strictly being adhered to. As per the ‘Delegation of Powers’ of the
+          Company, the CEE office is authorised to invite tenders only up to Rs. 2 crores each. However, in
+          respect of some tenders invited during the financial year, CEE office (Chitradurga) had invited and
+          awarded tenders above Rs. 2 crores each.
+
+xxvii.    The system of proper documentation in cases of power theft and recovery of energy charges
+          including penalty was not operating effectively in the Company. The Company has a vigilance
+          section for detecting power theft and recovering energy charges along with penalty as and when
+          such theft is identified. However, the Company could not produce sufficient documentation for
+          our verification to ascertain relevant details as regards the number of cases of power theft
+          detected, ageing of the cases, cases under appeal, the quantum of pending recoveries, cases that
+          have been closed without any recovery etc.,
+
+xxviii.   The Company did not have a proper system to accrue and account for all known liabilities and
+          expenses such as building rent, remuneration to contract agencies. Further, the Company did not
+          have a system to estimate and account for revisions that may arise to power purchase bills after
+          the end of the financial year but pertaining to the financial year.
+
+xxix.     The Company did not have a proper system or records for tracking the bank guarantees received
+          as security, name of the parties from whom received, amount and purpose, validity, and decision
+          for renewal / encashment of bank guarantees as and when required.
+
+A ‘material weakness’ is a deficiency, or a combination of deficiencies, in internal financial controls with
+reference to financial statements, such that there is a reasonable possibility that a material misstatement
+of the Company's annual or interim financial statements will not be prevented or detected on a timely basis.
+
+In our opinion, because of the effects / possible effects of the material weakness(es) described above on
+the achievement of the objectives of the control criteria, the Company has not maintained in all material
+
+
+
+                                                   30 of 49
+respects, adequate internal financial controls with reference to financial statements and such internal
+financial controls with reference to financial statements were not operating effectively as of 31 March
+2025, based on the internal financial controls with reference to financial statements criteria established by
+the Company considering the essential components of internal controls stated in the Guidance Note issued
+by the Institute of Chartered Accountants of India.
+
+We have considered the material weakness identified and reported above in determining the nature, timing
+and extent of audit tests applied in our audit of the 31 March 2025 financial statements of the Company,
+and these material weaknesses have affected our opinion on the financial statements of the Company and
+we have issued an adverse opinion on the financial statements.
+
+                                                                                          For Manian & Rao
+                                                                                    Chartered Accountants
+                                                                             Firm Registration No: 001983S
+
+
+
+                                                                                             Srikanth R.
+                                                                                                 Partner
+                                                                                  Membership No: 203138
+                                                                              UDIN: 25203138BMOJID3060
+Place: Bangalore
+Date: 18 December 2025
+
+
+
+
+                                                  31 of 49
+ANNEXURE ‘1’ TO THE INDEPENDENT AUDITORS’ REPORT
+
+(Referred to in paragraph 1 under Report on Other Legal and Regulatory Requirements our report of even
+date to the members of Bangalore Electricity Supply Company Limited (‘the Company’) for the year ended
+31 March 2025).
+
+We report that:
+
+i.       Property Plant and Equipment
+
+         a.    (A) Based on our audit and according the information and explanations given to us, the
+               Company has not maintained proper records with respect to property, plant and equipment
+               (including right-of-use assets) across its various accounting units containing, inter alia,
+               details like sufficient description, location and situation of assets, quantitative details etc.
+
+               (B) The intangible assets held by the Company are software. Even though separate register
+               has not been maintained, adequate details are available with the Company for the cost
+               incurred on the software.
+
+          b. We were informed that the Company has carried out physical verification of assets under
+             the category of office equipment, furniture & fixtures, vehicles at regular intervals. However,
+             no physical verification reports or records were provided to us for our verification, and
+             accordingly we are unable to comment on whether the physical verification was actually
+             carried out, and if so, whether any material discrepancies were noticed and properly dealt
+             with in the books of account. The Company has not carried out physical verification of assets
+             under category of land, buildings, line cable networks, transformers, plant & machinery etc.,
+             including released assets during the year. Hence, the question of reporting on discrepancies
+             and adjustment in the books of account does not arise with respect to these property, plant
+             and equipment.
+
+          c.   We are unable to report on whether the title deeds of all the immovable properties (other
+               than properties where the company is the lessee) disclosed in the financial statements are
+               held in the name of the company, as sufficient details or records were not provided for our
+               verification.
+
+               Vide Note no. 39.4.4 and 39.4.5 to the ‘General Notes to Financial Statements’, the Company
+               is still in the process of obtaining details of the identification, location, situation, description
+               and extent of transfer of titles in its favour in respect of moveable, immovable and leased
+               assets transferred from Govt. of Karnataka / M/s. KPTCL and out of the assets assigned
+               and transferred to the Company by KPTCL through notification in the transfer order, title
+               deeds relating to the land (including lease hold) are not available / transferred in favour of
+               the Company.
+
+          d. The Company has not revalued its property, plant and equipment (including right of use
+             assets) or intangible assets during the year and hence reporting under paragraph 3(i)(d) of
+             this Order is not applicable to the Company.
+
+
+                                                    32 of 49
+       e.   Based on the information and explanations furnished to us, no proceedings have been
+            initiated on or are pending against the Company for holding benami property under the
+            Prohibition of Benami Property Transactions Act, 1988 (as amended in 2016) (formerly the
+            Benami Transactions (Prohibition) Act, 1988 (45 of 1988)) and Rules made thereunder and
+            therefore the question of our commenting on whether the Company has appropriately
+            disclosed the details in its financial statements does not arise.
+
+ii.    Inventories and working capital funding
+
+       a.   As explained to us, the inventories comprising of stores, spares, tools, plants lying in the
+            stores of the Company have been physically verified during the year by the management.
+            The physical verification reports do not mention the quantities as per records but only states
+            the quantities physically available and states there are no discrepancies. However, the
+            procedure needs to be strengthened with proper identification & tagging of inventory items,
+            comparison of actuals with those available on records. In the absence of adequate details
+            in the physical verification reports, we are unable to comment on the material discrepancies
+            in inventory items.
+
+       b. The Company has been sanctioned working capital limits in excess of five crore rupees, in
+          aggregate, from banks or financial institutions on the basis of security of current assets
+          (trade receivable and inventories). The quarterly statements of trade receivables and
+          inventory filed by the Company with the banks for working capital purposes are not in
+          agreement with the books of accounts. As informed to us, amounts provided in quarterly
+          statements include subsidy receivable, true-up subsidy and other receivables from the
+          Government and other ESCOMs along with trade receivables and inventory. As informed to
+          us, the differences are also due to provisional figures provided in the quarterly statements
+          which may undergo changes subsequently. However, detailed analysis of differences could
+          not be provided by the Company. The differences are detailed below:
+                                                                                        (Rs. in crores)
+             Quarter     Amount as per           Value of trade receivables       Difference
+                         quarterly returns       and inventory as per books of
+                         submitted               account
+
+                          (A)                      (B)                              (C = A – B)
+                  1                   14,586.48                          7,648.95              6,937.53
+                  2                   12,190.39                          8,313.81              3,876.58
+                  3                   11,657.01                          7,732.50              3,924.51
+                  4                   10,338.54                          8,524.87              1,813.67
+
+iii.   Loans & Advances
+
+       In our opinion and according to information and explanations given to us, during the year the
+       Company has not made investments in, provided any guarantee or security or granted any loan
+       or advances in the nature of loans, secured or unsecured to companies, firms, limited liability
+
+
+
+
+                                               33 of 49
+       partnerships or any other parties. Accordingly, provisions of paragraph 3(iii) of the Order are not
+       applicable to the Company.
+
+iv.    Loans, Investments and Guarantees
+
+       In our opinion and according to information and explanations given to us, the company has not
+       made any loans or any investments or provided any guarantees or security to the parties covered
+       under section 185 and 186 of the Companies Act 2013. Therefore, the provisions of paragraph
+       3(iv) of the said Order are not applicable to the Company.
+
+v.     In our opinion and according to the information and explanations given to us, the Company has
+       not accepted any deposits or amounts which are deemed to be deposits from the public within
+       the meaning of section 73, 74, 75 & 76 of the Companies Act, 2013 and the rules made thereunder
+       and to the extent notified. Therefore, provisions of paragraph 3(v) of the Order are not applicable
+       to the Company.
+
+vi.    The maintenance of cost records in respect of electricity (Distribution of Power) has been
+       prescribed by the Central Government under section 148(1) of the Act. As per the information and
+       explanation provided to us, the Company has maintained such records as detailed in the Cost
+       Audit Report for the financial year 2023-24. However, cost audit for the current financial year is
+       yet to conducted and as informed, updating of cost records is under process.
+
+vii.   Statutory dues
+
+       a. As informed to us, the Company, according to its records, is regular in depositing with
+           appropriate authorities undisputed applicable statutory dues including Goods and Service
+           Tax, Provident Fund, Income tax, Sales tax, Customs duty, VAT, Service tax, Cess and other
+           statutory dues. As informed to us, there are no undisputed statutory dues outstanding for a
+           period exceeding six months from the date they became payable as on the last day of the
+           current financial year. However, we are unable to verify such assertion made by the
+           management as the details of statutory dues and payment could not be collated by the
+           Company and ageing schedule could not be extracted from the accounting software. Also, it
+           has been observed that there was misappropriation of funds in one of the divisions due for
+           remittance under ‘Workers Welfare Cess’ amounting to Rs. 0.26 crore (as provisionally
+           ascertained) pertaining to financial year 2022-23. However, the amount is yet to be remitted
+           and as informed, the misappropriation was identified during the financial year 2024-25 and
+           investigation is still under progress. However, the amount recovered from the concerned
+           employee has not been disclosed under statutory dues payable pending completion of
+           enquiry.
+
+       b. In our opinion and according to information and explanations given to us, there are no
+           statutory dues referred to in sub clause (a) as at 31 March 2025 which have not been
+           deposited on account of any dispute other than the following disputed tax demands:
+
+             Sl.   Name of       Nature of      Amount     Period to      Forum        Amount
+             No    the Statute   the dues                  which the      where the    deposited on
+
+
+
+                                               34 of 49
+                                                (Rs. in    amount         dispute is   account of the
+                                                crores)    relates        pending      dispute
+                                                                                       (Rs. in crores)
+              1    Income         Income           51.61   AY 2017-18     ITAT,                   15.86*
+                   Tax Act,       Tax                                     Bengaluru
+                   1961
+              2    Income         Income           58.29   AY 2018-19     CIT                        Nil
+                   Tax Act,       Tax                                     (Appeals),
+                   1961                                                   Bengaluru
+              3    Goods and      Goods and         1.00   FY 2018-19     Appellate                0.09
+                   Services       Services                                Tribunal
+                   Tax Act        Tax
+              4    Goods and      Goods and         2.04   FY 2019-20     Hon’ble                    Nil
+                   Services       Services                                High
+                   Tax Act        Tax                                     Court of
+                                                                          Karnataka
+              5    Goods and      Goods and         0.61   FY 2017-18     GST                      0.03
+                   Services       Services                                Appellate
+                   Tax Act        Tax                                     Authority
+
+        *Rs. 5.54 crores have been adjusted against refunds received.
+
+viii.   According to the information and explanations given to us and the records of the Company
+        examined by us, the Company has not surrendered or disclosed as income, any transaction not
+        recorded in the books of account during the year in the tax assessments under the Income Tax
+        Act, 1961 (43 of 1961). Accordingly, reporting under paragraph 3(viii) of the Order is not
+        applicable to the Company.
+
+ix.     Repayment of Loans and Interest
+
+        a.   According to the information and explanations given to us and the records of the Company
+             examined by us, the Company has not defaulted in repayments of loans or other borrowings
+             or in the payment of interest thereon to any lender.
+
+        b.   According to the information and explanations given to us, and based on our audit
+             procedures, we report that the Company has not been declared wilful defaulter by any bank
+             or financial institution or other lender or government or any government authority.
+
+        c.   According to the information and explanations given to us, the loans to the extent utilised
+             have been applied for the purposes for which the loans were obtained. On an overall
+             examination of the financial statements of the Company and based on our audit procedures
+             nothing has come to our notice to infer that the term loans have not been applied for the
+             purpose for which the loans were obtained.
+
+        d.   According to the information and explanations given to us and the procedures performed by
+             us, and on an overall examination of the financial statements of the Company, we report that
+             no funds raised on short-term basis have been used for long-term purposes by the Company.
+
+
+                                               35 of 49
+      e.     According to the information and explanations given to us and on an overall examination of
+             the financial statements of the Company, we report that the Company does not have
+             subsidiaries, associates or joint ventures and hence reporting under paragraph 3(ix)(e) of
+             the Order is not applicable to the Company.
+
+      f.     According to the information and explanations given to us and on an overall examination of
+             the financial statements of the Company, we report that the Company does not have
+             subsidiaries, associates or joint ventures and hence reporting under paragraph 3(ix)(f) of the
+             Order is not applicable to the Company.
+
+x.    Funds Raised by way of IPO/FPO/Preferential Allotment
+
+       a.    According to the information and explanation given to us and procedures performed by us,
+             the Company has not raised moneys by way of initial public offer or further public offer
+             (including debt instruments) during the year. Hence, provisions of paragraph 3(x)(a) of the
+             Order are not applicable to the Company.
+
+       b. According to the information and explanations given to us and records of the Company, the
+          Company has not made any preferential allotment or private placement of shares or
+          convertible debentures (fully, partially or optionally convertible) during the year. Accordingly,
+          provisions of the paragraph 3(x)(b) of the Order are not applicable to the Company.
+
+xi.   Identification and reporting of frauds
+
+      a. As per the information and explanations provided to us, no material fraud by or on the
+         Company has been noticed or reported during the year, nor have we been informed of any such
+         case by the management. However, as informed, in respect of identified cases of theft of
+         power, proceedings for recovery of applicable charges are being initiated. In respect of
+         departmental enquiry initiated against a few employees relating to alleged irregularities, we
+         are informed that the nature and amount can be finally determined only on completion of
+         enquiry.
+
+            During the year the management had identified misappropriation of funds belonging to the
+            Company pertaining to the FY 2022-23 amounting to Rs. 0.26 crore carried out by a Junior
+            Assistant (Cashier) in Magadi Division. As informed, an amount of Rs. 0.26 crore has been
+            returned to the Company by the employee involved. Also, the management is in the process
+            of identifying the role of other employees involved. Some of the suspected employees are
+            under suspension and disciplinary proceedings against the employees have been initiated and
+            are in progress.
+
+      b. According to the information and explanations given to us, no report under sub-section (12)
+         of section 143 of the Act has been filed in Form ADT 4 as prescribed under rule 13 of
+         Companies (Audit and Auditors) Rules, 2014 (as amended from time to time) with the Central
+         Government, during the year and up to the date of this report.
+
+
+
+
+                                                36 of 49
+        c. As per the documents provided to us and as represented to us by the management, there are
+           no whistle blower complaints received by the Company during the year.
+
+xii.    In our opinion and according the information and explanations provided to us, the Company is
+        not a Nidhi Company. Hence, reporting under paragraph 3(xii) of the Order is not applicable to the
+        Company.
+
+xiii.   The Company being a Government Company is exempted from the provisions of section 177 and
+        section 188 of the Companies Act, 2013 relating to transactions with related parties in terms of
+        MCA Notification No. GSR 463 (E) dt. 5 June 2015. Hence, reporting under paragraph 3(xiii) of the
+        Order is not applicable to the Company.
+
+xiv.    Internal Audit System
+
+        a.   The Company has an in-house Internal Audit department to carry out internal audit functions.
+             In our opinion, the scope and coverage of internal audit is not commensurate with the size
+             and nature of the Company’s business as the internal audit department is not adequately
+             manned with professionally qualified persons and the scope of the internal audit continues
+             to be limited and not sufficiently risk-focused. It is also observed that the scope of the
+             internal audit had not been defined / vetted by the Audit Committee of the Board (ACB).
+             Further, the internal audit system does not review and comment on the financial accounts,
+             IT systems, risk management practices or governance processes of the Company. The
+             internal audit head reports to the Managing Director of the Company, which may affect the
+             independence of the function. The deficiencies discussed above impact the effectiveness
+             of financial oversight and internal controls, leading to potential inaccuracies or
+             misstatements in financial records and financial reporting.
+
+        b. We were not provided with internal audit reports of the Company for the year though an
+           ‘Annual Performance Report of Internal Audit’ for the financial year was provided to us. For
+           the reasons stated under paragraph 3(xiv)(a) of the Order, we have not considered the same
+           in determining the nature, timing and extent of our audit procedures.
+
+xv.     According to the information and explanations given to us, the Company has not entered into any
+        non-cash transactions with directors or persons connected with him and therefore reporting on
+        compliance with section 192 of the Act under paragraph 3(xv) of the Order is not applicable to
+        the Company.
+
+xvi.    Registration under RBI Regulations
+
+        a.   The Company is not required to be registered under section 45-IA of the Reserve Bank of
+             India Act, 1934. Accordingly, reporting under paragraph 3(xvi)(a) of the Order is not
+             applicable to the Company.
+
+        b.   The Company has not conducted non-banking financial or housing finance activities during
+             the year. Accordingly, the reporting under paragraph 3(xvi)(b) of the Order is not applicable
+             to the Company.
+
+
+
+                                               37 of 49
+         c.   The Company is not a Core Investment Company (CIC) as defined in the regulations made
+              by the Reserve Bank of India. Thus, reporting under paragraph 3(xvi)(c) of the Order is not
+              applicable to the Company.
+
+         d.   As informed by management and according to the information and explanations provided to
+              us, the Group does not have any CICs. Accordingly, the reporting under paragraph 3(xvi)(d)
+              of the Order is not applicable.
+
+xvii.    After considering the effects of modifications in the Basis for Adverse Opinion section of our
+         report, the Company has not incurred cash losses during the current financial year ended 31
+         March 2025 but has incurred cash losses of Rs. 5,210.76 crore during the immediately preceding
+         financial year ended 31 March 2024. For calculating the cash losses, we have not considered
+         unquantified modifications in the Basis for Adverse Opinion section of our report.
+
+xviii.   There has been no resignation of the statutory auditors during the year. Hence, reporting under
+         clause 3(xviii) of the Order is not applicable to the Company.
+
+xix.     According to the information and explanations given to us and on the basis of the financial ratios,
+         ageing and expected dates of realisation of financial assets and payment of financial liabilities,
+         other information accompanying the financial statements, our knowledge of the Board of
+         Directors and management plans and considering the fact as stated in Note no. 39.11 of ‘General
+         Notes to Financial Statements’, the Company, being fully owned by Govt. of Karnataka is the only
+         power distribution licensee catering to all consumers covering 8 districts of Karnataka including
+         Bengaluru Urban & Rural and supply of power being an essential service needs to be supplied on
+         a continuous basis and it is the responsibility of the State Government to ensure that there is no
+         disruption in power supply. The energy billing by the Company is based on the tariff approved by
+         KERC on cost plus basis and the Company has been consistent in meeting its liabilities and has
+         not defaulted in any loan obligations. The Company’s management has also confirmed that the
+         Company is capable of meeting all its day-to-day obligations including loan liabilities as and when
+         they fall due. Considering the above, nothing has come to our attention, which causes us to
+         believe that the Company is not capable of meeting its liabilities existing at the date of balance
+         sheet as and when they fall due within a period of one year from the balance sheet date. We,
+         however, state that this is not an assurance as to the future viability of the Company. We further
+         state that our reporting is based on the facts up to the date of the audit report and we neither give
+         a guarantee nor any assurance that all liabilities falling due within a period of one year from the
+         balance sheet date, will get discharged by the Company as and when they fall due. Attention is
+         also drawn to Material Uncertainty relating to Going Concern section of our report of even date
+         regarding existence of material uncertainty and preparation of financial statements on going
+         concern basis.
+
+xx.      According to the information and explanations given to us, the Company has not made net profit
+         in the three preceding financial years and hence not required to spend any amount for Corporate
+         Social Responsibility (CSR) activities as required under subsection (5) of Section 135 of the Act.
+         Also, there are no ongoing projects undertaken by the Company for CSR activity. Accordingly,
+         reporting under clause 3(xx) of the Order is not applicable to the Company.
+
+
+
+
+                                                  38 of 49
+xxi.    Preparation of consolidated financial statements are not applicable to the Company and hence
+        reporting under paragraph 3(xxi) of the Order is not applicable.
+
+                                                                                   For Manian & Rao
+                                                                             Chartered Accountants
+                                                                      Firm Registration No: 001983S
+
+
+
+                                                                                      Srikanth R.
+                                                                                          Partner
+                                                                           Membership No: 203138
+                                                                       UDIN: 25203138BMOJID3060
+Place: Bangalore
+Date: 18 December 2025
+
+
+
+
+                                             39 of 49
+

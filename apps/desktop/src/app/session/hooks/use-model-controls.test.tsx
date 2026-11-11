@@ -20,6 +20,7 @@ import { useModelControls } from './use-model-controls'
 
 const setGlobalModel = vi.fn()
 const notifyError = vi.fn()
+const surfaceModelSwitchConfirm = vi.fn()
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
@@ -60,6 +61,10 @@ vi.mock('@/store/notifications', () => ({
   notifyError: (...args: Parameters<typeof notifyError>) => notifyError(...args)
 }))
 
+vi.mock('@/lib/guarded-model-switch', () => ({
+  surfaceModelSwitchConfirm: (...args: unknown[]) => surfaceModelSwitchConfirm(...args)
+}))
+
 type Controls = ReturnType<typeof useModelControls>
 
 function Harness({
@@ -91,6 +96,7 @@ describe('useModelControls', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+    surfaceModelSwitchConfirm.mockReset()
     $activeGatewayProfile.set('default')
     $activeSessionId.set(null)
     setCurrentModel('')
@@ -274,6 +280,46 @@ describe('useModelControls', () => {
       value: 'claude-sonnet-4.6 --provider anthropic --session'
     })
     expect(requestGateway).not.toHaveBeenCalledWith('slash.exec', expect.anything())
+  })
+
+  it('routes guarded model switches through confirmation instead of claiming success', async () => {
+    $activeSessionId.set('session-1')
+    setCurrentModel('grok-4.6')
+    setCurrentProvider('xai-oauth')
+    const requestGateway = vi.fn(async (_method: string, params?: Record<string, unknown>) =>
+      params?.confirm_expensive_model
+        ? ({ key: 'model', value: 'muse-spark-1.2-contributor-free' } as never)
+        : ({
+            confirm_message: 'This tier may train on your data.',
+            confirm_required: true
+          } as never)
+    )
+    let controls!: Controls
+
+    render(<Harness onReady={value => (controls = value)} requestGateway={requestGateway} />)
+
+    await expect(
+      controls.selectModel({ model: 'muse-spark-1.2-contributor-free', provider: 'opencode-free' })
+    ).resolves.toBe(false)
+
+    // The guarded response is not an applied switch: the old selection is
+    // restored and the shared confirmation surface owns the next step.
+    expect($currentModel.get()).toBe('grok-4.6')
+    expect($currentProvider.get()).toBe('xai-oauth')
+    expect(surfaceModelSwitchConfirm).toHaveBeenCalledTimes(1)
+    const confirmOptions = surfaceModelSwitchConfirm.mock.calls[0][0] as {
+      confirmMessage: string
+      requestConfirmed: () => Promise<unknown>
+    }
+    expect(confirmOptions.confirmMessage).toContain('train on your data')
+
+    await confirmOptions.requestConfirmed()
+    expect(requestGateway).toHaveBeenLastCalledWith('config.set', {
+      session_id: 'session-1',
+      key: 'model',
+      value: 'muse-spark-1.2-contributor-free --provider opencode-free --session',
+      confirm_expensive_model: true
+    })
   })
 
   it('keeps a mid-turn pick painted and skips the refetch that would repaint the old model', async () => {

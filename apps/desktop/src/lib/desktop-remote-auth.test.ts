@@ -28,7 +28,7 @@ describe('deriveRemoteAuthProviderShape', () => {
       deriveRemoteAuthProviderShape([{ name: 'nous', displayName: 'Nous Research', supportsPassword: false }])
     ).toEqual({
       isPassword: false,
-      providerLabel: 'Nous Research'
+      providerLabel: 'Open Computer Account'
     })
 
     expect(
@@ -38,7 +38,7 @@ describe('deriveRemoteAuthProviderShape', () => {
       ])
     ).toEqual({
       isPassword: false,
-      providerLabel: 'Username & Password / Nous Research'
+      providerLabel: 'Username & Password / Open Computer Account'
     })
   })
 
