@@ -339,6 +339,7 @@ describe('PersistentTerminal rect tracking', () => {
     expect(raf.pending()).toBe(0)
   })
 
+<<<<<<< HEAD
   it('does not schedule an initial frame when mounted while unfocused', () => {
     const raf = installRaf()
     vi.mocked(document.hasFocus).mockReturnValue(false)
@@ -353,6 +354,8 @@ describe('PersistentTerminal rect tracking', () => {
     expect(raf.pending()).toBe(1)
   })
 
+=======
+>>>>>>> upstream/main
   it('hides the overlay but keeps its workspace mounted when the terminal tab becomes inactive', () => {
     const raf = installRaf()
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 200, 100))

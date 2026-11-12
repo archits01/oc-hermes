@@ -6,6 +6,8 @@
 
 export type McpServers = Record<string, Record<string, unknown>>
 
+export type McpServerEntry = McpServers[string]
+
 export const isServerShape = (value: Record<string, unknown>) =>
   typeof value.command === 'string' || typeof value.url === 'string'
 
@@ -21,9 +23,47 @@ export function normalizeEntry(entry: Record<string, unknown>): Record<string, u
   return entry
 }
 
-/** The `mcp_servers` map out of a config record, or `{}` when absent/malformed. */
+const OFF_WORDS = new Set(['false', '0', 'no', 'off'])
+const ON_WORDS = new Set(['true', '1', 'yes', 'on'])
+
+// The backend's `_parse_boolish`: a bool, a number (0 is false) or a word (any case, trimmed)
+// parses; anything else (null, absent, a list, a mapping) is unparseable and takes the default.
+const boolWord = (value: unknown, words: Set<string>) =>
+  typeof value === 'number'
+    ? (value === 0) === words.has('0')
+    : (typeof value === 'boolean' || typeof value === 'string') && words.has(String(value).trim().toLowerCase())
+
+/** Whether a server entry is on. Mirrors the backend's one reader
+ *  (`tools/mcp_tool_common.py::mcp_server_enabled`): false/0 and the off words
+ *  (any case, trimmed) are off; absent, `null`, `""` and junk are on. A truthy
+ *  legacy `disabled` wins over `enabled`.
+ *  `mcp-enabled-cases.json` pins both sides to the same table, so the MCP page
+ *  never shows a server on that the runtime skips. */
+export const serverEnabled = (entry: McpServerEntry) =>
+  !boolWord(entry.enabled, OFF_WORDS) && !boolWord(entry.disabled, ON_WORDS)
+
+/** A value a reader can reach into: an object, not `null`, an array or a scalar. */
+const isEntry = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value)
+
+/** The `mcp_servers` map out of a config record, or `{}` when absent/malformed.
+ *
+ *  Entries that aren't objects are dropped rather than handed on. Every reader
+ *  takes properties straight off the value — `enabled` for the runtime gate,
+ *  `command`/`url` for the transport, `tools` for the filter — so one bad entry
+ *  throws on the first property read and, with nothing between it and the pane,
+ *  takes the whole Capabilities workspace down with it. A `name:` left without
+ *  a value in `config.yaml` parses as `null` and does exactly that. The backend
+ *  already refuses to *write* a non-object entry (`_replace_mcp_servers`), so
+ *  this only has to survive a config edited by hand or by another tool. */
 export function getServers(config: { mcp_servers?: unknown } | null): McpServers {
   const raw = config?.mcp_servers
 
-  return raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as McpServers) : {}
+  if (!isEntry(raw)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(raw).filter((entry): entry is [string, Record<string, unknown>] => isEntry(entry[1]))
+  )
 }
