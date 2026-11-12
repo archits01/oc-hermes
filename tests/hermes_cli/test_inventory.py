@@ -515,6 +515,33 @@ def test_canonical_order_uses_slug_not_is_user_defined_flag():
 
 
 
+def test_picker_order_pins_xai_opencomputer_and_free_rows_at_tail():
+    """The managed picker has stable anchors and a free/discovery tail."""
+    from hermes_cli.inventory import _reorder_canonical
+
+    rows = [
+        {"slug": "opencode-free", "models": ["muse-free"]},
+        {"slug": "custom:proxy", "models": ["custom-model"]},
+        {"slug": "openai-api", "models": ["gpt"]},
+        {"slug": "tryopencomputer", "models": ["gpt-5.6-sol"]},
+        {"slug": "xai-oauth", "models": ["grok"]},
+        {
+            "slug": "openrouter-free-catalog",
+            "models": [],
+            "discovered_models": ["provider/model:free"],
+        },
+    ]
+
+    assert [row["slug"] for row in _reorder_canonical(rows)] == [
+        "xai-oauth",
+        "tryopencomputer",
+        "openai-api",
+        "custom:proxy",
+        "opencode-free",
+        "openrouter-free-catalog",
+    ]
+
+
 # ─── Integration: end-to-end through real load_picker_context ──────────
 
 

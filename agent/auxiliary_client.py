@@ -1566,6 +1566,10 @@ class _CodexCompletionsAdapter:
         timeout = kwargs.get("timeout")
         if timeout is not None:
             resp_kwargs["timeout"] = timeout
+        # Per-request HTTP headers (OpenCode session affinity, Copilot
+        # x-initiator) map to real headers via the SDK kwarg — forward them.
+        if isinstance(kwargs.get("extra_headers"), dict) and kwargs["extra_headers"]:
+            resp_kwargs["extra_headers"] = dict(kwargs["extra_headers"])
 
         # Note: the Codex endpoint (chatgpt.com/backend-api/codex) does NOT
         # support max_output_tokens or temperature — omit to avoid 400 errors.
@@ -2148,6 +2152,13 @@ class _AnthropicCompletionsAdapter:
             from agent.anthropic_adapter import _forbids_sampling_params
             if not _forbids_sampling_params(model):
                 anthropic_kwargs["temperature"] = temperature
+        # Per-request HTTP headers (OpenCode session affinity) — the Anthropic
+        # SDK accepts ``extra_headers`` on messages.create/stream too.
+        if isinstance(kwargs.get("extra_headers"), dict) and kwargs["extra_headers"]:
+            anthropic_kwargs["extra_headers"] = {
+                **(anthropic_kwargs.get("extra_headers") or {}),
+                **kwargs["extra_headers"],
+            }
 
         # Pass through caller-supplied extra_body so providers behind
         # Anthropic-compatible gateways receive their per-vendor request
@@ -6237,6 +6248,13 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
         from tools.xai_http import hermes_xai_default_headers
 
         async_kwargs["default_headers"] = hermes_xai_default_headers()
+    elif str(getattr(sync_client, "api_key", "") or "") == "opencode-zen-free-keyless":
+        # The OpenCode Free provider is keyless, but Zen still requires its
+        # client/session/request identity headers. Preserve the same dynamic
+        # header policy when converting an auxiliary sync client to async.
+        from hermes_cli.models import opencode_zen_free_headers
+
+        async_kwargs["default_headers"] = opencode_zen_free_headers()
     else:
         # Fall back to profile.default_headers for providers that declare
         # client-level headers on their ProviderProfile (e.g. attribution
@@ -6907,6 +6925,11 @@ def resolve_provider_client(
         if _free_rt is not None:
             api_key = _free_rt["api_key"]
             raw_base_url = str(_free_rt["base_url"]).rstrip("/")
+            # OpenCode routes models across chat and Responses APIs. Keep the
+            # auxiliary client on the same per-model wire as the main runtime
+            # instead of sending Responses-only free models to chat.
+            if not api_mode:
+                api_mode = str(_free_rt.get("api_mode") or "").strip() or None
         if provider == "actual":
             try:
                 from hermes_cli.auth import (
@@ -8880,7 +8903,13 @@ def _build_call_kwargs(
         ):
             kwargs["_reasoning_config"] = dict(reasoning_config)
 
-    return kwargs
+    # OpenCode relay session affinity — same key as the main turn so
+    # compression/title/vision calls stay on the conversation's warm backend.
+    from agent.opencode_affinity import merge_opencode_session_headers
+
+    return merge_opencode_session_headers(
+        kwargs, provider, base_url, _runtime_main_value("session_id") or None
+    )
 
 
 def _validate_llm_response(

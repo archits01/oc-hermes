@@ -309,6 +309,9 @@ const $activeConnectionId = computed($connection, connection => {
 })
 
 const DEFAULT_SESSION_HYDRATION_TIMEOUT_MS = 20_000
+
+/** Canonical Bot Chat hydration budget exposed to the bundled plugin SDK. */
+export const BOT_CHAT_SESSION_HYDRATION_TIMEOUT_MS = 15_000
 let openSessionGeneration = 0
 
 export interface PluginOpenSessionOptions {
@@ -1414,5 +1417,5 @@ export { SessionStatusDot } from '@/app/chat/session-status-dot'
 export { SidebarRowLead } from '@/app/chat/sidebar/chrome'
 export { ConnectionGlyph } from '@/app/chat/sidebar/connection-glyph'
 export { ColorSwatches } from '@/components/ui/color-swatches'
-export { PROFILE_SWATCHES, profileColorSoft } from '@/lib/profile-color'
+export { PROFILE_SWATCHES } from '@/lib/profile-color'
 export { surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
