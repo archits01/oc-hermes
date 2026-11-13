@@ -148,6 +148,14 @@ class OpenRouterProfile(ProviderProfile):
         # model has no documented effect and would be confusing in logs.
         # See: https://openrouter.ai/docs/guides/routing/routers/pareto-router
         model = (context.get("model") or "")
+        # OpenRouter currently exposes Nemotron Ultra through the Nvidia free
+        # endpoint. Without an explicit provider order, the route can accept
+        # the request with HTTP 200 and then stall without emitting a token;
+        # pinning the advertised provider makes the runtime wire match the
+        # provider endpoint that passed the bounded health probe. Respect an
+        # explicit caller preference when one is supplied.
+        if not prefs and "nvidia/nemotron-3-ultra-550b-a55b:free" in str(model).lower():
+            body["provider"] = {"order": ["Nvidia"], "allow_fallbacks": False}
         if model == "openrouter/pareto-code":
             score = context.get("openrouter_min_coding_score")
             if score is not None and score != "":

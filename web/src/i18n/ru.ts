@@ -50,7 +50,7 @@ export const ru: Translations = {
   },
 
   app: {
-    brand: "OpenComputer Agent",
+    brand: "Open Computer Agent",
     brandShort: "HA",
     closeNavigation: "Закрыть навигацию",
     closeModelTools: "Закрыть модель и инструменты",
@@ -120,8 +120,8 @@ export const ru: Translations = {
     starting: "Запуск",
     startedInBackground: "Запущено в фоне — следите за журналами",
     stopped: "Остановлено",
-    updateHermes: "Обновить OpenComputer",
-    updatingHermes: "Обновление OpenComputer…",
+    updateHermes: "Обновить Open Computer",
+    updatingHermes: "Обновление Open Computer…",
     waitingForOutput: "Ожидание вывода…",
   },
 
@@ -326,7 +326,7 @@ export const ru: Translations = {
     enableRuntime: "Включить",
     forceReinstall: "Принудительная переустановка (сначала удалить существующую папку)",
     headline:
-      "Поиск, установка, включение и обновление плагинов OpenComputer (аналог `hermes plugins`).",
+      "Поиск, установка, включение и обновление плагинов Open Computer (аналог `hermes plugins`).",
     identifierLabel: "Git URL или owner/repo",
     inactive: "неактивно",
     installBtn: "Установить",
@@ -440,7 +440,7 @@ export const ru: Translations = {
     showValue: "Показать реальное значение",
     hideValue: "Скрыть значение",
     customTitle: "Пользовательские ключи",
-    customHint: "Произвольные переменные окружения, сохранённые в вашем .env, которые OpenComputer не распознаёт. Используйте их для внедрения переменных окружения для навыков, серверов MCP или собственных инструментов.",
+    customHint: "Произвольные переменные окружения, сохранённые в вашем .env, которые Open Computer не распознаёт. Используйте их для внедрения переменных окружения для навыков, серверов MCP или собственных инструментов.",
     customConfigured: "Задано пользовательских ключей: {count}",
     addCustomKey: "Добавить пользовательский ключ",
     customKeyName: "Имя переменной",
@@ -505,11 +505,11 @@ export const ru: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "OpenComputer Achievements",
+      title: "Open Computer Achievements",
       subtitle:
-        "Коллекционные значки OpenComputer, полученные на основе реальной истории сессий. Известные, но ещё не полученные достижения отображаются как «Обнаруженные»; «Секретные» достижения остаются скрытыми до появления первого подходящего поведения.",
+        "Коллекционные значки Open Computer, полученные на основе реальной истории сессий. Известные, но ещё не полученные достижения отображаются как «Обнаруженные»; «Секретные» достижения остаются скрытыми до появления первого подходящего поведения.",
       scan_subtitle:
-        "Анализ истории сессий OpenComputer. Первое сканирование может занять 5–10 секунд при большой истории.",
+        "Анализ истории сессий Open Computer. Первое сканирование может занять 5–10 секунд при большой истории.",
     },
     actions: {
       rescan: "Пересканировать",
@@ -524,7 +524,7 @@ export const ru: Translations = {
       highest_tier: "Высший уровень",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Последнее",
-      latest_hint_empty: "запускайте OpenComputer чаще",
+      latest_hint_empty: "запускайте Open Computer чаще",
       none_yet: "Пока нет",
     },
     state: {
@@ -555,10 +555,10 @@ export const ru: Translations = {
       tiers_header: "Уровни",
       secret_header: "Секретные достижения",
       secret_body:
-        "Секретные достижения скрывают свой точный триггер. Как только OpenComputer обнаруживает связанный сигнал, карточка становится «Обнаруженной» и показывает требование.",
+        "Секретные достижения скрывают свой точный триггер. Как только Open Computer обнаруживает связанный сигнал, карточка становится «Обнаруженной» и показывает требование.",
       scan_status_header: "Статус сканирования",
       scan_status_body:
-        "OpenComputer сканирует локальную историю один раз, затем карточки появятся автоматически. Если это занимает несколько секунд — ничего не зависло.",
+        "Open Computer сканирует локальную историю один раз, затем карточки появятся автоматически. Если это занимает несколько секунд — ничего не зависло.",
       what_scanned_header: "Что сканируется",
       what_scanned_body:
         "Сессии, вызовы инструментов, метаданные моделей, ошибки, достижения и локальное состояние разблокировки.",
@@ -605,7 +605,7 @@ export const ru: Translations = {
         "«Поделиться в X» открывает пост с заранее заполненным текстом в новой вкладке. Сначала нажмите «Скопировать изображение», если хотите прикрепить значок 1200×630 — X позволяет вставить его прямо в редактор твита. «Скачать PNG» сохраняет файл для использования где угодно.",
       clipboard_unsupported:
         "Копирование изображений в буфер обмена не поддерживается в этом браузере — используйте «Скачать».",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in OpenComputer Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in Open Computer Agent ☤",
     },
   },
   kanban: {

@@ -50,7 +50,7 @@ export const de: Translations = {
   },
 
   app: {
-    brand: "OpenComputer Agent",
+    brand: "Open Computer Agent",
     brandShort: "HA",
     closeNavigation: "Navigation schließen",
     closeModelTools: "Modell und Werkzeuge schließen",
@@ -120,8 +120,8 @@ export const de: Translations = {
     starting: "Startet",
     startedInBackground: "Im Hintergrund gestartet — siehe Protokolle für den Fortschritt",
     stopped: "Gestoppt",
-    updateHermes: "OpenComputer aktualisieren",
-    updatingHermes: "OpenComputer wird aktualisiert…",
+    updateHermes: "Open Computer aktualisieren",
+    updatingHermes: "Open Computer wird aktualisiert…",
     waitingForOutput: "Warte auf Ausgabe…",
   },
 
@@ -440,7 +440,7 @@ export const de: Translations = {
     showValue: "Echten Wert anzeigen",
     hideValue: "Wert ausblenden",
     customTitle: "Benutzerdefinierte Schlüssel",
-    customHint: "Beliebige Umgebungsvariablen in deiner .env, die OpenComputer nicht erkennt. Verwende sie, um Umgebungsvariablen für Skills, MCP-Server oder eigene Tools einzuschleusen.",
+    customHint: "Beliebige Umgebungsvariablen in deiner .env, die Open Computer nicht erkennt. Verwende sie, um Umgebungsvariablen für Skills, MCP-Server oder eigene Tools einzuschleusen.",
     customConfigured: "{count} benutzerdefinierte Schlüssel gesetzt",
     addCustomKey: "Benutzerdefinierten Schlüssel hinzufügen",
     customKeyName: "Variablenname",
@@ -504,7 +504,7 @@ export const de: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "OpenComputer Achievements",
+      title: "Open Computer Achievements",
       subtitle:
         "Sammelbare OpenComputer-Abzeichen, verdient durch echten Sitzungsverlauf. Bekannte, noch nicht abgeschlossene Achievements werden als Entdeckt angezeigt; geheime Achievements bleiben verborgen, bis das erste passende Verhalten auftritt.",
       scan_subtitle:
@@ -523,7 +523,7 @@ export const de: Translations = {
       highest_tier: "Höchste Stufe",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Neueste",
-      latest_hint_empty: "nutze OpenComputer mehr",
+      latest_hint_empty: "nutze Open Computer mehr",
       none_yet: "Noch keine",
     },
     state: {
@@ -554,10 +554,10 @@ export const de: Translations = {
       tiers_header: "Stufen",
       secret_header: "Geheime Achievements",
       secret_body:
-        "Geheimnisse verbergen ihren genauen Auslöser. Sobald OpenComputer ein verwandtes Signal erkennt, wird die Karte zu Entdeckt und zeigt ihre Anforderung an.",
+        "Geheimnisse verbergen ihren genauen Auslöser. Sobald Open Computer ein verwandtes Signal erkennt, wird die Karte zu Entdeckt und zeigt ihre Anforderung an.",
       scan_status_header: "Scan-Status",
       scan_status_body:
-        "OpenComputer scannt den lokalen Verlauf einmalig, danach erscheinen die Karten automatisch. Es ist nichts hängengeblieben, wenn dies ein paar Sekunden dauert.",
+        "Open Computer scannt den lokalen Verlauf einmalig, danach erscheinen die Karten automatisch. Es ist nichts hängengeblieben, wenn dies ein paar Sekunden dauert.",
       what_scanned_header: "Was gescannt wird",
       what_scanned_body:
         "Sitzungen, Tool-Aufrufe, Modell-Metadaten, Fehler, Achievements und lokaler Freischaltstatus.",
@@ -604,7 +604,7 @@ export const de: Translations = {
         "Auf X teilen öffnet einen vorgefertigten Post in einem neuen Tab. Klicke zuerst auf Bild kopieren, wenn du das 1200×630-Abzeichen anhängen möchtest – X lässt dich es direkt in den Tweet-Editor einfügen. PNG herunterladen speichert die Datei zur Nutzung an beliebiger Stelle.",
       clipboard_unsupported:
         "Bildkopie über die Zwischenablage wird in diesem Browser nicht unterstützt – nutze stattdessen Herunterladen.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in OpenComputer Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in Open Computer Agent ☤",
     },
   },
   kanban: {

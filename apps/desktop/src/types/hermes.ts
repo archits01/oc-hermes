@@ -1455,7 +1455,7 @@ export interface McpServerTestResponse {
   tools: { name: string; description: string }[]
 }
 
-/** One Nous-approved MCP catalog entry from `GET /api/mcp/catalog`. */
+/** One Open Computer curated MCP catalog entry from `GET /api/mcp/catalog`. */
 export interface McpCatalogEntry {
   name: string
   description: string
