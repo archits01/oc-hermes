@@ -5,7 +5,7 @@ set -euo pipefail
 readonly checkout="${LMI_FREE_MODEL_CHECKOUT:-/opt/opencomputer-v2}"
 readonly data_dir="${LMI_FREE_MODEL_DATA_DIR:-/opt/opencomputer-v2-data}"
 readonly marker='# opencomputer-lmi-free-model-catalog-refresh'
-readonly job="17 3 * * * HERMES_HOME=${data_dir} flock -n ${data_dir}/locks/lmi-free-model-catalog-refresh.lock ${checkout}/venv/bin/python ${checkout}/scripts/ops/lmi_free_model_catalog_refresh.py >> ${data_dir}/logs/lmi-free-model-catalog-refresh.log 2>&1 ${marker}"
+readonly job="0 4 * * * HERMES_HOME=${data_dir} flock -n ${data_dir}/locks/lmi-free-model-catalog-refresh.lock ${checkout}/venv/bin/python ${checkout}/scripts/ops/lmi_free_model_catalog_refresh.py --timeout 240 >> ${data_dir}/logs/lmi-free-model-catalog-refresh.log 2>&1 ${marker}"
 
 render() {
   printf '%s\n' "$job"
