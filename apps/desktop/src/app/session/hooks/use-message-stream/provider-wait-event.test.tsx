@@ -1,13 +1,17 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
+=======
+import type { GatewayEvent } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+>>>>>>> upstream/main
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $providerWaitSessions } from '@/store/provider-wait'
 import { clearAllSessionStates, dropSessionState } from '@/store/session-states'
-import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './index'
 
@@ -42,8 +46,13 @@ function Harness() {
   return null
 }
 
+<<<<<<< HEAD
 function emit(type: RpcEvent['type'], payload: RpcEvent['payload'] = {}) {
   act(() => handleEvent!({ payload, session_id: SID, type }))
+=======
+function emit(type: GatewayEvent['type'], payload: GatewayEvent['payload'] = {}) {
+  act(() => stream.handleEvent({ payload, session_id: SID, type }))
+>>>>>>> upstream/main
 }
 
 describe('provider wait visibility', () => {
