@@ -1,49 +1,46 @@
-/**
- * Regression #87758: a local desktop pack must never enter electron-builder's
- * publish path, and publish resolution must succeed when something else does
- * enter it.
- *
- * These call the real app-builder-lib resolver rather than asserting on the
- * text of the pack script, so they fail if electron-builder changes the
- * behavior we depend on — not when someone reformats package.json.
- */
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { afterEach, beforeEach, describe, test } from 'vitest'
+import { createRequire } from 'node:module'
+import { LinuxPackager, Packager } from 'app-builder-lib'
+import { afterEach, test, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const desktopPkg = require(path.join(desktopDir, 'package.json'))
+const lib = path.dirname(path.dirname(require.resolve('app-builder-lib')))
+const { getPublishConfigs } = require(path.join(lib, 'dist/publish/PublishManager.js'))
+afterEach(() => vi.unstubAllEnvs())
 
-const { getPublishConfigs } = require('app-builder-lib/out/publish/PublishManager.js')
-const { getRepositoryInfo } = require('app-builder-lib/out/util/repositoryInfo.js')
-
-/**
- * The slice of PlatformPackager that getPublishConfigs actually reads. The
- * repositoryInfo getter mirrors what electron-builder does for real: resolve
- * from THIS package's metadata with projectDir = apps/desktop.
- */
-function fakePackager(metadata) {
-  const info = {
-    get repositoryInfo() {
-      return getRepositoryInfo(desktopDir, metadata, null)
-    },
-    appInfo: { version: '0.0.0', channel: null, updaterCacheDirName: 'hermes' },
-    config: {},
-    options: {}
+test.each([['repository', true, true], ['missing repository', false, true], ['no token', true, false]])(
+  'real supplier publish resolution: %s', async (_name, repository, token) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-resolution-'))
+    for (const key of ['GH_TOKEN', 'GITHUB_TOKEN', 'GITLAB_TOKEN', 'KEYGEN_TOKEN', 'BITBUCKET_TOKEN']) vi.stubEnv(key, '')
+    vi.stubEnv('GITHUB_TOKEN', token ? 'fixture-not-a-real-token' : '')
+    for (const key of ['TRAVIS_REPO_SLUG', 'APPVEYOR_REPO_NAME', 'CIRCLE_PROJECT_USERNAME', 'CIRCLE_PROJECT_REPONAME']) vi.stubEnv(key, undefined)
+    // No .git parent and no production metadata resolver replaced. Only resolution, never publish.
+    try {
+      /** @type {import('app-builder-lib').Metadata} */
+      const metadata = { name: 'fixture', version: '1.0.0', description: 'fixture', author: 'Fixture' }
+      if (repository) metadata.repository = 'https://github.com/NousResearch/hermes-agent'
+      fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(metadata))
+      const info = new Packager({ projectDir: root, config: {} })
+      await info.validateConfig()
+      const packager = new LinuxPackager(info)
+      if (!token) {
+        assert.deepEqual(await getPublishConfigs(packager, null, null, true), [])
+      } else if (!repository) {
+        await assert.rejects(getPublishConfigs(packager, null, null, true), /Cannot detect repository/)
+      } else {
+        const repositoryInfo = await packager.repositoryInfo
+        assert.equal(repositoryInfo.user, 'NousResearch')
+        assert.equal(repositoryInfo.project, 'hermes-agent')
+        assert.deepEqual(await getPublishConfigs(packager, null, null, true), [{ owner: 'NousResearch', repo: 'hermes-agent', provider: 'github' }])
+      }
+    } finally { fs.rmSync(root, { recursive: true, force: true }) }
   }
-  return {
-    platformSpecificBuildOptions: {},
-    config: {},
-    info,
-    platform: { name: 'linux' },
-    appInfo: info.appInfo,
-    expandMacro: value => value
-  }
-}
+)
 
+<<<<<<< HEAD
 const TOKEN_VARS = ['GH_TOKEN', 'GITHUB_TOKEN', 'GITLAB_TOKEN', 'KEYGEN_TOKEN', 'BITBUCKET_TOKEN']
 let savedEnv
 
@@ -122,4 +119,10 @@ describe('local desktop pack stays out of the publish path', () => {
     ])
     assert.ok(desktopPkg.build.mac.target.includes('zip'), 'macOS updater requires the zip target')
   })
+=======
+test('the pack script pins an explicit publish policy', () => {
+  const pack = require('../package.json').scripts.pack
+  assert.match(pack, /--dir\b/)
+  assert.match(pack, /--publish\s+never\b/)
+>>>>>>> upstream/main
 })
