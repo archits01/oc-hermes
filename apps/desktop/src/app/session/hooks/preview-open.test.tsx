@@ -1,11 +1,20 @@
+import type { GatewayEvent } from '@hermes/shared'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { assistantTextPart, type ChatMessage } from '@/lib/chat-messages'
-import { $previewTabs, $previewTarget, closeRightRail, type PreviewTarget } from '@/store/preview'
+import {
+  $browserPages,
+  $previewTabs,
+  $previewTarget,
+  closeRightRail,
+  markBrowserTabPopped,
+  noteBrowserPage,
+  openPreview,
+  type PreviewTarget
+} from '@/store/preview'
 import { $activeSessionId, $currentCwd, $messages, $selectedStoredSessionId } from '@/store/session'
-import type { RpcEvent } from '@/types/hermes'
 
 import { usePreviewRouting } from './use-preview-routing'
 
@@ -19,7 +28,11 @@ function fileTarget(path: string): PreviewTarget {
   return { kind: 'file', label: path, path, previewKind: 'html', source: path, url: `file://${path}` }
 }
 
-let handleEvent: (event: RpcEvent) => void = () => undefined
+function urlTarget(url: string): PreviewTarget {
+  return { kind: 'url', label: url, source: url, url }
+}
+
+let handleEvent: (event: GatewayEvent) => void = () => undefined
 
 function Harness() {
   const routing = usePreviewRouting({
@@ -41,16 +54,31 @@ async function emitPreviewOpen(url = '/tmp/artifact-test.html') {
       payload: { label: 'hi bestie', url },
       session_id: RUNTIME_SESSION_ID,
       type: 'preview.open'
-    } as unknown as RpcEvent)
+    } as unknown as GatewayEvent)
   })
 }
 
+<<<<<<< HEAD
 describe('open_preview', () => {
+=======
+async function emitPreviewClose(url?: string, sessionId = RUNTIME_SESSION_ID) {
+  await act(async () => {
+    handleEvent({
+      payload: url === undefined ? {} : { url },
+      session_id: sessionId,
+      type: 'preview.close'
+    } as unknown as GatewayEvent)
+  })
+}
+
+describe('preview routing', () => {
+>>>>>>> upstream/main
   beforeEach(() => {
     // A live session always has a runtime id; only the STORED id lags.
     $activeSessionId.set(RUNTIME_SESSION_ID)
     $currentCwd.set('/work')
     $messages.set([])
+    $browserPages.set({})
     closeRightRail()
     window.localStorage.clear()
 
@@ -63,6 +91,7 @@ describe('open_preview', () => {
   afterEach(() => {
     cleanup()
     $messages.set([])
+    $browserPages.set({})
     closeRightRail()
     $activeSessionId.set(null)
     $selectedStoredSessionId.set(null)
@@ -128,13 +157,106 @@ describe('open_preview', () => {
           payload: { url: '/tmp/from-tile.html' },
           session_id: 'tile-runtime',
           type: 'preview.open'
-        } as unknown as RpcEvent)
+        } as unknown as GatewayEvent)
       })
 
+<<<<<<< HEAD
       await waitFor(() => expect($previewTarget.get()?.path).toBe('/tmp/from-tile.html'))
     } finally {
       $sessionTiles.set(tiles)
     }
+=======
+      expect($previewTabs.get()).toHaveLength(0)
+    })
+
+    // The turn that calls open_preview is often a TILE's session while focus
+    // sits on main (the user asked, then clicked elsewhere). On-screen is the
+    // bar — gating on focus made an explicit "open reddit" silently vanish.
+    it('honors an open from an open tile session even when main holds focus', async () => {
+      const { $sessionTiles } = await import('@/store/session-states')
+      const tiles = $sessionTiles.get()
+
+      $sessionTiles.set([{ dir: 'right', runtimeId: 'tile-runtime', storedSessionId: 'stored-tile' }])
+      render(<Harness />)
+
+      try {
+        await emitPreviewOpen('/tmp/from-tile.html', 'tile-runtime')
+
+        // Honoured, and owned by the tile's session (#73890): it shows in
+        // that session's drawer, not in whichever one holds focus.
+        await waitFor(() =>
+          expect($previewTabs.get().map(tab => [tab.target.path, tab.sessionId])).toEqual([
+            ['/tmp/from-tile.html', 'stored-tile']
+          ])
+        )
+      } finally {
+        $sessionTiles.set(tiles)
+      }
+    })
+
+    it('opens a second target as its own tab rather than replacing the first', async () => {
+      render(<Harness />)
+
+      await emitPreviewOpen('/tmp/one.html')
+      await waitFor(() => expect($previewTabs.get()).toHaveLength(1))
+
+      await emitPreviewOpen('/tmp/two.html')
+      await waitFor(() => expect($previewTabs.get()).toHaveLength(2))
+
+      expect($previewTarget.get()?.path).toBe('/tmp/two.html')
+    })
+
+    it('re-fronts the existing tab when the same target opens twice', async () => {
+      render(<Harness />)
+
+      await emitPreviewOpen('/tmp/one.html')
+      await emitPreviewOpen('/tmp/one.html')
+
+      await waitFor(() => expect($previewTabs.get()).toHaveLength(1))
+    })
+
+    it('renders a tool-opened html file rather than showing its source', async () => {
+      render(<Harness />)
+
+      await emitPreviewOpen()
+
+      await waitFor(() => expect($previewTarget.get()?.renderMode).toBe('preview'))
+    })
+
+    // Offer, don't hijack: only an explicit open_preview call opens the rail.
+    it('does not infer a preview from assistant prose', async () => {
+      render(<Harness />)
+
+      await act(async () => {
+        $messages.set([
+          assistantMessage('a1', 'Preview: http://localhost:5173/'),
+          assistantMessage('a2', 'Open /work/demo.html')
+        ])
+      })
+
+      expect($previewTabs.get()).toHaveLength(0)
+      expect(window.hermesDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
+    })
+
+    it('does not open a preview off the back of a tool result', async () => {
+      render(<Harness />)
+
+      await act(async () => {
+        handleEvent({
+          payload: { inline_diff: 'a/preview-demo.html -> b/preview-demo.html\n' },
+          session_id: RUNTIME_SESSION_ID,
+          type: 'tool.complete'
+        } as unknown as GatewayEvent)
+        handleEvent({
+          payload: { path: './dist/index.html' },
+          session_id: RUNTIME_SESSION_ID,
+          type: 'tool.complete'
+        } as unknown as GatewayEvent)
+      })
+
+      expect($previewTabs.get()).toHaveLength(0)
+    })
+>>>>>>> upstream/main
   })
 
   it('opens a second target as its own tab rather than replacing the first', async () => {
@@ -197,6 +319,98 @@ describe('open_preview', () => {
       } as unknown as RpcEvent)
     })
 
+<<<<<<< HEAD
     expect($previewTabs.get()).toHaveLength(0)
+=======
+    it('closes a Browser tab by the page it navigated to', async () => {
+      render(<Harness />)
+      openPreview(urlTarget('https://example.com/start'))
+      const tabId = $previewTabs.get()[0].id
+
+      noteBrowserPage(tabId, {
+        title: 'Dashboard',
+        url: 'https://example.com/dashboard'
+      })
+
+      await emitPreviewClose('https://example.com/dashboard')
+
+      expect($previewTabs.get()).toHaveLength(0)
+      expect(window.localStorage.getItem('hermes.desktop.previewTabs.v2')).toBeNull()
+    })
+
+    it('does not remove a popped Browser tab through the persisted-url fallback', async () => {
+      render(<Harness />)
+      openPreview(urlTarget('https://example.com/start'))
+      const tabId = $previewTabs.get()[0].id
+
+      noteBrowserPage(tabId, {
+        title: 'Dashboard',
+        url: 'https://example.com/dashboard'
+      })
+      markBrowserTabPopped(tabId, true)
+
+      try {
+        await emitPreviewClose('https://example.com/start')
+
+        expect($previewTabs.get().map(tab => tab.id)).toEqual([tabId])
+      } finally {
+        markBrowserTabPopped(tabId, false)
+      }
+    })
+
+    it('closes only the tile session tabs when its agent closes without a url', async () => {
+      const { $sessionTiles } = await import('@/store/session-states')
+      const tiles = $sessionTiles.get()
+
+      $selectedStoredSessionId.set('stored-main')
+      $sessionTiles.set([{ dir: 'right', runtimeId: 'tile-runtime', storedSessionId: 'stored-tile' }])
+      render(<Harness />)
+
+      try {
+        await emitPreviewOpen('/tmp/main.html')
+        await emitPreviewOpen('/tmp/from-tile.html', 'tile-runtime')
+        await waitFor(() => expect($previewTabs.get()).toHaveLength(2))
+
+        await emitPreviewClose('', 'tile-runtime')
+
+        expect($previewTabs.get().map(tab => [tab.target.path, tab.sessionId])).toEqual([
+          ['/tmp/main.html', 'stored-main']
+        ])
+        expect($previewTarget.get()?.path).toBe('/tmp/main.html')
+      } finally {
+        $sessionTiles.set(tiles)
+      }
+    })
+
+    it('ignores a close from a session that is not the one on screen', async () => {
+      render(<Harness />)
+
+      await emitPreviewOpen('/tmp/stay.html')
+      await waitFor(() => expect($previewTabs.get()).toHaveLength(1))
+
+      await emitPreviewClose('/tmp/stay.html', 'some-other-session')
+
+      expect($previewTabs.get()).toHaveLength(1)
+    })
+
+    it('honors a close from an open tile session even when main holds focus', async () => {
+      const { $sessionTiles } = await import('@/store/session-states')
+      const tiles = $sessionTiles.get()
+
+      $sessionTiles.set([{ dir: 'right', runtimeId: 'tile-runtime', storedSessionId: 'stored-tile' }])
+      render(<Harness />)
+
+      try {
+        await emitPreviewOpen('/tmp/from-tile.html', 'tile-runtime')
+        await waitFor(() => expect($previewTabs.get()).toHaveLength(1))
+
+        await emitPreviewClose('/tmp/from-tile.html', 'tile-runtime')
+
+        await waitFor(() => expect($previewTabs.get()).toHaveLength(0))
+      } finally {
+        $sessionTiles.set(tiles)
+      }
+    })
+>>>>>>> upstream/main
   })
 })

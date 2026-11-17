@@ -1,12 +1,16 @@
+<<<<<<< HEAD
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
+=======
+import type { GatewayEvent } from '@hermes/shared'
+import { act, cleanup } from '@testing-library/react'
+>>>>>>> upstream/main
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $petActivity, $petState, setPetActivity } from '@/store/pet'
-import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './index'
 
@@ -48,8 +52,13 @@ async function mountStream() {
   await waitFor(() => expect(handleEvent).not.toBeNull())
 }
 
+<<<<<<< HEAD
 function emit(type: RpcEvent['type'], payload: RpcEvent['payload'] = {}, sessionId = SID) {
   act(() => handleEvent!({ payload, session_id: sessionId, type }))
+=======
+function emit(type: GatewayEvent['type'], payload: GatewayEvent['payload'] = {}, sessionId = SID) {
+  act(() => stream.handleEvent({ payload, session_id: sessionId, type }))
+>>>>>>> upstream/main
 }
 
 describe('pet tool-failure reaction', () => {
