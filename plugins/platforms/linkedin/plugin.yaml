@@ -1,0 +1,45 @@
+name: linkedin-platform
+label: LinkedIn (via Unipile)
+kind: platform
+version: 1.0.0
+description: >
+  LinkedIn DM gateway adapter for Hermes Agent.
+  Connects to LinkedIn via Unipile API and routes each lead's
+  messages into isolated Hermes sessions. Enables fully autonomous
+  sales outreach — the agent converses naturally as Archit Sakri,
+  qualifies leads, and moves them toward a meeting.
+author: Open Computer
+requires_env:
+  - name: LINKEDIN_UNIPILE_DSN
+    description: "Unipile DSN (e.g. api46.unipile.com:17642)"
+    prompt: "Unipile DSN"
+    password: false
+  - name: LINKEDIN_UNIPILE_API_KEY
+    description: "Unipile API key"
+    prompt: "Unipile API key"
+    password: true
+  - name: LINKEDIN_ACCOUNT_ID
+    description: "LinkedIn account ID in Unipile"
+    prompt: "LinkedIn account ID"
+    password: false
+  - name: SARVAM_API_KEY
+    description: "Sarvam Voice Agents API key for calls"
+    prompt: "Sarvam Voice Agents API key"
+    password: true
+optional_env:
+  - name: LINKEDIN_ALLOWED_USERS
+    description: "Comma-separated member_ids allowed to trigger agent (if empty, uses leads DB)"
+    prompt: "Allowed member IDs (comma-separated, or empty to use leads DB)"
+    password: false
+  - name: LINKEDIN_ALLOW_ALL_USERS
+    description: "Allow any LinkedIn user to trigger the agent (dev only)"
+    prompt: "Allow all users? (true/false)"
+    password: false
+  - name: LINKEDIN_HOME_CHANNEL
+    description: "Default chat_id for cron delivery"
+    prompt: "Home channel chat_id (or empty)"
+    password: false
+  - name: LINKEDIN_WEBHOOK_PORT
+    description: "Port for the webhook server (default: 8644)"
+    prompt: "Webhook port"
+    password: false
