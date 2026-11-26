@@ -1,0 +1,35 @@
+name: instagram-platform
+label: Instagram (via Unipile)
+kind: platform
+version: 1.0.0
+description: >
+  Instagram DM adapter for Hermes gateway. Routes inbound Instagram messages
+  through Unipile's unified API into isolated Hermes sessions per sender.
+  Registers instagram-tools toolset for IG-specific actions.
+author: LMI
+requires_env:
+  - name: INSTAGRAM_UNIPILE_DSN
+    description: "Unipile DSN (e.g. api41.unipile.com:17178)"
+    prompt: "Unipile DSN"
+    password: false
+  - name: INSTAGRAM_UNIPILE_API_KEY
+    description: "Unipile API key"
+    prompt: "Unipile API key"
+    password: true
+  - name: INSTAGRAM_ACCOUNT_ID
+    description: "Unipile account ID for Instagram"
+    prompt: "Instagram account ID"
+    password: false
+optional_env:
+  - name: INSTAGRAM_WEBHOOK_PORT
+    description: "Webhook listener port (default 8645)"
+    prompt: "Instagram webhook port"
+    password: false
+  - name: INSTAGRAM_ALLOWED_USERS
+    description: "Comma-separated Instagram user IDs (allowlist)"
+    prompt: "Allowed Instagram user IDs"
+    password: false
+  - name: INSTAGRAM_ALLOW_ALL_USERS
+    description: "Set to 'true' to allow all inbound DMs"
+    prompt: "Allow all users?"
+    password: false
